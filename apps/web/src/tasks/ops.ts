@@ -61,6 +61,8 @@ export type TaskPatch = Partial<
     | 'priority'
     | 'dueDate'
     | 'startDate'
+    | 'dueTime'
+    | 'startTime'
     | 'projectId'
     | 'parentId'
     | 'fields'

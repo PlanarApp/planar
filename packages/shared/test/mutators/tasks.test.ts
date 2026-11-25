@@ -135,6 +135,15 @@ describe('task.create', () => {
 });
 
 describe('task.update', () => {
+  it('время срока: только с датой, очистка даты обнуляет время', async () => {
+    const { tx, t } = await setup();
+    expect(await code(run(tx, 'task.update', { id: t, dueTime: '14:30' }))).toBe('invalid_args');
+    await run(tx, 'task.update', { id: t, dueDate: '2026-11-01', dueTime: '14:30' });
+    await run(tx, 'task.update', { id: t, dueDate: '2026-11-02' });
+    expect(await tx.get('tasks', t)).toMatchObject({ dueDate: '2026-11-02', dueTime: '14:30' });
+    await run(tx, 'task.update', { id: t, dueDate: null });
+    expect(await tx.get('tasks', t)).toMatchObject({ dueDate: null, dueTime: null });
+  });
   it('пишет только переданные поля + updatedAt; null обнуляет', async () => {
     const { tx, s, t } = await setup();
     const fid = id();

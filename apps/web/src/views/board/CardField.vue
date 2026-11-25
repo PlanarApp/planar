@@ -86,11 +86,20 @@ const empty = 'text-fg-subtle opacity-60';
         :task-id="task.id"
         :start="task.startDate"
         :due="task.dueDate"
+        :start-time="task.startTime"
+        :due-time="task.dueTime"
         @update:start="(v: string | null) => updateTask(task.id, { startDate: v })"
         @update:due="(v: string | null) => updateTask(task.id, { dueDate: v })"
+        @update:start-time="(v: string | null) => updateTask(task.id, { startTime: v })"
+        @update:due-time="(v: string | null) => updateTask(task.id, { dueTime: v })"
         ><template #value>
           <CalendarDays v-if="due && iconOnly" :size="14" :class="dueTone" />
-          <DatesValue v-else-if="due" :start="task.startDate" :due="task.dueDate" />
+          <DatesValue
+            v-else-if="due"
+            :start="task.startDate"
+            :due="task.dueDate"
+            :start-time="task.startTime"
+            :due-time="task.dueTime" />
           <CalendarDays v-else :size="14" :class="empty" /></template
       ></TaskDatesPicker>
       <AssigneePicker
@@ -132,7 +141,13 @@ const empty = 'text-fg-subtle opacity-60';
       </template>
       <template v-else-if="col === 'dueDate'">
         <CalendarDays v-if="due && iconOnly" :size="14" :class="dueTone" />
-        <DatesValue v-else-if="due" :start="task.startDate" :due="task.dueDate" />
+        <DatesValue
+          v-else-if="due"
+          :start="task.startDate"
+          :due="task.dueDate"
+          :start-time="task.startTime"
+          :due-time="task.dueTime"
+        />
         <CalendarDays v-else :size="14" :class="empty" />
       </template>
       <template v-else-if="col === 'assignee'">

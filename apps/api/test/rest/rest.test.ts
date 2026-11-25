@@ -300,6 +300,15 @@ describe('REST /api/v1: запись', () => {
     expect(same.json().data.title).toBe('Переименована');
   });
 
+  it('срок со временем: POST/PATCH dueTime, без даты — 400', async () => {
+    const t = await create({ dueDate: '2026-12-01', dueTime: '14:30' });
+    expect(t).toMatchObject({ dueDate: '2026-12-01', dueTime: '14:30', startTime: null });
+    const r = await call('PATCH', `/api/v1/tasks/${t.id}`, 'admin', { dueDate: null });
+    expect(r.json().data).toMatchObject({ dueDate: null, dueTime: null });
+    const bad = await call('PATCH', `/api/v1/tasks/${t.id}`, 'admin', { dueTime: '09:00' });
+    expect(bad.statusCode).toBe(400);
+  });
+
   it('PATCH: смена статуса → completedAt; обратно → null', async () => {
     const t = await create({});
     const done = (

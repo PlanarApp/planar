@@ -896,6 +896,7 @@ async function insertAll(tx: Tx, now: Date) {
         rank: ranks[i],
         dueDate: due !== null ? day(due) : null,
         startDate: due !== null && st === 2 ? day(due - 7) : null,
+        dueTime: due !== null && i % 5 === 0 ? '10:00' : null, // some due dates with a time of day
         createdBy: uid_[who.split(',')[0]!],
         completedAt: done ? at(due !== null ? Math.min(due, -1) : -1) : null,
         cycleId: cycleOf(p.key, t),

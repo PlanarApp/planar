@@ -14,6 +14,8 @@ export const name = z.string().min(1).max(100);
 export const color = z.string();
 export const doc = entitySchemas.comments.shape.body;
 export const date = z.iso.date();
+/** Time of day 'HH:MM' (an optional addition to a task's start/due date). */
+export const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 export const record = z.record(z.string(), z.unknown());
 
 export const bad = (msg: string) => new MutatorError('invalid_args', msg);

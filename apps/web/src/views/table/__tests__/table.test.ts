@@ -47,11 +47,12 @@ vi.mock('../../../tasks', async (orig) => {
     AssigneePicker: stub('AssigneePicker'),
     PriorityPicker: stub('PriorityPicker'),
     DueDatePicker: stub('DueDatePicker'),
+    TaskDatesPicker: stub('TaskDatesPicker'),
     LabelPicker: stub('LabelPicker'),
   };
 });
 const View = (await import('../View.vue')).default;
-const { StatusPicker } = await import('../../../tasks');
+const { StatusPicker, TaskDatesPicker } = await import('../../../tasks');
 const { useSelection } = await import('../..');
 
 Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, value: 600 });
@@ -260,6 +261,17 @@ describe('table', () => {
     expect(h$.updateTask).toHaveBeenCalledTimes(3);
     // bulk — without the open subtasks/comments question (PLNRAPP-138)
     expect(h$.updateTask).toHaveBeenCalledWith('id2', { statusId: 's2' }, false);
+  });
+  it('table: массовый срок — тот же пикер дат, что в форме задачи', async () => {
+    await show();
+    useSelection().set(['id1', 'id2']);
+    await flushPromises();
+    const picker = w.get('[role=toolbar]').findComponent(TaskDatesPicker);
+    picker.vm.$emit('update:due', '2026-12-01');
+    picker.vm.$emit('update:dueTime', '10:30');
+    await flushPromises();
+    expect(h$.updateTask).toHaveBeenCalledWith('id1', { dueDate: '2026-12-01' });
+    expect(h$.updateTask).toHaveBeenCalledWith('id2', { dueTime: '10:30' });
   });
   it('table: Shift-выделение диапазона', async () => {
     await show();

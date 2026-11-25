@@ -107,8 +107,12 @@ function pick(e: MouseEvent) {
       :task-id="field.task.id"
       :start="field.task.startDate"
       :due="field.task.dueDate"
+      :start-time="field.task.startTime"
+      :due-time="field.task.dueTime"
       @update:start="(v: string | null) => updateTask(field!.task.id, { startDate: v })"
       @update:due="(v: string | null) => updateTask(field!.task.id, { dueDate: v })"
+      @update:start-time="(v: string | null) => updateTask(field!.task.id, { startTime: v })"
+      @update:due-time="(v: string | null) => updateTask(field!.task.id, { dueTime: v })"
     />
   </div>
 </template>

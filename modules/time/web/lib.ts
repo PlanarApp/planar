@@ -21,6 +21,10 @@ export function clock(sec: number): string {
   return h ? `${h}:${m}:${s}` : `${m}:${s}`;
 }
 
+/** How the tracked time stands against the estimate: ≥ 80% — near, over it — over; no estimate — none. */
+export const timeTone = (spentSec: number, estSec: number): 'near' | 'over' | '' =>
+  estSec <= 0 ? '' : spentSec > estSec ? 'over' : spentSec >= estSec * 0.8 ? 'near' : '';
+
 /** «1:30» (hours:minutes); 0 → empty. */
 export const hm = (sec: number): string =>
   sec <= 0

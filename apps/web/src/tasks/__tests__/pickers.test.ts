@@ -175,6 +175,21 @@ describe('tasks:pickers', () => {
       expect(w.emitted('update:due')?.at(-1)).toEqual([null]);
       w.unmount();
     });
+    it('время — необязательное, поле появляется только у заданной даты; в значении — после даты', async () => {
+      const w = mount(TaskDatesPicker, {
+        ...opts,
+        props: { start: null, due: '2026-11-20', dueTime: '14:30' },
+      });
+      expect(w.get('[data-testid=task-dates-value]').text()).toContain('14:30');
+      await open(w);
+      const times = document.body.querySelectorAll<HTMLInputElement>('input[type="time"]');
+      expect(times).toHaveLength(1); // no start date — no start time
+      expect(times[0]!.value).toBe('14:30');
+      times[0]!.value = '09:00';
+      times[0]!.dispatchEvent(new Event('input'));
+      expect(w.emitted('update:dueTime')?.[0]).toEqual(['09:00']);
+      w.unmount();
+    });
   });
 });
 

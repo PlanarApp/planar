@@ -98,6 +98,17 @@ export const entitySchemas = {
     rank: z.string().min(1),
     dueDate: z.iso.date().nullable(),
     startDate: z.iso.date().nullable(),
+    // optional time of day 'HH:MM' for the dates; old rows and client cache — without the fields
+    dueTime: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+      .nullable()
+      .default(null),
+    startTime: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+      .nullable()
+      .default(null),
     createdBy: uuid,
     completedAt: ts.nullable(),
     fields: z.record(z.string(), z.unknown()),
@@ -232,6 +243,8 @@ export const entitySchemas = {
       'label_added',
       'label_removed',
       'commented',
+      'merged_into',
+      'merged_from',
     ]),
     changes: z.record(z.string(), z.unknown()),
     viaTokenId: uuid.nullable(),

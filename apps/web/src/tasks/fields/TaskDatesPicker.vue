@@ -14,6 +14,9 @@ const props = defineProps<{ taskId?: string }>();
 const DayOptions = defineAsyncComponent(() => import('../../inbox/DayOptions.vue'));
 const start = defineModel<string | null>('start', { default: null });
 const due = defineModel<string | null>('due', { default: null });
+// optional time of day 'HH:MM' for each date (only with the date)
+const startTime = defineModel<string | null>('startTime', { default: null });
+const dueTime = defineModel<string | null>('dueTime', { default: null });
 const { t } = useI18n();
 const open = defineModel<boolean>('open', { default: false });
 const clear = () => {
@@ -41,7 +44,7 @@ const clear = () => {
             aria-hidden="true"
             data-testid="task-dates-due"
           />
-          <DatesValue :start="start" :due="due" />
+          <DatesValue :start="start" :due="due" :start-time="startTime" :due-time="dueTime" />
         </slot>
       </button>
     </template>
@@ -55,11 +58,29 @@ const clear = () => {
         @update:model-value="(v: string) => (start = v || null)"
       />
       <Input
+        v-if="start"
+        :model-value="startTime ?? ''"
+        type="time"
+        size="sm"
+        :label="t('task.startTime')"
+        data-testid="task-start-time"
+        @update:model-value="(v: string) => (startTime = v || null)"
+      />
+      <Input
         :model-value="due ?? ''"
         type="date"
         size="sm"
         :label="t('tasks.dueDate')"
         @update:model-value="(v: string) => (due = v || null)"
+      />
+      <Input
+        v-if="due"
+        :model-value="dueTime ?? ''"
+        type="time"
+        size="sm"
+        :label="t('task.dueTime')"
+        data-testid="task-due-time"
+        @update:model-value="(v: string) => (dueTime = v || null)"
       />
       <Button v-if="start || due" size="sm" variant="ghost" @click="clear">{{
         t('tasks.clear')

@@ -619,14 +619,36 @@ export class ServerTx implements Tx {
     } else if (entity === 'comments' && next && !old) {
       kind = 'commented';
       changes = { commentId: row.id };
+    } else if (entity === 'taskLinks' && next && !old && next.kind === 'duplicates') {
+      // a «duplicates» link is what task.merge leaves: a trace in the history of both tasks, with the other one's title
+      const [src, dst] = [
+        await this.rawGet('tasks', next.taskId as string),
+        await this.rawGet('tasks', next.targetId as string),
+      ];
+      if (src && dst) {
+        await this.addActivity(src, 'merged_into', { taskId: dst.id, title: dst.title });
+        await this.addActivity(dst, 'merged_from', { taskId: src.id, title: src.title });
+      }
+      return;
     }
     if (!kind) return;
+    await this.addActivity(
+      {
+        id: entity === 'tasks' ? (row.id as string) : (row.taskId as string),
+        spaceId: row.spaceId as string,
+      },
+      kind,
+      changes,
+    );
+  }
+
+  private async addActivity(t: { id: string; spaceId: string }, kind: string, changes: Wire) {
     await this.store(
       'activity',
       this.parse('activity', {
         id: uuidv7(),
-        spaceId: row.spaceId,
-        taskId: entity === 'tasks' ? row.id : row.taskId,
+        spaceId: t.spaceId,
+        taskId: t.id,
         actorId: this.ctx.userId,
         kind,
         changes,

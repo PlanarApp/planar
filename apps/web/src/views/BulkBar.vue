@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { CalendarDays } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import { Button, Dialog } from '../ui';
 import BulkMerge from './BulkMerge.vue';
 import {
   BulkAssigneePicker,
-  DueDatePicker,
   PriorityPicker,
+  TaskDatesPicker,
   StatusPicker,
   archiveTask,
   deleteTask,
@@ -82,7 +83,19 @@ async function removeSelected() {
       @apply="assign"
     />
     <PriorityPicker @update:model-value="each((x) => updateTask(x.id, { priority: $event }))" />
-    <DueDatePicker @update:model-value="each((x) => updateTask(x.id, { dueDate: $event }))" />
+    <!-- the same dates picker as in the task form; the key resets it when the selection changes -->
+    <TaskDatesPicker
+      :key="chosen.map((x) => x.id).join()"
+      @update:start="(v: string | null) => each((x) => updateTask(x.id, { startDate: v }))"
+      @update:due="(v: string | null) => each((x) => updateTask(x.id, { dueDate: v }))"
+      @update:start-time="(v: string | null) => each((x) => updateTask(x.id, { startTime: v }))"
+      @update:due-time="(v: string | null) => each((x) => updateTask(x.id, { dueTime: v }))"
+    >
+      <template #value>
+        <CalendarDays :size="14" aria-hidden="true" />
+        <span>{{ t('tasks.dueDate') }}</span>
+      </template>
+    </TaskDatesPicker>
     <Button size="sm" data-testid="bulk-archive" @click="archiveSelected">{{
       t('archive.toArchive')
     }}</Button>
