@@ -4,7 +4,7 @@ import type { MaybeRefOrGetter } from 'vue';
 import type { AssignedComments, Row } from '@planar/shared';
 import { useLive } from '../links/live';
 import { db, useQuery } from '../sync';
-import { byRank } from './dictionaries';
+import { byRank, taskCache, useShared } from './dictionaries';
 import { assignedCommentsView, readLinks } from './projection';
 
 export { useLabels, useMembers, useStatuses } from './dictionaries';
@@ -102,45 +102,56 @@ export const notArchived = <T extends { projectId?: string | null }>(
   archived: Set<string> | undefined,
 ): T[] => (rows ?? []).filter((r) => !r.projectId || !archived?.has(r.projectId));
 
-export function useSpaces() {
-  return useQuery(async () => {
-    const [spaces, projects] = await Promise.all([
-      db.table<Row<'spaces'>>('spaces').toArray(),
-      db.table<Row<'projects'>>('projects').toArray(),
-    ]);
-    const live = projects.filter((p) => !p.archivedAt).sort(byRank);
-    return spaces
-      .sort(byRank)
-      .map((s) => ({ ...s, projects: live.filter((p) => p.spaceId === s.id) }));
-  });
+/** Spaces with their live projects: one subscription for all (TaskDetail, breadcrumbs, pickers). */
+export const useSpaces = () => useShared('sp', () => '', spaceTree);
+async function spaceTree() {
+  const [spaces, projects] = await Promise.all([
+    db.table<Row<'spaces'>>('spaces').toArray(),
+    db.table<Row<'projects'>>('projects').toArray(),
+  ]);
+  const live = projects.filter((p) => !p.archivedAt).sort(byRank);
+  return spaces
+    .sort(byRank)
+    .map((s) => ({ ...s, projects: live.filter((p) => p.spaceId === s.id) }));
 }
+
+const TASK_CACHE = 50;
+/** last read tasks by id and by key: the panel opens with a ready task, not an empty frame */
+const remember = (k: string, t: TaskView | null) => {
+  for (const x of t ? new Set([k, t.id, t.key]) : [k]) {
+    taskCache.delete(x);
+    taskCache.set(x, t);
+  }
+  while (taskCache.size > TASK_CACHE) taskCache.delete(taskCache.keys().next().value!);
+  return t;
+};
+
+const readTask = async (k: string): Promise<TaskView | null> => {
+  let task: Row<'tasks'> | undefined;
+  if (UUID.test(k)) task = await db.table<Row<'tasks'>>('tasks').get(k);
+  else {
+    const m = /^(.+)-(\d+)$/.exec(k);
+    const p = m && (await db.table<Row<'projects'>>('projects').where('key').equals(m[1]!).first());
+    task =
+      p && m
+        ? await db
+            .table<Row<'tasks'>>('tasks')
+            .where('[projectId+number]')
+            .equals([p.id, Number(m[2])])
+            .first()
+        : undefined;
+  }
+  if (!task) return null;
+  const p = await db.table<Row<'projects'>>('projects').get(task.projectId);
+  return (await views([task], new Map(p ? [[p.id, p.key]] : [])))[0] ?? null;
+};
+
+/** Reads the task into the cache before the panel opens (openTask), so the first frame is complete. */
+export const primeTask = async (k: string): Promise<void> => void remember(k, await readTask(k));
 
 export const useTask = (idOrKey: MaybeRefOrGetter<string>) =>
   useLive(
     () => toValue(idOrKey),
-    async (k) => {
-      let task: Row<'tasks'> | undefined;
-      if (UUID.test(k)) task = await db.table<Row<'tasks'>>('tasks').get(k);
-      else {
-        const m = /^(.+)-(\d+)$/.exec(k);
-        const p =
-          m &&
-          (await db
-            .table<Row<'projects'>>('projects')
-            .filter((x) => x.key === m[1])
-            .first());
-        task =
-          p && m
-            ? await db
-                .table<Row<'tasks'>>('tasks')
-                .where('projectId')
-                .equals(p.id)
-                .filter((t) => t.number === Number(m[2]))
-                .first()
-            : undefined;
-      }
-      if (!task) return null;
-      const p = await db.table<Row<'projects'>>('projects').get(task.projectId);
-      return (await views([task], new Map(p ? [[p.id, p.key]] : [])))[0];
-    },
+    async (k) => remember(k, await readTask(k)),
+    (k) => (taskCache.get(k) as TaskView | null | undefined) ?? undefined,
   );

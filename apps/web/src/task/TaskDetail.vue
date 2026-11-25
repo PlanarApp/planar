@@ -725,6 +725,7 @@ const panelComponent = computed(() => {
             image
             refs
             collapsible
+            :model-value="task.description"
             :collab="{ name: `task:${task.id}` }"
             @attach="(fs) => attachments?.addFiles(fs)"
           />

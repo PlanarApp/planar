@@ -23,6 +23,8 @@ interface Shared {
   timer?: ReturnType<typeof setTimeout>;
 }
 const shared = new Map<string, Shared>();
+/** last read tasks (see useTask) — here, so tests reset it together with the dictionaries */
+export const taskCache = new Map<string, unknown>();
 
 function retain<T>(key: string, fn: () => Promise<T>): Shared {
   let x = shared.get(key);
@@ -45,7 +47,7 @@ function release(key: string): void {
   (x.timer as unknown as { unref?: () => void }).unref?.(); // Node: don't keep the process alive
 }
 
-function useShared<T>(kind: string, arg: () => string, fn: (a: string) => Promise<T>) {
+export function useShared<T>(kind: string, arg: () => string, fn: (a: string) => Promise<T>) {
   const out = shallowRef<T>();
   let key = '';
   let follow: WatchHandle | undefined;
@@ -121,6 +123,7 @@ export function warmSpace(spaceId: string): void {
 
 /** for tests: forget the dictionaries (tests clear the database directly) */
 export function resetDictionaries(): void {
+  taskCache.clear();
   for (const x of shared.values()) {
     clearTimeout(x.timer);
     x.sub.unsubscribe();

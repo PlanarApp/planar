@@ -138,7 +138,7 @@ describe('table', () => {
     await w.get('[data-task="PLN-1"] [data-col=title] span').trigger('click');
     vi.advanceTimersByTime(250);
     vi.useRealTimers();
-    expect(router.push).toHaveBeenCalledWith('/t/PLN-1');
+    await vi.waitFor(() => expect(router.push).toHaveBeenCalledWith('/t/PLN-1'));
   });
   it('table: раскладка по умолчанию', () => {
     expect(loadLayout('p1').columns.map((c) => c.id)).toEqual([

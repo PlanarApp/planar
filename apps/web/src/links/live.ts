@@ -14,6 +14,8 @@ import { keep } from '../sync/query';
 export function useLive<A, T>(
   arg: MaybeRefOrGetter<A>,
   fn: (a: A) => T | Promise<T>,
+  /** synchronous start value for the argument (cache): shown instead of `undefined` until liveQuery answers */
+  initial?: (a: A) => T | undefined,
 ): Readonly<Ref<T | undefined>> {
   const r = shallowRef<T>();
   let unsub: (() => void) | undefined;
@@ -21,7 +23,7 @@ export function useLive<A, T>(
     () => toValue(arg),
     (a) => {
       unsub?.();
-      r.value = undefined;
+      r.value = initial?.(a);
       const s = liveQuery(() => fn(a)).subscribe({
         next: (v) => (r.value = keep(r.value, v)),
         error: () => {},
