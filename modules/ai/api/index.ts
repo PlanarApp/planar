@@ -36,7 +36,7 @@ import {
 })
 class AiModule {}
 
-export { resolveConnection, secretOf } from './connections.js';
+export { pickModel, resolveConnection, secretOf } from './connections.js';
 export { generateStructured, checkConnection, costOf, type LlmConnection } from './llm.js';
 export { MAX_RESTARTS } from '../shared/index.js';
 export { EngineAborted, sweep, tracked } from './monitor.js';

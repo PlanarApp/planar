@@ -164,9 +164,9 @@ describe('ai: подключения', () => {
   });
 
   it('смена модели без ключа оставляет сохранённый ключ и проверяет им', async () => {
-    await put('root', 'workspace');
+    const id = (await put('root', 'workspace')).json().connection.id;
     hits = [];
-    const r = await put('root', 'workspace', undefined, { apiKey: undefined, model: 'fake-2' });
+    const r = await put('root', 'workspace', undefined, { id, apiKey: undefined, model: 'fake-2' });
     expect(r.statusCode).toBe(200);
     expect(hits[0]!.auth).toBe(`Bearer ${SECRET}`);
     const rows = await db.select().from(C);
@@ -209,6 +209,61 @@ describe('ai: подключения', () => {
     const id = (await list('spaceAdmin', 'project', w.projectId)).json().connection.id;
     expect((await call('DELETE', `connections/${id}`, 'spaceAdmin')).statusCode).toBe(204);
     expect((await resolveConnection(db, w.projectId))!.model).toBe('m-space');
+  });
+
+  it('воркспейс: список подключений, первое — по умолчанию; изменить по id, удалить', async () => {
+    const a = (await put('root', 'workspace', undefined, { model: 'm-a' })).json().connection;
+    const b = (await put('root', 'workspace', undefined, { model: 'm-b' })).json().connection;
+    expect(b.id).not.toBe(a.id);
+    const g = (await list('root', 'workspace')).json();
+    expect(g.connections.map((c: { model: string }) => c.model)).toEqual(['m-a', 'm-b']);
+    expect(g.connection.id).toBe(a.id);
+    expect(g.connections.length).toBe(2);
+    expect((await resolveConnection(db, w.projectId))!.model).toBe('m-a');
+    // update by id keeps the key; a foreign id is 404
+    expect(
+      (await put('root', 'workspace', undefined, { id: b.id, apiKey: undefined, model: 'm-b2' }))
+        .statusCode,
+    ).toBe(200);
+    expect(
+      (await put('root', 'workspace', undefined, { id: uuidv7(), apiKey: undefined })).statusCode,
+    ).toBe(404);
+    // the default goes: the next one takes over
+    expect((await call('DELETE', `connections/${a.id}`, 'root')).statusCode).toBe(204);
+    expect((await resolveConnection(db, w.projectId))!.model).toBe('m-b2');
+    expect((await call('GET', 'connections?scope=workspace', 'spaceAdmin')).statusCode).toBe(403);
+  });
+
+  it('пространство и проект: выбрать подключение родителя; своё снимает выбор; удаление подключения сбрасывает на наследование', async () => {
+    const a = (await put('root', 'workspace', undefined, { model: 'm-a' })).json().connection;
+    const b = (await put('root', 'workspace', undefined, { model: 'm-b' })).json().connection;
+    const choose = (who: string, scope: string, scopeId: string, connectionId: string | null) =>
+      call('PUT', 'connections/choice', who, { scope, scopeId, connectionId });
+    expect((await choose('spaceAdmin', 'space', w.spaceId, b.id)).statusCode).toBe(200);
+    expect((await resolveConnection(db, w.projectId))!.model).toBe('m-b');
+    const g = (await list('spaceAdmin', 'space', w.spaceId)).json();
+    expect(g).toMatchObject({ connection: null, choice: b.id, effective: { model: 'm-b' } });
+    expect(g.parents.map((c: { id: string }) => c.id)).toEqual([a.id, b.id]);
+    // a project picks its space's own connection
+    const own = (await put('spaceAdmin', 'space', w.spaceId, { model: 'm-space' })).json()
+      .connection;
+    expect((await list('spaceAdmin', 'space', w.spaceId)).json().choice).toBeNull();
+    expect((await choose('spaceAdmin', 'project', w.projectId, own.id)).statusCode).toBe(200);
+    expect((await resolveConnection(db, w.projectId))!.model).toBe('m-space');
+    // a connection that is not a parent's is refused; a member may not choose
+    const other = (await put('spaceAdmin', 'project', w.projectId, { model: 'm-p' })).json()
+      .connection;
+    expect((await list('spaceAdmin', 'project', w.projectId)).json().choice).toBeNull();
+    expect((await choose('spaceAdmin', 'space', w.spaceId, other.id)).statusCode).toBe(400);
+    expect((await choose('member', 'space', w.spaceId, a.id)).statusCode).toBe(403);
+    // the project's own connection is gone and the space's one is deleted: the choice resets, the workspace default applies
+    await choose('spaceAdmin', 'project', w.projectId, null);
+    await choose('spaceAdmin', 'project', w.projectId, b.id);
+    expect((await resolveConnection(db, w.projectId))!.model).toBe('m-b');
+    expect((await call('DELETE', `connections/${b.id}`, 'root')).statusCode).toBe(204);
+    expect((await resolveConnection(db, w.projectId))!.model).toBe('m-space');
+    await choose('spaceAdmin', 'space', w.spaceId, null);
+    expect((await resolveConnection(db, w.projectId))!.model).toBe('m-a');
   });
 
   it('SSRF: внутренний baseUrl у пространства — только админ инстанса', async () => {

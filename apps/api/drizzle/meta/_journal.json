@@ -645,6 +645,13 @@
       "when": 1797052800000,
       "tag": "0091_task_due_remind",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1797139200000,
+      "tag": "0092_ai_connections_list",
+      "breakpoints": true
     }
   ]
 }
