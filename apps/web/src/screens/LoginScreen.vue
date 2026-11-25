@@ -84,7 +84,12 @@ function back() {
       </p>
       <template v-if="mfaPending">
         <p class="text-center text-sm text-fg-muted">{{ t('security.secondStep') }}</p>
-        <FactorForm :totp="mfaPending.totp" :passkey="mfaPending.passkey" :verify="second" />
+        <FactorForm
+          :totp="mfaPending.totp"
+          :passkey="mfaPending.passkey"
+          :verify="second"
+          mode="login"
+        />
         <Button variant="ghost" class="w-full" @click="back">{{ t('security.back') }}</Button>
       </template>
       <form v-else class="flex flex-col gap-3" @submit.prevent="submit()">

@@ -14,17 +14,18 @@ const MIN = 60_000;
  * longer than that locks on return. The server locks by itself after max(N, 3) minutes without requests,
  * so an active visible tab sends a heartbeat. Called once from main.ts.
  */
+/** Lock now: the lock screen at once, the server session too (offline — only the screen). */
+export async function lock(): Promise<void> {
+  useAuth().locked.value = true;
+  await api('POST', '/api/auth/lock').catch(() => {});
+}
+
 export function initLock(): void {
   const { user, ready, locked, lockPrefs } = useAuth();
   let active = Date.now();
   let hiddenAt = 0;
   let beat = 0;
   const on = () => !!user.value && !locked.value && lockPrefs.value.minutes !== null;
-
-  async function lock() {
-    locked.value = true;
-    await api('POST', '/api/auth/lock').catch(() => {});
-  }
 
   for (const e of ['pointerdown', 'keydown', 'wheel', 'touchstart'])
     window.addEventListener(e, () => (active = Date.now()), { capture: true, passive: true });

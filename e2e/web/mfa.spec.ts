@@ -67,6 +67,18 @@ test('passkey, блокировка при открытии, вход без п�
   await page.goto('/profile?tab=security');
   await page.getByTestId('add-passkey').click();
   await expect(page.getByTestId('passkey-row')).toHaveCount(1);
+  // the row menu is visible on hover (desktop)
+  await page.getByTestId('passkey-row').hover();
+  await expect(page.getByTestId('passkey-row').getByTestId('row-menu')).toHaveCSS('opacity', '1');
+
+  // «Lock» in the user menu (a factor exists, no lock setting needed)
+  await page.reload();
+  await page.getByTestId('sidebar').getByRole('button', { name: 'Меню', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Заблокировать' }).click();
+  await expect(page.getByTestId('lock-screen')).toBeVisible();
+  await page.getByRole('button', { name: 'Разблокировать через PassKey' }).click();
+  await expect(page.getByTestId('lock-screen')).toBeHidden();
+  await page.goto('/profile?tab=security');
 
   // lock on every open: a reload asks for the passkey
   await pick(page.getByRole('combobox', { name: 'Блокировка приложения' }), 'При каждом открытии');
@@ -80,7 +92,7 @@ test('passkey, блокировка при открытии, вход без п�
 
   // passwordless sign-in with the discoverable key
   await signOut(page);
-  await page.getByTestId('login-passkey').click();
+  await page.getByRole('button', { name: 'Войти через PassKey' }).click();
   await expect(page).not.toHaveURL(/\/login/);
   await expect(page.getByTestId('lock-screen')).toBeHidden();
 
@@ -99,7 +111,7 @@ test('passkey, блокировка при открытии, вход без п�
   await expect(page.getByText('Подтвердите вход вторым фактором')).toBeVisible();
   await expect(page.getByTestId('factor-passkey')).toBeVisible();
   await page.getByTestId('factor-code').fill(totp(secret, Math.floor(Date.now() / 30_000) + 1));
-  await page.getByRole('button', { name: 'Подтвердить', exact: true }).click();
+  await page.getByRole('button', { name: 'Войти по коду' }).click();
   await expect(page).not.toHaveURL(/\/login/);
   await ctx.close();
 });

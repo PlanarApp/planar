@@ -41,7 +41,7 @@ async function unlock(p: Proof) {
         <p class="text-lg font-semibold">{{ user?.name }}</p>
         <h1 class="text-sm text-fg-muted">{{ t('security.locked') }}</h1>
       </header>
-      <FactorForm v-if="f" :totp="f.totp" :passkey="f.passkey" :verify="unlock" />
+      <FactorForm v-if="f" :totp="f.totp" :passkey="f.passkey" :verify="unlock" mode="unlock" />
       <Button variant="ghost" class="w-full" @click="signOut">{{ t('auth.signOut') }}</Button>
     </div>
   </main>

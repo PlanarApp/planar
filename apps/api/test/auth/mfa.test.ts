@@ -2,7 +2,7 @@ import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { hashPassword } from '../../src/auth/password.js';
 import { totpCode, verifyTotp } from '../../src/auth/totp.js';
-import { sessions, settings, users } from '../../src/db/schema.js';
+import { passkeys, sessions, settings, users } from '../../src/db/schema.js';
 import { createUser, loginCookie } from '../auth.js';
 import { db, req, useApp } from './harness.js';
 
@@ -173,5 +173,24 @@ describe('passkey', () => {
       body: { challengeId: o.json().challengeId, response: { id: 'nope', response: {} } },
     });
     expect(r.statusCode).toBe(401);
+  });
+
+  it('удаление: свой ключ — 204, чужой не трогается; без факторов «Заблокировать» не блокирует', async () => {
+    const u = await userWithPassword();
+    const other = await userWithPassword();
+    const key = { name: 'k', publicKey: 'x', counter: 0 };
+    await db.insert(passkeys).values([
+      { ...key, id: 'own-key_1', userId: u.id },
+      { ...key, id: 'other-key', userId: other.id },
+    ]);
+    const cookie = await loginCookie(db, u.id);
+    expect((await req('GET', '/api/auth/me', { cookie })).json().canLock).toBe(true);
+    for (const id of ['other-key', 'own-key_1'])
+      expect((await req('DELETE', `/api/auth/passkeys/${id}`, { cookie })).statusCode).toBe(204);
+    expect((await db.select().from(passkeys)).map((k) => k.id)).toContain('other-key');
+    expect((await req('GET', '/api/auth/security', { cookie })).json().passkeys).toEqual([]);
+    expect((await req('GET', '/api/auth/me', { cookie })).json().canLock).toBe(false);
+    await req('POST', '/api/auth/lock', { cookie });
+    expect((await req('GET', '/api/v1/spaces', { cookie })).statusCode).toBe(200);
   });
 });

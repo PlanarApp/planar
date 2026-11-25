@@ -273,13 +273,14 @@ export class MfaController {
     return b;
   }
 
-  /** The client locks the app (idle, on open): the session waits for unlock. */
+  /** The client locks the app (idle, on open, «Lock» in the menu): the session waits for unlock. */
   @Post('lock')
   @HttpCode(204)
   async lock(@Req() req: FastifyRequest) {
     const me = this.session(req);
-    // without the lock setting there may be nothing to unlock with
-    if ((await securityOf(this.db, me.userId))?.lockMinutes == null) return;
+    // without a factor there is nothing to unlock with
+    const f = await factors(this.db, me.userId);
+    if (!f.totp && !f.passkey) return;
     await this.db
       .update(sessions)
       .set({ lockedAt: sql`now()` })

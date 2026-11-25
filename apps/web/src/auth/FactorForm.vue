@@ -11,6 +11,8 @@ const props = defineProps<{
   totp: boolean;
   passkey: boolean;
   verify: (p: Proof) => Promise<void>;
+  /** button wording: sign-in after the password or the lock screen */
+  mode: 'login' | 'unlock';
 }>();
 const { t } = useI18n();
 const code = ref('');
@@ -47,7 +49,7 @@ async function run(get: () => Promise<Proof> | Proof) {
       data-testid="factor-passkey"
       :loading="busy"
       @click="run(passkeyProof)"
-      >{{ t('security.usePasskey') }}</Button
+      >{{ mode === 'login' ? t('security.usePasskey') : t('security.unlockPasskey') }}</Button
     >
     <form
       v-if="totp"
@@ -56,14 +58,12 @@ async function run(get: () => Promise<Proof> | Proof) {
     >
       <Input
         v-model="code"
-        :label="t('security.code')"
-        inputmode="numeric"
+        :label="t('security.loginCode')"
         autocomplete="one-time-code"
         data-testid="factor-code"
       />
-      <p class="text-xs text-fg-muted">{{ t('security.codeHint') }}</p>
       <Button type="submit" :variant="passkey ? 'secondary' : 'primary'" :loading="busy">{{
-        t('security.confirm')
+        mode === 'login' ? t('security.signInCode') : t('security.unlockCode')
       }}</Button>
     </form>
     <p v-if="error" role="alert" class="text-sm text-danger">{{ error }}</p>

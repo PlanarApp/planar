@@ -3,11 +3,12 @@ import type { Row } from '@planar/shared';
 import { db, mutate, newId, rankBetween, replicaState, syncState, useQuery } from '../sync';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { LogOut, Languages, Monitor, Moon, Settings, Sun, User } from 'lucide-vue-next';
+import { Languages, Lock, LogOut, Monitor, Moon, Settings, Sun, User } from 'lucide-vue-next';
 import type { MenuItem } from '../ui/Menu.vue';
 import { useTheme } from '../ui/useTheme';
 import { setLocale } from '../i18n';
 import { useAuth } from '../auth/useAuth';
+import { lock } from '../auth/lock';
 import { useSpaces, useWorkspace } from '../tasks/queries';
 
 const KEY = 'planar.sidebar.collapsed';
@@ -43,7 +44,7 @@ export function useUserMenu() {
   const { t, locale } = useI18n();
   const router = useRouter();
   const { theme } = useTheme();
-  const { logout } = useAuth();
+  const { logout, canLock } = useAuth();
   const items = (): MenuItem[] => [
     {
       id: 'profile',
@@ -84,6 +85,9 @@ export function useUserMenu() {
       onSelect: () => setLocale(locale.value === 'ru' ? 'en' : 'ru'),
     },
     { separator: true },
+    ...(canLock.value
+      ? [{ id: 'lock', label: t('security.lockNow'), icon: Lock, onSelect: () => void lock() }]
+      : []),
     {
       id: 'logout',
       label: t('auth.signOut'),

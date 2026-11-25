@@ -9,6 +9,7 @@ import { useBreakpoint } from '../ui/useBreakpoint';
 import Sidebar from './Sidebar.vue';
 import TopBar from './TopBar.vue';
 import InstallSheet from '../pwa/InstallSheet.vue';
+import PushSheet from '../inbox/PushSheet.vue';
 import { mobileNav } from './nav';
 import { contentWidth, sidePanels, taskPanelWidth } from '../ui/taskPanelWidth';
 import {
@@ -120,5 +121,6 @@ watch(
       </main>
     </div>
     <InstallSheet />
+    <PushSheet />
   </div>
 </template>

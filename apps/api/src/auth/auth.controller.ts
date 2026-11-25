@@ -192,12 +192,15 @@ export class AuthController {
     const me = getAuth(req);
     const [user] = await this.db.select().from(users).where(eq(users.id, me.userId));
     const s = await securityOf(this.db, me.userId);
+    const f = await factors(this.db, me.userId);
     return {
       user: publicUser(user!),
       mfaSetup: me.state === 'setup',
       locked: me.state === 'locked',
       lockMinutes: s?.lockMinutes ?? null,
       lockWipe: s?.lockWipe ?? false,
+      /** a factor is set up: the app can be locked (menu «Lock») */
+      canLock: f.totp || f.passkey,
     };
   }
 }

@@ -24,7 +24,7 @@ const busy = computed(() =>
       ? t('pwa.applying')
       : '',
 );
-const { setupInfo } = useAuth();
+const { setupInfo, user } = useAuth();
 const demoHours = ref(0);
 onMounted(async () => {
   // the banner is optional: a failed /api/setup must not break the app
@@ -59,11 +59,12 @@ watch(banner, (el, _, onCleanup) => {
         {{ t('auth.demoBanner', { n: demoHours }) }}
       </div>
       <RouterView v-if="bare" />
-      <div v-else class="min-h-0 flex-1">
+      <!-- without a user (the first navigation is still running) — no shell: the login form comes straight away -->
+      <div v-else-if="user" class="min-h-0 flex-1">
         <AppShell />
       </div>
     </div>
-    <CommandHost v-if="!bare" />
+    <CommandHost v-if="!bare && user" />
     <div
       v-if="dbBlocked"
       data-testid="db-blocked"
