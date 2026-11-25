@@ -59,6 +59,9 @@ router.beforeEach(async (to) => {
           path: '/login',
           query: { redirect: router.currentRoute.value.fullPath },
         });
+      // the policy started requiring 2FA since the last start
+      else if (useAuth().mfaSetup.value)
+        void router.push({ path: '/profile', query: { tab: 'security' } });
     });
   revalidated = true;
   const bare = to.meta.layout === 'none';

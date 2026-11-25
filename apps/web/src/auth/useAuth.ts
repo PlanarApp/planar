@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { Row } from '@planar/shared';
 import { api, ApiError } from '../api/http';
 import { passkeyProof, type Proof } from '../api/security';
@@ -11,7 +11,10 @@ const KEY = 'planar.user';
 const store = (u: User | null) => {
   try {
     if (u) localStorage.setItem(KEY, JSON.stringify(u));
-    else localStorage.removeItem(KEY);
+    else {
+      localStorage.removeItem(KEY);
+      localStorage.removeItem('planar.warm');
+    }
   } catch {
     /* storage unavailable */
   }
@@ -23,9 +26,18 @@ const known = (): User | null => {
     return null;
   }
 };
+/** the last /me allowed a warm start: no app lock and no required 2FA — they must not show the replica before /me */
+const WARM_KEY = 'planar.warm'; // also cleared by store(null)
+const warmAllowed = () => {
+  try {
+    return localStorage.getItem(WARM_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
 
 // a known user opens the app at once (warm start): /me is revalidated in the background (router.ts)
-const user = ref<User | null>(known());
+const user = ref<User | null>(warmAllowed() ? known() : null);
 const ready = ref(!!user.value);
 /** startup requests must not hang the screen on a dead network */
 const BOOT_TIMEOUT = 8000;
@@ -42,6 +54,19 @@ const lockPrefs = ref<{ onOpen: boolean; minutes: number | null; wipe: boolean }
 const locked = ref(false);
 /** a factor is set up: «Lock» in the user menu */
 const canLock = ref(false);
+
+function saveWarm() {
+  const p = lockPrefs.value;
+  const ok = !!user.value && !mfaSetup.value && !locked.value && !p.onOpen && p.minutes === null;
+  try {
+    if (ok) localStorage.setItem(WARM_KEY, '1');
+    else localStorage.removeItem(WARM_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
+// the lock settings are also changed in the profile (SecuritySection)
+watch(lockPrefs, saveWarm);
 
 type Me = {
   user: User;
@@ -61,6 +86,7 @@ function signedIn(r: Me) {
     lockPrefs.value = { onOpen: !!r.lockOnOpen, minutes: r.lockMinutes, wipe: !!r.lockWipe };
   locked.value = !!r.locked;
   if (r.canLock !== undefined) canLock.value = r.canLock;
+  saveWarm();
   adoptBrowserZone(r.user);
 }
 

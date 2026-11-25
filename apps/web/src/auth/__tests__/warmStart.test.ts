@@ -3,8 +3,9 @@ import { flushPromises } from '@vue/test-utils';
 import { json, mkUser, mockFetch } from './helpers';
 
 // warm start: the screen doesn't wait for /me and /setup, both are revalidated in the background
-async function boot(setup: object, me: Response) {
+async function boot(setup: object, me: Response, warm = true) {
   localStorage.setItem('planar.user', JSON.stringify(mkUser()));
+  if (warm) localStorage.setItem('planar.warm', '1');
   localStorage.setItem('planar.setup', JSON.stringify(setup));
   vi.resetModules();
   const { router } = await import('../../router');
@@ -42,5 +43,21 @@ describe('auth:warm-start', () => {
     expect(router.currentRoute.value.path).toBe('/paywall');
     expect(auth.lastSetupInfo.value?.cloud?.expired).toBe(true);
     expect(JSON.parse(localStorage.getItem('planar.setup')!).cloud.expired).toBe(true);
+  });
+  it('блокировка приложения или обязательная 2FA (нет флага warm): реплика не показывается до /me', async () => {
+    const { auth } = await boot({ needed: false }, json(200, {}), false);
+    expect(auth.user.value).toBeNull();
+    expect(auth.ready.value).toBe(false);
+  });
+  it('/me с блокировкой при открытии снимает флаг warm', async () => {
+    const { router } = await boot({ needed: false }, json(200, {}));
+    mockFetch((m, p) =>
+      p === '/api/auth/me'
+        ? json(200, { user: mkUser(), lockOnOpen: true, lockMinutes: null })
+        : json(200, { needed: false }),
+    );
+    await router.push('/w');
+    await flushPromises();
+    expect(localStorage.getItem('planar.warm')).toBeNull();
   });
 });
