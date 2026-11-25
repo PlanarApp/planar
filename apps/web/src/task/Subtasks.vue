@@ -86,8 +86,14 @@ async function add() {
         />
       </div>
     </div>
-    <!-- PLNRAPP-865: the List's rows, context menu, selection, bulk bar and dragging -->
-    <div v-if="shown?.length" class="mb-1" data-testid="subtasks-list">
+    <!-- PLNRAPP-865: the List's rows, context menu, selection, bulk bar and dragging;
+         PLNRAPP-866: mobile — edge to edge over the padding of the card column (TaskDetail: px-4, @2xl:px-8), as the mobile List: the same
+         row width, so the same name wrapping, row height, paddings and checkbox place -->
+    <div
+      v-if="shown?.length"
+      class="mb-1 max-md:-mx-4 max-md:@2xl:-mx-8"
+      data-testid="subtasks-list"
+    >
       <TaskListView
         :source="source"
         :settings="settings"
