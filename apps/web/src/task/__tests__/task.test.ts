@@ -4,6 +4,7 @@ import type { VueWrapper } from '@vue/test-utils';
 import { AssigneePicker, PriorityPicker, StatusPicker } from '../../tasks';
 import Editor from '../editor/Editor.vue';
 import ListRow from '../../views/list/Row.vue';
+import { resetBreakpoint } from '../../ui';
 import {
   db,
   eventually,
@@ -747,5 +748,52 @@ describe('task:checklist', () => {
     await w.find('section[aria-label="Чек-лист"] form').trigger('submit');
     await flushPromises();
     expect(await queued('checklist.add')).toHaveLength(0);
+  });
+});
+
+// PLNRAPP-866: on mobile the subtasks are the mobile List's rows, edge to edge as the List
+describe('мобильная раскладка таба «Подзадачи» (PLNRAPP-866)', () => {
+  // jsdom has no layout: the virtualizer gets the scroller height, as in the List tests
+  const ch = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight')!;
+  beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    });
+    vi.stubGlobal('matchMedia', (q: string) => ({
+      matches: true,
+      media: q,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    resetBreakpoint();
+  });
+  afterEach(() => {
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', ch);
+    vi.unstubAllGlobals();
+    resetBreakpoint();
+  });
+  it('строки — мобильные карточки «Списка» на всю ширину экрана, без «…»', async () => {
+    await db
+      .table('tasks')
+      .bulkPut([
+        task(2, { parentId: t.id, title: 'x'.repeat(200), rank: 'a1' }),
+        task(3, { parentId: t.id, title: 'k2', rank: 'a2' }),
+      ]);
+    w = await open();
+    await openTab('Подзадачи');
+    await until(() => w.findAllComponents(ListRow).length === 2);
+    const list = w.get('[data-testid="subtasks-list"]');
+    // the card column's padding (px-4, @2xl:px-8) is compensated: the row width is the screen's
+    const column = list.element.closest('.px-4')!;
+    expect(column.classList.contains('@2xl:px-8')).toBe(true);
+    expect(list.classes()).toEqual(expect.arrayContaining(['max-md:-mx-4', 'max-md:@2xl:-mx-8']));
+    // the mobile row of the List: the card layout, the menu by a long press — no «…» button
+    const row = list.get('[data-task="PLN-2"]');
+    expect(row.classes()).toEqual(expect.arrayContaining(['pl-2', 'pr-3', 'py-1']));
+    expect(list.find('[data-testid="row-menu"]').exists()).toBe(false);
+    expect(list.find('[data-testid="list-head"]').exists()).toBe(false);
+    // a long name does not widen the row: the name column may shrink
+    expect(row.get('.min-w-0.flex-1').text()).toContain('x'.repeat(200));
   });
 });
