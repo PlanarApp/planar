@@ -996,8 +996,6 @@ export default {
   },
   list: {
     actions: 'Actions',
-    resize: 'Column width (double-click — auto)',
-    colName: 'Name',
     drag: 'Drag',
     groupMoveFailed: 'Tasks were not moved',
     groupMoveTooMany: 'Tasks were not moved: at most {n} at a time',

@@ -1000,8 +1000,6 @@ export default {
   },
   list: {
     actions: 'Действия',
-    resize: 'Ширина колонки (двойной клик — авто)',
-    colName: 'Название',
     drag: 'Перетащить',
     groupMoveFailed: 'Задачи не перенесены',
     groupMoveTooMany: 'Задачи не перенесены: не больше {n} за раз',

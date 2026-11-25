@@ -2,7 +2,7 @@
 import TaskContextMenu from '../TaskContextMenu.vue';
 import BulkBar from '../BulkBar.vue';
 import { useVirtualizer, type VirtualItem } from '@tanstack/vue-virtual';
-import { ChevronDown, ChevronRight, ListChecks, Plus, UserRound } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, ListChecks, Plus } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
@@ -42,12 +42,9 @@ import {
 import Row from './Row.vue';
 import { useSelectionReset } from '../selection';
 import { treeOrder } from './tree';
-import { COLUMN_CLASS, type ListColumn } from './columns';
 import { useColumnWidths } from './widths';
-import { sortMark } from '../sortHead';
 import { useViewSettings, type ViewSettingsSource } from './viewSettings';
 import type { TaskListSource } from './source';
-import type { SortBy } from '../../tasks';
 import { applyMove, planMove } from '../board/plan';
 import { tokenOf } from '../../command/hotkeys';
 import { endTaskDrag, overProject, projectAt, startTaskDrag } from '../../tasks/dropToProject';
@@ -117,7 +114,6 @@ const {
   grouped,
   density,
   manual: manualSort,
-  sortBy,
 } = useViewSettings(() => props.settings, all, {
   projectIds: () => props.scope?.projectIds ?? [props.projectId],
   passes: () => passes.value,
@@ -131,24 +127,13 @@ const {
   }),
 });
 const projectNames = useProjectNames();
-// columns: auto-size by content, the divider in the header — manual (double click — auto again)
-const {
-  widths,
-  startResize,
-  reset: resetWidth,
-} = useColumnWidths(
-  () => props.projectId,
-  columns,
-  all,
-  () => ({
-    labels: new Map((labels.value ?? []).map((l) => [l.id, l.name])),
-    projects: projectNames.value,
-    // the assignee header is an icon, like its cells
-    header: (c) => (c === 'assignee' ? '' : colName(c)),
-    priority: (p) => t(`tasks.priority.${p}`),
-    locale: locale.value,
-  }),
-);
+// columns: auto-size by content
+const { widths } = useColumnWidths(columns, all, () => ({
+  labels: new Map((labels.value ?? []).map((l) => [l.id, l.name])),
+  projects: projectNames.value,
+  priority: (p) => t(`tasks.priority.${p}`),
+  locale: locale.value,
+}));
 const passes = useTaskFilter(
   useWidenedFilter(() => props.filter),
   statuses,
@@ -157,7 +142,6 @@ const passes = useTaskFilter(
 );
 
 type Item =
-  | { id: string; kind: 'head' }
   | { id: string; kind: 'group'; group: TaskGroup }
   | {
       id: string;
@@ -211,54 +195,37 @@ watch(
 // subtasks — as a tree under the parent; a parent not above the row — a label in the row
 const byId = computed(() => new Map((all.value ?? []).map((x) => [x.id, x])));
 const items = computed<Item[]>(() => {
-  // cards (mobile): without a column header row; PLNRAPP-823: grouped — neither, the groups have headers
-  const head: Item[] = !asCards.value && !grouped.value ? [{ id: 'head', kind: 'head' }] : [];
-  return head.concat(
-    groups.value.flatMap((g): Item[] => {
-      if (collapsed.value.has(g.key)) return [{ id: `g:${g.key}`, kind: 'group', group: g }];
-      const tree = treeOrder(g.tasks);
-      const kids = new Map<string, number>();
-      for (const x of tree)
-        if (x.depth) kids.set(x.task.parentId!, (kids.get(x.task.parentId!) ?? 0) + 1);
-      const rows: Item[] = [];
-      let hideBelow = Infinity; // depth of the collapsed ancestor: rows deeper than it are hidden
-      for (const { task, depth } of tree) {
-        if (depth > hideBelow) continue;
-        hideBelow = isFolded(task.id) && kids.has(task.id) ? depth : Infinity;
-        rows.push({
-          id: `t:${g.key}:${task.id}`,
-          kind: 'task',
-          task,
-          group: g.key,
-          depth,
-          parent: !depth && task.parentId ? byId.value.get(task.parentId) : undefined,
-          childCount: kids.size ? (kids.get(task.id) ?? 0) : undefined,
-        });
-      }
-      return [
-        ...(!grouped.value ? [] : [{ id: `g:${g.key}`, kind: 'group' as const, group: g }]),
-        ...rows,
-        ...((props.scope && !props.scope.createIn) || !props.quickCreate
-          ? []
-          : [{ id: `c:${g.key}`, kind: 'create' as const, group: g }]),
-      ];
-    }),
-  );
+  // no column header row: the fields are named by their values, sorting is in the "View" menu
+  return groups.value.flatMap((g): Item[] => {
+    if (collapsed.value.has(g.key)) return [{ id: `g:${g.key}`, kind: 'group', group: g }];
+    const tree = treeOrder(g.tasks);
+    const kids = new Map<string, number>();
+    for (const x of tree)
+      if (x.depth) kids.set(x.task.parentId!, (kids.get(x.task.parentId!) ?? 0) + 1);
+    const rows: Item[] = [];
+    let hideBelow = Infinity; // depth of the collapsed ancestor: rows deeper than it are hidden
+    for (const { task, depth } of tree) {
+      if (depth > hideBelow) continue;
+      hideBelow = isFolded(task.id) && kids.has(task.id) ? depth : Infinity;
+      rows.push({
+        id: `t:${g.key}:${task.id}`,
+        kind: 'task',
+        task,
+        group: g.key,
+        depth,
+        parent: !depth && task.parentId ? byId.value.get(task.parentId) : undefined,
+        childCount: kids.size ? (kids.get(task.id) ?? 0) : undefined,
+      });
+    }
+    return [
+      ...(!grouped.value ? [] : [{ id: `g:${g.key}`, kind: 'group' as const, group: g }]),
+      ...rows,
+      ...((props.scope && !props.scope.createIn) || !props.quickCreate
+        ? []
+        : [{ id: `c:${g.key}`, kind: 'create' as const, group: g }]),
+    ];
+  });
 });
-const COL_LABEL = {
-  assignee: 'tasks.assignee',
-  dueDate: 'tasks.dueDate',
-  priority: 'tasks.priorityTitle',
-  labels: 'tasks.labels',
-  project: 'views.fields.project',
-  git: 'views.gitColumn',
-  ai: 'views.fields.ai',
-  aiCost: 'views.fields.aiCost',
-  aiTime: 'views.fields.aiTime',
-} as const;
-const colName = (c: keyof typeof COL_LABEL) => t(COL_LABEL[c]);
-// sorting by clicking the column header: ascending → descending → manual order
-const LIST_SORT: Partial<Record<ListColumn, SortBy>> = { dueDate: 'dueDate', priority: 'priority' };
 
 // --- dragging ("Manual" sort):
 // middle of a row — make it a subtask of this task; edge — place at the level of the next row
@@ -336,7 +303,7 @@ function onDragMove(e: PointerEvent) {
   if (drag.value.ids.length < 2) overProject.value = projectAt(e.clientX, e.clientY);
 }
 const groupOf = (it: Item | undefined) =>
-  !it || it.kind === 'head' ? undefined : it.kind === 'task' ? it.group : it.group.key;
+  !it ? undefined : it.kind === 'task' ? it.group : it.group.key;
 async function onDragEnd() {
   removeEventListener('pointermove', onDragMove);
   const d = drag.value;
@@ -829,69 +796,7 @@ watch(
           >
             <template v-for="it in [items[v.index]]" :key="it.id">
               <div
-                v-if="it.kind === 'head'"
-                role="row"
-                data-testid="list-head"
-                class="flex h-full items-center border-b border-border pl-4 pr-3 text-xs text-fg-muted"
-              >
-                <input
-                  v-if="sel.active.value"
-                  type="checkbox"
-                  :checked="sel.state(allIds) === 'all'"
-                  :indeterminate="sel.state(allIds) === 'some'"
-                  :aria-label="t('list.selectAll')"
-                  class="mr-3 size-4"
-                  data-testid="select-all"
-                  @click="sel.toggleAll(allIds)"
-                />
-                <span v-else class="mr-3 w-4 shrink-0" aria-hidden="true" />
-                <button
-                  type="button"
-                  class="flex-1 truncate text-left hover:text-fg"
-                  :title="t('table.sortBy')"
-                  @click="sortBy('title')"
-                >
-                  {{ t('list.colName') }}
-                  <span class="text-accent">{{ sortMark(options, 'title') }}</span>
-                </button>
-                <!-- PLNRAPP-705: narrow list — the columns are the row's second line, without headers -->
-                <span
-                  v-for="c in columns"
-                  :key="c"
-                  :class="['relative shrink-0 truncate px-1 list-narrow:hidden', COLUMN_CLASS[c]]"
-                  :style="{ width: `${widths[c]}px` }"
-                  ><button
-                    v-if="LIST_SORT[c]"
-                    type="button"
-                    class="truncate rounded-sm hover:text-fg"
-                    :title="t('table.sortBy')"
-                    data-testid="col-sort"
-                    @click.stop="sortBy(LIST_SORT[c]!)"
-                  >
-                    {{ colName(c) }}
-                    <span class="text-accent">{{ sortMark(options, LIST_SORT[c]) }}</span></button
-                  ><span
-                    v-else-if="c === 'assignee'"
-                    role="img"
-                    :title="colName(c)"
-                    :aria-label="colName(c)"
-                    class="inline-flex align-middle"
-                    ><UserRound :size="14" aria-hidden="true" /></span
-                  ><template v-else>{{ colName(c) }}</template
-                  ><span
-                    role="separator"
-                    aria-orientation="vertical"
-                    :aria-label="t('list.resize')"
-                    data-testid="col-resize"
-                    class="absolute inset-y-0 right-0 w-1.5 cursor-col-resize hover:bg-accent"
-                    @pointerdown.stop.prevent="startResize(c, $event)"
-                    @dblclick.stop="resetWidth(c)"
-                /></span>
-                <!-- under the rows' «…» button (gap-2 + size-7) -->
-                <span class="w-9 shrink-0 list-narrow:hidden" aria-hidden="true" />
-              </div>
-              <div
-                v-else-if="it.kind === 'group'"
+                v-if="it.kind === 'group'"
                 role="row"
                 :aria-rowindex="v.index + 1"
                 class="flex h-full items-center gap-2 border-b border-border px-3 text-sm"
@@ -940,42 +845,6 @@ watch(
                 >
                 <span class="text-xs text-fg-subtle">{{ it.group.tasks.length }}</span>
                 <slot name="group-actions" :group="it.group" />
-                <span
-                  class="ml-auto flex shrink-0 text-xs text-fg-muted max-md:hidden list-narrow:hidden"
-                >
-                  <span
-                    v-for="c in columns"
-                    :key="c"
-                    :class="['relative shrink-0 truncate px-1', COLUMN_CLASS[c]]"
-                    :style="{ width: `${widths[c]}px` }"
-                    ><button
-                      v-if="LIST_SORT[c] && !groups"
-                      type="button"
-                      class="truncate rounded-sm hover:text-fg"
-                      :title="t('table.sortBy')"
-                      data-testid="col-sort"
-                      @click.stop="sortBy(LIST_SORT[c]!)"
-                    >
-                      {{ colName(c) }}
-                      <span class="text-accent">{{ sortMark(options, LIST_SORT[c]) }}</span></button
-                    ><span
-                      v-else-if="c === 'assignee'"
-                      role="img"
-                      :title="colName(c)"
-                      :aria-label="colName(c)"
-                      class="inline-flex align-middle"
-                      ><UserRound :size="14" aria-hidden="true" /></span
-                    ><template v-else>{{ colName(c) }}</template
-                    ><span
-                      role="separator"
-                      aria-orientation="vertical"
-                      :aria-label="t('list.resize')"
-                      data-testid="col-resize"
-                      class="absolute inset-y-0 right-0 w-1.5 cursor-col-resize hover:bg-accent"
-                      @pointerdown.stop.prevent="startResize(c, $event)"
-                      @dblclick.stop="resetWidth(c)"
-                  /></span>
-                </span>
               </div>
               <Row
                 v-else-if="it.kind === 'task'"
@@ -1063,11 +932,7 @@ watch(
         >+{{ drag.ids.length - 1 }}</span
       >
     </div>
-    <!-- PLNRAPP-823: grouped — no header row, «select all» is in the bar -->
-    <BulkBar
-      :space-id="spaceId"
-      :tasks="all"
-      :select-all="!asCards && grouped ? allIds : undefined"
-    />
+    <!-- no header row: «select all» is in the bar -->
+    <BulkBar :space-id="spaceId" :tasks="all" :select-all="!asCards ? allIds : undefined" />
   </div>
 </template>

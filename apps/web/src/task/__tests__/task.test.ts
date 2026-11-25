@@ -534,7 +534,7 @@ describe('task:subtasks', () => {
     });
 
     it('перетаскивание меняет порядок и сохраняет его', async () => {
-      // the manual order without grouping: rows 32px one under another — the header, k1, k2, k3
+      // the manual order without grouping: rows 32px one under another — k1, k2, k3
       await db.table('savedViews').put(listView({ groupBy: 'none', wrapTitles: false }));
       await show();
       document.elementFromPoint ??= () => null; // jsdom: no layout — nothing under the pointer
@@ -543,12 +543,12 @@ describe('task:subtasks', () => {
       grid.getBoundingClientRect = () => ({ top: 0, bottom: 600, height: 600 }) as DOMRect;
       const at = (type: string, clientY: number) =>
         Object.assign(new MouseEvent(type, { bubbles: true, clientY }), { pointerId: 1 });
-      rowOf('PLN-4').get('[data-testid="row-grip"]').element.dispatchEvent(at('pointerdown', 112));
+      rowOf('PLN-4').get('[data-testid="row-grip"]').element.dispatchEvent(at('pointerdown', 80));
       await flushPromises();
-      window.dispatchEvent(at('pointermove', 40)); // the upper half of k1 — before it
+      window.dispatchEvent(at('pointermove', 8)); // the upper half of k1 — before it
       await flushPromises();
       expect(w.find('[data-testid="drop-line"]').exists()).toBe(true);
-      window.dispatchEvent(at('pointerup', 40));
+      window.dispatchEvent(at('pointerup', 8));
       await eventually(async () => (await order()).join() === 'k3,k1,k2');
       await until(() => !w.find('[data-testid="drop-line"]').exists());
     });
@@ -579,7 +579,6 @@ describe('task:subtasks', () => {
     expect(cols()).toEqual(['status', 'assignee', 'priority']);
     expect(row().find('[data-testid="row-key"]').exists()).toBe(false);
     expect(w.find('[data-testid="group-row"]').exists()).toBe(false);
-    expect(w.find('[data-testid="list-head"]').exists()).toBe(true);
     // the List hides «Assignees» and groups by status: the tab follows without reopening
     await db.table('savedViews').put({
       ...view,
