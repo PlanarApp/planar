@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useAuth } from './auth/useAuth';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -31,6 +31,18 @@ onMounted(async () => {
   const s = await setupInfo().catch(() => null);
   if (s?.demo) demoHours.value = s.demoResetHours;
 });
+// fixed layers below the top bar (the task side panel) add the banner height: it wraps on narrow screens
+const banner = ref<HTMLElement>();
+watch(banner, (el, _, onCleanup) => {
+  const root = document.documentElement.style;
+  if (!el) return;
+  const ro = new ResizeObserver(() => root.setProperty('--banner-h', `${el.offsetHeight}px`));
+  ro.observe(el);
+  onCleanup(() => {
+    ro.disconnect();
+    root.removeProperty('--banner-h');
+  });
+});
 </script>
 
 <template>
@@ -40,6 +52,7 @@ onMounted(async () => {
     <div class="flex h-full flex-col">
       <div
         v-if="demoHours"
+        ref="banner"
         role="status"
         class="shrink-0 bg-accent px-3 py-1 text-center text-xs text-accent-fg"
       >

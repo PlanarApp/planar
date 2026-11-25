@@ -58,4 +58,26 @@ describe('PLNRAPP-479: баннер демо-режима', () => {
     expect(w.text()).not.toContain('Демо');
     expect(w.find('[role=status]').exists()).toBe(false);
   });
+
+  it('высота баннера — в --banner-h: боковая панель задачи встаёт под тулбар, а не на него', async () => {
+    // happy-dom не считает раскладку: высоту и наблюдатель задаём руками
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(private cb: () => void) {}
+        observe() {
+          this.cb();
+        }
+        disconnect() {}
+      },
+    );
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(24);
+    setupInfo.mockResolvedValue({ demo: true, demoResetHours: 24 });
+    const w = await render();
+    expect(document.documentElement.style.getPropertyValue('--banner-h')).toBe('24px');
+    w.unmount();
+    expect(document.documentElement.style.getPropertyValue('--banner-h')).toBe('');
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 });

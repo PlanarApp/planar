@@ -170,11 +170,11 @@ export default {
   myDay: {
     title: 'Мой день',
     toTomorrow: 'На завтра',
-    today: 'Сегодня',
+    toToday: 'На сегодня',
     add: 'В мой день',
     today: 'Сегодня',
     tomorrow: 'Завтра',
-    later: 'Потом',
+    later: 'Позже',
   },
   inbox: {
     all: 'Все',

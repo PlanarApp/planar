@@ -117,7 +117,7 @@ describe('PLNRAPP-868 «Мой день» — блоки «Сегодня / За
     await mineTask(8, { dueDate: localToday() }, ids.bob);
     await show();
     await until(() => titles().length === 4);
-    expect(blocks()).toEqual({ Сегодня: ['T1', 'T2'], Завтра: ['T3'], Потом: ['T4'] });
+    expect(blocks()).toEqual({ Сегодня: ['T1', 'T2'], Завтра: ['T3'], Позже: ['T4'] });
   });
 
   it('группировка и сортировка «Вида» не применяются: блоки по сроку, внутри — по сроку', async () => {
@@ -127,7 +127,7 @@ describe('PLNRAPP-868 «Мой день» — блоки «Сегодня / За
     options.groupBy = 'priority';
     options.sortBy = 'priority';
     await until(() => titles().length === 2);
-    expect(blocks()).toEqual({ Сегодня: [], Завтра: [], Потом: ['T2', 'T1'] });
+    expect(blocks()).toEqual({ Сегодня: [], Завтра: [], Позже: ['T2', 'T1'] });
   });
 
   it('смена срока сразу переносит задачу между блоками; срок убран или задача закрыта — уходит', async () => {

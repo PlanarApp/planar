@@ -28,7 +28,7 @@ const to = (date: string) => {
       class="justify-start"
       data-testid="day-options-today"
       @click="to(localToday())"
-      ><Sun :size="14" aria-hidden="true" />{{ t('myDay.today') }}</Button
+      ><Sun :size="14" aria-hidden="true" />{{ t('myDay.toToday') }}</Button
     >
     <Button
       v-if="task.dueDate !== localToday(1)"
