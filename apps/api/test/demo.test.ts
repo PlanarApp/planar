@@ -74,7 +74,10 @@ describe('demo: исходящие no-op', () => {
     let reads = 0;
     const api = {
       db: {
-        select: () => (reads++, { from: () => ({ orderBy: async () => [] }) }),
+        select: () => (
+          reads++,
+          { from: () => ({ innerJoin: () => ({ where: () => ({ orderBy: async () => [] }) }) }) }
+        ),
       },
     } as unknown as JobApi;
     setDemo(true);

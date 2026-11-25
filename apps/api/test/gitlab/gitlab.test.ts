@@ -5,11 +5,14 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { uuidv7 } from '@planar/shared';
 import { decrypt } from '@planar/server-kit';
+import { resolveServer } from '@planar/module-gitlab/api/servers';
 import { api as gitlabApi, pollAll } from '@planar/module-gitlab/api';
 import {
   gitlabBranches as B,
+  gitlabChoices as C,
   gitlabConnections as P,
   gitlabMrs as M,
+  gitlabServers as G,
   gitlabProjectSettings as S,
 } from '@planar/module-gitlab/api/schema';
 import { JobsService } from '../../src/jobs/jobs.js';
@@ -83,7 +86,23 @@ beforeEach(async () => {
   await db.delete(B);
   await db.delete(S);
   await db.delete(P);
+  await db.delete(C);
+  await db.delete(G);
+  ws = await addServer('workspace', WS, 'main', base, TOKEN);
 });
+const WS = '00000000-0000-0000-0000-000000000000';
+let ws: string;
+const addServer = async (
+  scope: string,
+  scopeId: string,
+  name: string,
+  baseUrl: string,
+  token: string,
+) => {
+  const r = await call('POST', 'servers', { scope, scopeId, name, baseUrl, token });
+  expect(r.statusCode).toBe(200 + 1);
+  return r.json().server.id as string;
+};
 
 const call = (method: string, url: string, body?: unknown, headers: Record<string, string> = {}) =>
   getApp()
@@ -129,35 +148,37 @@ const mkTask = async (projectId = w.projectId) => {
 };
 const mrsOf = (iid: number) => db.select().from(M).where(eq(M.iid, iid));
 const proj = async () => (await db.select().from(P))[0]!;
+const serverRow = async () => (await db.select().from(G).where(eq(G.id, ws)))[0]!;
 
 describe('pt6a: токен и REST', () => {
   it('pt6a: токен шифруется AES-256-GCM, iv разный, ответы без токена', async () => {
     const c = await addProject();
-    const enc1 = (await proj()).tokenEnc;
+    const enc1 = (await serverRow()).tokenEnc;
     expect(enc1).toMatch(/^v1:[^:]+:[^:]+:[^:]+$/);
     expect(enc1).not.toContain(TOKEN);
     expect(Buffer.from(enc1.split(':')[1]!, 'base64')).toHaveLength(12);
     expect(Buffer.from(enc1.split(':')[2]!, 'base64')).toHaveLength(16);
     expect(decrypt(enc1, Buffer.from(KEY, 'base64'))).toBe(TOKEN);
-    const patch = await call('PATCH', `connections/${c.id}`, { token: TOKEN });
-    const enc2 = (await proj()).tokenEnc;
+    const patch = await call('PATCH', `servers/${ws}`, { token: TOKEN });
+    const enc2 = (await serverRow()).tokenEnc;
     expect(enc2.split(':')[1]).not.toBe(enc1.split(':')[1]);
     const get = await call('GET', conns());
-    for (const r of [patch, get]) {
+    for (const r of [patch, get, await call('GET', `levels/workspace/${WS}`)]) {
       expect(r.body).not.toContain(TOKEN);
       expect(r.body).not.toContain('tokenEnc');
     }
-    expect(get.json().connections).toMatchObject([{ id: c.id, baseUrl: base, path: 'g/p42' }]);
+    expect(get.json().connections).toMatchObject([
+      { id: c.id, serverId: ws, baseUrl: base, path: 'g/p42' },
+    ]);
   });
 
   it('pt6a: без PLANAR_SECRET_KEY сохранение токена → 503, опрос не идёт', async () => {
-    const c = await addProject();
+    await addProject();
     delete process.env.PLANAR_SECRET_KEY;
     hits = [];
-    const r = await call('POST', conns(), { baseUrl: base, token: 'x', project: '7' });
+    const r = await call('POST', conns(), { project: '7' });
     expect(r.statusCode).toBe(503);
-    expect(r.body).not.toContain('"x"');
-    expect((await call('PATCH', `connections/${c.id}`, { token: 'x' })).statusCode).toBe(503);
+    expect((await call('PATCH', `servers/${ws}`, { token: 'x' })).statusCode).toBe(503);
     await poll();
     expect(hits).toHaveLength(0);
     expect((await proj()).lastError).toBe('secret_key_missing');
@@ -182,13 +203,19 @@ describe('pt6a: токен и REST', () => {
     });
     expect(r.statusCode).toBe(403);
     const add = (o: object) =>
-      call('POST', conns(), { baseUrl: base, token: 't', project: '1', ...o });
+      call('POST', 'servers', {
+        scope: 'workspace',
+        scopeId: WS,
+        name: 'n',
+        baseUrl: base,
+        token: 't',
+        ...o,
+      });
+    expect((await call('POST', 'servers', {}, { cookie: m })).statusCode).toBe(403);
     expect((await add({ baseUrl: 'ftp://x' })).statusCode).toBe(400);
     expect((await add({ baseUrl: 'http://u:p@x' })).statusCode).toBe(400);
     expect((await add({ token: '' })).statusCode).toBe(400);
-    expect(
-      (await call('POST', conns(uuidv7()), { baseUrl: base, token: 't', project: '1' })).statusCode,
-    ).toBe(404);
+    expect((await call('POST', conns(uuidv7()), { project: '1' })).statusCode).toBe(404);
     expect((await call('GET', conns('x'))).statusCode).toBe(404);
   });
 
@@ -196,15 +223,10 @@ describe('pt6a: токен и REST', () => {
     const p = await addProject(42);
     expect(hits[0]).toMatchObject({ path: '/api/v4/projects/42', token: TOKEN });
     handler = (_, res) => json(res, { id: 7, path_with_namespace: 'g/n' });
-    const p2 = (await call('POST', conns(), { baseUrl: base, token: TOKEN, project: 'g/n' })).json()
-      .connection;
+    const p2 = (await call('POST', conns(), { project: 'g/n' })).json().connection;
     expect(hits.at(-1)!.path).toBe('/api/v4/projects/g%2Fn');
     // the same repository again — the same connection; the same id from another host — 409
-    const again = await call('POST', conns(), {
-      baseUrl: `${base}/`,
-      token: TOKEN,
-      project: 'g/n',
-    });
+    const again = await call('POST', conns(), { project: 'g/n' });
     expect(again.json().connection.id).toBe(p2.id);
     expect((await call('GET', conns())).json().connections).toHaveLength(2);
     await call('DELETE', `connections/${p2.id}`);
@@ -222,16 +244,20 @@ describe('pt6a: токен и REST', () => {
     expect(await mrsOf(1)).toHaveLength(0);
     expect((await call('GET', conns())).json().connections).toHaveLength(0);
     handler = (_, res) => json(res, {}, {}, 404);
-    expect(
-      (await call('POST', conns(), { baseUrl: base, token: TOKEN, project: '999' })).statusCode,
-    ).toBe(404);
+    expect((await call('POST', conns(), { project: '999' })).statusCode).toBe(404);
   });
 
   it('pt6a: репозиторий с тем же id с другого адреса в том же проекте → 409', async () => {
     await addProject(42);
     // the fake answers on another host name of the same server
-    const alt = base.replace('127.0.0.1', 'localhost');
-    const r = await call('POST', conns(), { baseUrl: alt, token: TOKEN, project: '42' });
+    const alt = await addServer(
+      'workspace',
+      WS,
+      'alt',
+      base.replace('127.0.0.1', 'localhost'),
+      TOKEN,
+    );
+    const r = await call('POST', conns(), { project: '42', serverId: alt });
     expect(r.statusCode).toBe(409);
   });
 
@@ -347,7 +373,7 @@ describe('pt6a: опрос', () => {
   });
 
   it('pt6a: 401 → last_error=unauthorized и остановка подключения до смены токена', async () => {
-    const c = await addProject(1);
+    await addProject(1);
     await addProject(2);
     handler = (req, res) =>
       req.url!.includes('/projects/1/') ? json(res, {}, {}, 401) : json(res, []);
@@ -361,7 +387,8 @@ describe('pt6a: опрос', () => {
     await poll();
     expect(hits.map((h) => h.path)).toEqual(['/api/v4/projects/2/merge_requests']);
     hits = [];
-    await call('PATCH', `connections/${c.id}`, { token: 'new-token' });
+    // the token belongs to the connection: the new one lifts the stop of all its repositories
+    await call('PATCH', `servers/${ws}`, { token: 'new-token' });
     expect(await errs()).toEqual([null, null]);
     handler = (_, res) => json(res, []);
     await poll();
@@ -472,8 +499,7 @@ describe('pt6a: мутаторы', () => {
     await set([]);
     for (const [m, u, b] of [
       ['GET', conns()],
-      ['POST', conns(), { baseUrl: base, token: TOKEN, project: '1' }],
-      ['PATCH', `connections/${on.id}`, { token: TOKEN }],
+      ['POST', conns(), { project: '1' }],
       ['DELETE', `connections/${on.id}`],
     ] as [string, string, object?][]) {
       const r = await call(m, u, b);
@@ -1037,5 +1063,84 @@ describe('gitlab.tick', () => {
     await db.update(P).set({ lastPolledAt: new Date().toISOString() });
     await tick.handler({}, api);
     expect(queued).toEqual(['gitlab.poll']);
+  });
+});
+
+describe('подключения GitLab по уровням', () => {
+  const levelOf = async (scope: string, id: string) =>
+    (await call('GET', `levels/${scope}/${id}`)).json() as {
+      servers: { id: string; name: string; scope: string }[];
+      choice: string | null;
+      effective: string | null;
+    };
+  const choose = (scope: string, id: string, serverId: string | null) =>
+    call('PUT', `levels/${scope}/${id}/choice`, { serverId });
+  const eff = async () => (await resolveServer(db, 'project', w.projectId))?.id ?? null;
+
+  it('эффективное: проект → спейс → воркспейс; без выбора — самое старое глобальное', async () => {
+    const second = await addServer('workspace', WS, 'second', base, 'other');
+    expect(await eff()).toBe(ws);
+    expect((await levelOf('project', w.projectId)).effective).toBe(ws);
+    expect((await choose('workspace', WS, second)).statusCode).toBe(200);
+    expect(await eff()).toBe(second);
+    const own = await addServer('space', w.spaceId, 'space-own', base, 'sp');
+    expect(await eff()).toBe(own);
+    // the own connection of a space is not offered to other spaces; the project sees workspace and space ones
+    const lv = await levelOf('project', w.projectId);
+    expect(lv.servers.map((x) => x.id).sort()).toEqual([ws, second, own].sort());
+    const mine = await addServer('project', w.projectId, 'proj-own', base, 'pr');
+    expect(await eff()).toBe(mine);
+    expect((await choose('project', w.projectId, null)).statusCode).toBe(200);
+    expect(await eff()).toBe(own);
+    expect((await choose('space', w.spaceId, null)).statusCode).toBe(200);
+    expect(await eff()).toBe(second);
+  });
+
+  it('выбор чужого подключения (своё у другого проекта) → 400', async () => {
+    const p2 = await mkProject();
+    const foreign = await addServer('project', p2, 'p2-own', base, 't');
+    expect((await choose('project', w.projectId, foreign)).statusCode).toBe(400);
+    expect((await choose('project', w.projectId, uuidv7())).statusCode).toBe(400);
+  });
+
+  it('привязка репозитория идёт через эффективное подключение (его токен и хост)', async () => {
+    const own = await addServer('project', w.projectId, 'own', base, 'project-token');
+    handler = (_, res) => json(res, { id: 5, path_with_namespace: 'g/five' });
+    const r = await call('POST', conns(), { project: '5' });
+    expect(r.json().connection).toMatchObject({ serverId: own });
+    expect(hits.at(-1)!.token).toBe('project-token');
+  });
+
+  it('без подключений привязать репозиторий нельзя → 409', async () => {
+    await call('DELETE', `servers/${ws}`);
+    expect((await call('POST', conns(), { project: '5' })).statusCode).toBe(409);
+  });
+
+  it('удаление: с привязанными репозиториями — 409, иначе уровни ниже сбрасываются на наследование', async () => {
+    const bound = await addProject(42);
+    expect((await call('DELETE', `servers/${ws}`)).statusCode).toBe(409);
+    expect(
+      (await call('PATCH', `servers/${ws}`, { baseUrl: 'http://other.example' })).statusCode,
+    ).toBe(409);
+    expect((await call('PATCH', `servers/${ws}`, { name: 'renamed' })).statusCode).toBe(200);
+    await call('DELETE', `connections/${bound.id}`);
+    const second = await addServer('workspace', WS, 'second', base, 'x');
+    const own = await addServer('space', w.spaceId, 'own', base, 'y');
+    await choose('project', w.projectId, second);
+    expect((await call('DELETE', `servers/${second}`)).statusCode).toBe(204);
+    expect((await levelOf('project', w.projectId)).choice).toBeNull();
+    expect(await eff()).toBe(own);
+    expect((await call('DELETE', `servers/${own}`)).statusCode).toBe(204);
+    expect((await levelOf('space', w.spaceId)).choice).toBeNull();
+    expect(await eff()).toBe(ws);
+    expect(await db.select().from(C)).toHaveLength(0);
+  });
+
+  it('удаление проекта убирает его собственные подключения и выбор', async () => {
+    const p2 = await mkProject();
+    await addServer('project', p2, 'gone', base, 't');
+    await w.admin.ok('project.delete', { id: p2 });
+    expect(await db.select().from(G).where(eq(G.scopeId, p2))).toHaveLength(0);
+    expect(await db.select().from(C).where(eq(C.scopeId, p2))).toHaveLength(0);
   });
 });

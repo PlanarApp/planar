@@ -305,3 +305,16 @@ export const shared: SharedModuleManifest = {
     },
   },
 };
+
+/** scopeId of the workspace level of a GitLab connection (as in AI connections) */
+export const WORKSPACE_SCOPE_ID = '00000000-0000-0000-0000-000000000000';
+export type GitlabScope = 'workspace' | 'space' | 'project';
+/** a GitLab connection for the client: the token is never sent */
+export interface GitlabServerView {
+  id: string;
+  scope: GitlabScope;
+  scopeId: string;
+  name: string;
+  baseUrl: string;
+  tokenSet: true;
+}

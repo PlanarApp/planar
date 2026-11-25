@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import ServersPanel from './ServersPanel.vue';
 import { branchTemplateError, DEFAULT_BRANCH_TEMPLATE } from '../shared/branch-name.js';
 import {
   mutate,
@@ -23,8 +24,7 @@ interface Conn {
 const props = defineProps<{ projectId: string }>();
 const conns = ref<Conn[]>([]);
 const err = ref('');
-const f = reactive({ baseUrl: 'https://gitlab.com', token: '', project: '' });
-const tokens = reactive<Record<string, string>>({});
+const f = reactive({ project: '' });
 const projects = useProjects();
 const statuses = useStatusList();
 const merged = useMergedStatuses();
@@ -49,18 +49,8 @@ const base = () => `projects/${props.projectId}/connections`;
 const load = () =>
   call<{ connections: Conn[] }>('GET', base()).then((r) => (conns.value = r.connections));
 const add = () =>
-  call('POST', base(), {
-    baseUrl: f.baseUrl.trim(),
-    token: f.token,
-    project: f.project.trim(),
-  }).then(() => {
-    f.token = '';
+  call('POST', base(), { project: f.project.trim() }).then(() => {
     f.project = '';
-    return load();
-  });
-const setToken = (id: string) =>
-  call('PATCH', `connections/${id}`, { token: tokens[id] }).then(() => {
-    tokens[id] = '';
     return load();
   });
 const run = (p: Promise<unknown>) => p.catch(() => {});
@@ -119,6 +109,7 @@ onMounted(() => run(load()));
 <template>
   <section class="flex flex-col gap-4" data-testid="gitlab-settings">
     <h2 class="text-lg font-semibold">{{ tr('title') }}</h2>
+    <ServersPanel level="project" :project-id="projectId" />
     <p v-if="err" role="alert" class="text-sm text-danger">{{ err }}</p>
 
     <h3 class="font-medium">{{ tr('connections') }}</h3>
@@ -139,57 +130,18 @@ onMounted(() => run(load()));
             >{{ tr('error') }}: {{ c.lastError }}</span
           >
         </div>
-        <form class="flex gap-2" @submit.prevent="run(setToken(c.id))">
-          <input
-            v-model="tokens[c.id]"
-            type="password"
-            autocomplete="off"
-            required
-            maxlength="500"
-            :placeholder="tr('newToken')"
-            :aria-label="tr('newToken')"
-            data-testid="gl-conn-token"
-            class="flex-1 rounded-md border border-border bg-bg px-2 py-1"
-          />
-          <button type="submit" class="rounded-md border border-border px-3 py-1">
-            {{ tr('save') }}
-          </button>
-          <button
-            type="button"
-            class="underline"
-            data-testid="gl-remove"
-            @click="run(call('DELETE', `connections/${c.id}`).then(load))"
-          >
-            {{ tr('remove') }}
-          </button>
-        </form>
+        <button
+          type="button"
+          class="self-start underline"
+          data-testid="gl-remove"
+          @click="run(call('DELETE', `connections/${c.id}`).then(load))"
+        >
+          {{ tr('remove') }}
+        </button>
       </li>
     </ul>
 
     <form class="flex flex-col gap-2" data-testid="gl-add-form" @submit.prevent="run(add())">
-      <label class="flex flex-col gap-1 text-sm"
-        >{{ tr('baseUrl') }}
-        <input
-          v-model="f.baseUrl"
-          type="url"
-          required
-          maxlength="2000"
-          data-testid="gl-url"
-          class="rounded-md border border-border bg-bg px-2 py-1"
-        />
-      </label>
-      <label class="flex flex-col gap-1 text-sm"
-        >{{ tr('token') }}
-        <input
-          v-model="f.token"
-          type="password"
-          autocomplete="off"
-          required
-          maxlength="500"
-          data-testid="gl-token"
-          class="rounded-md border border-border bg-bg px-2 py-1"
-        />
-      </label>
       <label class="flex flex-col gap-1 text-sm"
         >{{ tr('repo') }}
         <input
