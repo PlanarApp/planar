@@ -19,6 +19,8 @@ vi.mock('../../../sync', async () => {
   h.db = new PlanarDB('wk3', {
     automationsRules: ['spaceId', 'projectId'],
     aiActions: ['spaceId', 'projectId'],
+    users: ['login'],
+    fieldDefs: ['spaceId', 'projectId'],
   });
   return {
     db: h.db,

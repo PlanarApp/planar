@@ -11,7 +11,14 @@ const ts = z.iso.datetime();
 const uuid = z.uuid();
 const bad = (m: string) => new MutatorError('invalid_args', m);
 
+/**
+ * `field:` without an id and an empty id in an action are placeholders of an imported rule (PLNRAPP export/import):
+ * such a rule is stored only disabled (see `isIncomplete`), the person fills them in.
+ */
+export const EMPTY_FIELD_REF = 'field:';
 const fieldRef = z.templateLiteral(['field:', z.uuid()]);
+const fieldRefOrEmpty = z.union([fieldRef, z.literal(EMPTY_FIELD_REF)]);
+const refId = z.union([uuid, z.literal('')]);
 
 export const TRIGGER_TYPES = [
   'task.created',
@@ -70,7 +77,7 @@ export const triggerSchema = z.discriminatedUnion('type', [
     type: z.literal('task.field_changed'),
     field: z.union([
       z.enum(['title', 'description', 'priority', 'dueDate', 'startDate', 'parentId']),
-      fieldRef,
+      fieldRefOrEmpty,
     ]),
     byHuman,
   }),
@@ -138,7 +145,7 @@ const DATE_EXPR = /^(\d{4}-\d{2}-\d{2}|today([+-]\d+)?)$/;
 const setField = z
   .object({
     type: z.literal('set_field'),
-    field: z.union([z.enum(['priority', 'dueDate', 'startDate']), fieldRef]),
+    field: z.union([z.enum(['priority', 'dueDate', 'startDate']), fieldRefOrEmpty]),
     value: z.union([z.string(), z.number(), z.boolean(), z.null()]),
   })
   .superRefine((a, c) => {
@@ -152,21 +159,21 @@ const setField = z
   });
 
 export const actionSchema = z.union([
-  z.object({ type: z.literal('set_status'), statusId: uuid }),
-  z.object({ type: z.literal('assign'), userId: uuid }),
-  z.object({ type: z.literal('unassign'), userId: uuid }),
-  z.object({ type: z.literal('add_label'), labelId: uuid }),
-  z.object({ type: z.literal('remove_label'), labelId: uuid }),
+  z.object({ type: z.literal('set_status'), statusId: refId }),
+  z.object({ type: z.literal('assign'), userId: refId }),
+  z.object({ type: z.literal('unassign'), userId: refId }),
+  z.object({ type: z.literal('add_label'), labelId: refId }),
+  z.object({ type: z.literal('remove_label'), labelId: refId }),
   setField,
   z.object({ type: z.literal('add_comment'), text: z.string().min(1).max(5000) }),
-  z.object({ type: z.literal('move_to_project'), projectId: uuid, statusId: uuid.optional() }),
+  z.object({ type: z.literal('move_to_project'), projectId: refId, statusId: uuid.optional() }),
   z.object({ type: z.literal('create_subtask'), title: z.string().min(1).max(500) }),
-  z.object({ type: z.literal('send_webhook'), subscriptionId: uuid }),
+  z.object({ type: z.literal('send_webhook'), subscriptionId: refId }),
   // module ai (PLNRAPP-168): a run of the project's AI action over the task, after a 60 s debounce
   // maxRuns (PLNRAPP-205): runs by this rule in a row on a task; past it — a question to a person
   z.object({
     type: z.literal('ai_run'),
-    aiActionId: uuid,
+    aiActionId: refId,
     maxRuns: z.number().int().min(1).max(20).optional(),
   }),
   // PLNRAPP-204: on comment.added — closes the comment the new one replies to, if its assignee replied
@@ -189,6 +196,7 @@ async function checkAi(
   for (const a of lists.at(-1)!)
     if (
       a.type === 'ai_run' &&
+      a.aiActionId !== '' &&
       (await m(tx).get<{ projectId: string }>('aiActions', a.aiActionId))?.projectId !== r.projectId
     )
       throw bad(`ИИ-действие ${a.aiActionId} не найдено в проекте`);
@@ -199,10 +207,24 @@ async function checkMoves(tx: Tx, r: Pick<Rule, 'spaceId'>, list: Action[]) {
   for (const a of list)
     if (
       a.type === 'move_to_project' &&
+      a.projectId !== '' &&
       (await tx.get('projects', a.projectId))?.spaceId !== r.spaceId
     )
       throw bad(`Проект ${a.projectId} не найден в пространстве правила`);
 }
+
+/** A rule with placeholders (an unbound import) must not run: only disabled ones may hold them. */
+export const isIncomplete = (r: Pick<Rule, 'trigger' | 'actions'>): boolean =>
+  (r.trigger.type === 'task.field_changed' && r.trigger.field === EMPTY_FIELD_REF) ||
+  r.actions.some((a) =>
+    Object.entries(a).some(
+      ([k, v]) => (k.endsWith('Id') && v === '') || (k === 'field' && v === EMPTY_FIELD_REF),
+    ),
+  );
+const needComplete = (r: Pick<Rule, 'trigger' | 'actions' | 'enabled'>) => {
+  if (r.enabled && isIncomplete(r))
+    throw bad('Правило не заполнено — его можно только выключенным');
+};
 
 const actions = z.array(actionSchema).min(1).max(10);
 const name = z.string().min(1).max(100);
@@ -270,6 +292,7 @@ export const create = defineMutator({
     if (!project) throw new MutatorError('not_found', `project ${a.projectId}`);
     await checkAi(tx, ctx.userId, { spaceId: project.spaceId, projectId: a.projectId }, a.actions);
     await checkMoves(tx, project, a.actions);
+    needComplete({ trigger: a.trigger, actions: a.actions, enabled: a.enabled ?? true });
     const row: Rule = {
       id: a.id,
       spaceId: project.spaceId,
@@ -305,6 +328,7 @@ export const update = defineMutator({
     if (!Object.keys(patch).length) throw bad('нечего менять');
     await checkAi(tx, ctx.userId, old, old.actions, a.actions ?? []);
     await checkMoves(tx, old, a.actions ?? []);
+    needComplete({ ...old, ...patch });
     await m(tx).patch('automationsRules', id, { ...patch, updatedAt: ctx.now });
   },
 });
