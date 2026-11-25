@@ -15,6 +15,8 @@ const lazy = (n: string) => defineAsyncComponent(() => import(`./settings/${n}Se
 type Level = GroupScope['level'];
 const SECTIONS = {
   general: { c: lazy('General'), level: 'any' },
+  // the list of spaces: create, rename, delete with content — only in the global settings
+  spaces: { c: lazy('Spaces'), level: 'workspace' },
   // global (no scope): the members of the root space
   members: { c: lazy('Members'), level: 'space' },
   projects: { c: lazy('Projects'), level: 'space' },

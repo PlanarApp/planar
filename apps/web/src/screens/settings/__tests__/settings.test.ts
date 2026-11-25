@@ -4,6 +4,7 @@ import { uuidv7 } from '@planar/shared';
 import { useAuth, type User } from '../../../auth/useAuth';
 import * as http from '../../../api/http';
 import { db, ids, menuAct, pick, setup, show, wait } from './setup';
+import SpacesSettings from '../SpacesSettings.vue';
 import MembersSettings from '../MembersSettings.vue';
 import ProjectsSettings from '../ProjectsSettings.vue';
 import StatusesSettings from '../StatusesSettings.vue';
@@ -14,6 +15,37 @@ import { UserPicker } from '../../../pickers';
 
 setup();
 const rows = (t: string) => db.table(t).toArray();
+
+describe('settings:spaces', () => {
+  it('создаёт пространство с участником (статусы — у проектов, C-mutators v11)', async () => {
+    const w = await show(SpacesSettings, {});
+    await w.find('input[data-testid=space-new]').setValue('Новое');
+    await w.find('form').trigger('submit');
+    await wait();
+    const s = (await rows('spaces')).find((x) => x.name === 'Новое');
+    expect(s).toBeTruthy();
+    expect(await db.table('statuses').where('spaceId').equals(s.id).count()).toBe(0);
+    expect(await db.table('spaceMembers').where('spaceId').equals(s.id).count()).toBe(1);
+  });
+  it('переименовывает', async () => {
+    const w = await show(SpacesSettings, {});
+    const input = w.find('[data-testid=space-row] input:not([type=checkbox])');
+    await input.setValue('Другое');
+    await input.trigger('change');
+    await wait();
+    expect((await db.table('spaces').get(ids.space)).name).toBe('Другое');
+  });
+  it('удаление пространства с проектами — conflict, текст показан', async () => {
+    const w = await show(SpacesSettings, {});
+    await menuAct(
+      w.find('[data-testid=space-row] [data-testid=row-menu]').element,
+      'Удалить',
+      true,
+    );
+    await vi.waitFor(() => expect(w.find('[role=alert]').text()).toContain('есть проекты'));
+    expect(await db.table('spaces').get(ids.space)).toBeTruthy();
+  });
+});
 
 describe('settings:members', () => {
   it('добавляет участника', async () => {
