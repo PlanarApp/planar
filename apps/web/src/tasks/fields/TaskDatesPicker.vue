@@ -3,12 +3,11 @@ import { AlarmClock, Calendar } from 'lucide-vue-next';
 import { computed, defineAsyncComponent, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button, Input } from '../../ui';
-import { formatDue, formatPeriod } from '../../views/list/due';
-import { localToday } from '../../views/filter';
+import { dueTone, formatDue, formatPeriod } from '../../views/list/due';
 import LazyPopover from './LazyPopover.vue';
 
 // Task dates in one compact field (PLNRAPP-208): start and due date (the due date is the end of the period).
-// Nothing — the icon only; a period — "12–19 Nov"; only a due date — "⏰ 20 Nov"; overdue — danger.
+// Nothing — the icon only; a period — "12–19 Nov"; only a due date — "⏰ 20 Nov"; the due date's color — shared tokens (PLNRAPP-872).
 // taskId — «My day» choices on top, as in DueDatePicker (PLNRAPP-137).
 const props = defineProps<{ taskId?: string }>();
 // async: inbox imports tasks
@@ -17,7 +16,7 @@ const start = defineModel<string | null>('start', { default: null });
 const due = defineModel<string | null>('due', { default: null });
 const { t, locale } = useI18n();
 const open = ref(false);
-const overdue = computed(() => !!due.value && due.value < localToday());
+const tone = computed(() => dueTone(due.value) || 'text-fg');
 const text = computed(() =>
   start.value && !due.value
     ? t('task.fromDate', { date: formatDue(start.value, locale.value) })
@@ -43,7 +42,7 @@ const clear = () => {
         :aria-label="t('task.dates')"
         :class="[
           'inline-flex h-7 items-center gap-1.5 rounded-md px-1.5 text-sm outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus',
-          overdue ? 'text-danger' : 'text-fg',
+          tone,
         ]"
         data-testid="task-dates"
       >

@@ -132,7 +132,7 @@ describe('tasks:pickers', () => {
       const res = {
         text: v.exists() ? v.text() : '',
         alarm: w.find('[data-testid=task-dates-due]').exists(),
-        danger: w.get('[data-testid=task-dates]').classes().includes('text-danger'),
+        danger: w.get('[data-testid=task-dates]').classes().includes('text-due-overdue'),
       };
       w.unmount();
       return res;

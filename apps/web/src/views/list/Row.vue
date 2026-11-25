@@ -22,7 +22,7 @@ import AiCell from './AiCell.vue';
 import TaskProgress from '../TaskProgress.vue';
 import { BlockedIcon } from '../../links';
 import { isAiField, type TaskField } from '../options';
-import { localToday } from '../filter';
+import { dueTone as dueToneOf } from './due';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import { toast } from '../../ui/toast';
 
@@ -157,16 +157,8 @@ const people = computed(() =>
     name: props.members.find((u) => u.id === id)?.name ?? '?',
   })),
 );
-// overdue (before local today) — danger, today and tomorrow — warning
-const dueTone = computed(() => {
-  const d = props.task.dueDate;
-  if (!d) return '';
-  const today = localToday();
-  const next = new Date();
-  next.setDate(next.getDate() + 1);
-  const tomorrow = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`;
-  return d < today ? 'text-danger' : d <= tomorrow ? 'text-warning' : 'text-fg-muted';
-});
+// PLNRAPP-872: overdue — red, today — accent, future — neutral (shared theme tokens)
+const dueTone = computed(() => dueToneOf(props.task.dueDate));
 
 // «…» (PLNRAPP-139): the view's context menu (TaskContextMenu), opened at the button;
 // a plain button, not IconButton — no tooltip per virtualized row

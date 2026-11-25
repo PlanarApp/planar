@@ -15,8 +15,7 @@ import {
   type TaskView,
 } from '../../tasks';
 import { AvatarStack, Badge } from '../../ui';
-import { formatDue } from '../list/due';
-import { localToday } from '../filter';
+import { dueTone as dueToneOf, formatDue } from '../list/due';
 
 export type CardCol = 'project' | 'priority' | 'dueDate' | 'assignee' | 'labels';
 // card field: at rest — the value; while the card is under the cursor — a picker with the same content (click — choose)
@@ -54,10 +53,8 @@ const box = computed(() =>
   ].join(' '),
 );
 const due = computed(() => (props.task.dueDate ? formatDue(props.task.dueDate, locale.value) : ''));
-// overdue — danger (an icon without text must show this)
-const dueTone = computed(() =>
-  props.task.dueDate && props.task.dueDate < localToday() ? 'text-danger' : 'text-fg-muted',
-);
+// overdue — red, today — accent, future — neutral (PLNRAPP-872); an icon without text must show this too
+const dueTone = computed(() => dueToneOf(props.task.dueDate));
 const empty = 'text-fg-subtle opacity-60';
 // mobile: a tag icon in the tag's color per tag, unless the names are asked for
 // the List card (tagIcon): tag icons too, names with the "Show tag names" option
