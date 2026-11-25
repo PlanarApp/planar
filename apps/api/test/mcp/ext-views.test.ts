@@ -336,6 +336,10 @@ describe('виды, избранное, Мой день, уведомления'
       (await rest(admin, 'POST', '/notifications/read', { ids: [mine[0]!.id] }))[1].data,
     ).toEqual({ read: 1 });
     expect(await list('?unread=true')).toHaveLength(2);
+    // PLNRAPP-861: z.stringbool() over MCP — "true" is not parsed a second time
+    const [eu, unread] = await (await mcp(admin))('list_notifications', { unread: 'true' });
+    expect(eu, JSON.stringify(unread)).toBe(false);
+    expect(unread).toHaveLength(2);
     expect((await rest(read, 'POST', '/notifications/read-all', {}))[0]).toBe(403);
     expect((await rest(admin, 'POST', '/notifications/read-all', {}))[0]).toBe(200);
     expect(await list('?unread=true')).toHaveLength(0);

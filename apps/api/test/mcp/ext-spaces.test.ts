@@ -1,11 +1,13 @@
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
+import { eq, inArray } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { apiTokenCreatedSchema } from '@planar/shared';
 import { createApp } from '../../src/app.js';
 import { toolDefs } from '../../src/mcp/tools.js';
 import { area } from '../../src/rest/ext/spaces.js';
 import { RestService } from '../../src/rest/rest.service.js';
+import * as schema from '../../src/db/schema.js';
 import { ORIGIN, loginCookie } from '../auth.js';
 import { dbUrl, newDb, world, type World } from '../sync/helpers.js';
 
@@ -85,7 +87,15 @@ async function mcp(secret: string) {
     const r = await next();
     if (r.error) throw new Error(r.error);
     const res = r.result as { isError?: boolean; content: { text: string }[] };
-    return [!!res.isError, JSON.parse(res.content[0]!.text)] as const;
+    const text = res.content[0]!.text;
+    // an SDK input validation error is plain text, not JSON
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = text;
+    }
+    return [!!res.isError, body] as const;
   };
 }
 
@@ -148,6 +158,44 @@ describe('пространства и проекты (ext/spaces)', () => {
     expect((await rest(admin, 'DELETE', `/spaces/${b1.data.id}?withContent=true`))[0]).toBe(204);
     expect((await call('delete_space', { id: sp.id }))[0]).toBe(false);
     expect((await call('update_space', { id: sp.id, name: 'x' }))[1].code).toBe('not_found');
+  });
+
+  // PLNRAPP-861: withContent is z.stringbool(); the MCP SDK has already parsed it, no second parse
+  it('delete_space через MCP: withContent="true"/"yes" удаляет с проектами, "maybe" — ошибка', async () => {
+    const call = await mcp(admin);
+    const spaceWith2 = async (name: string, key: string) => {
+      const [e, sp] = await call('create_space', { name });
+      expect(e, JSON.stringify(sp)).toBe(false);
+      const ids: string[] = [];
+      for (const k of ['A', 'B']) {
+        const [ep, p] = await call('create_project', { spaceId: sp.id, name: k, key: key + k });
+        expect(ep, JSON.stringify(p)).toBe(false);
+        ids.push(p.id);
+      }
+      return { id: sp.id as string, projects: ids };
+    };
+    const left = async (s: { id: string; projects: string[] }) => [
+      (await db.select().from(schema.spaces).where(eq(schema.spaces.id, s.id))).length,
+      (await db.select().from(schema.projects).where(inArray(schema.projects.id, s.projects)))
+        .length,
+    ];
+
+    const bad = await spaceWith2('Maybe', 'MBX');
+    const [eb, rb] = await call('delete_space', { id: bad.id, withContent: 'maybe' });
+    expect(eb).toBe(true);
+    expect(String(rb)).toMatch(/validation/i);
+    expect(await left(bad)).toEqual([1, 2]);
+
+    for (const [v, key] of [
+      ['true', 'TRX'],
+      ['yes', 'YSX'],
+    ] as const) {
+      const s = await spaceWith2('С содержимым ' + v, key);
+      const [e, r] = await call('delete_space', { id: s.id, withContent: v });
+      expect(e, JSON.stringify(r)).toBe(false);
+      expect(await left(s), v).toEqual([0, 0]);
+    }
+    expect((await call('delete_space', { id: bad.id, withContent: 'true' }))[0]).toBe(false);
   });
 
   it('проект: создать (в т. ч. с копией словарей) → состав → удалить', async () => {

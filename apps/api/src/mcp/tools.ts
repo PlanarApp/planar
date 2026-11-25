@@ -383,8 +383,9 @@ export function toolDefs(rest: RestService): ToolDef[] {
       shape: o.shape,
       write: o.write,
       danger: o.danger,
+      // a is already parsed by shape (MCP SDK inputSchema, AI chat): no second parse
       run: async (a, uid, tokenId) =>
-        (await runExt(o, rest.extDeps(), uid, a, tokenId)) ?? { ok: true },
+        (await runExt(o, rest.extDeps(), uid, a, tokenId, { preparsed: true })) ?? { ok: true },
     });
   const seen = new Set<string>();
   for (const d of [...defs, ...batchDefs(rest)]) {
