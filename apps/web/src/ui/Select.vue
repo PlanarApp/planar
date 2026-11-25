@@ -83,7 +83,7 @@ const sheet = ref(false);
       <SelectContent
         position="popper"
         :side-offset="4"
-        class="z-50 min-w-[var(--reka-select-trigger-width)] rounded-lg border border-border bg-surface p-1 shadow-popover"
+        class="z-50 min-w-[var(--reka-select-trigger-width)] max-h-[min(20rem,var(--reka-select-content-available-height))] overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-popover"
       >
         <SelectViewport>
           <SelectItem

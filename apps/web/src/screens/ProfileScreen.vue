@@ -88,11 +88,16 @@ async function savePassword() {
 }
 
 // IANA zones of the browser; the saved one is kept even if this browser does not list it
-const zones = computed(() =>
-  [...new Set([...Intl.supportedValuesOf('timeZone'), user.value?.timezone ?? 'UTC'])]
+const zoneQuery = ref('');
+const zones = computed(() => {
+  const q = zoneQuery.value.trim().toLowerCase().replace(/ /g, '_');
+  const cur = user.value?.timezone ?? 'UTC';
+  return [...new Set([...Intl.supportedValuesOf('timeZone'), cur])]
+    .filter((z) => z === cur || z.toLowerCase().includes(q))
     .sort()
-    .map((z) => ({ value: z, label: z.replace(/_/g, ' ') })),
-);
+    .map((z) => ({ value: z, label: z.replace(/_/g, ' ') }));
+});
+const systemZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 async function onZone(v: string | null) {
   if (!v || v === user.value?.timezone) return;
   err.timezone = '';
@@ -205,13 +210,30 @@ const themes = () => [
         </div>
         <div class="flex flex-col gap-1">
           <span class="text-xs text-fg-muted">{{ t('profile.timezone') }}</span>
-          <Select
-            :model-value="user.timezone ?? null"
-            :label="t('profile.timezone')"
-            :options="zones"
-            data-testid="timezone"
-            @update:model-value="onZone"
+          <Input
+            v-model="zoneQuery"
+            :label="t('profile.timezoneFilter')"
+            hide-label
+            :placeholder="t('profile.timezoneFilter')"
+            size="sm"
+            data-testid="timezone-filter"
           />
+          <div class="flex items-center gap-2">
+            <Select
+              :model-value="user.timezone ?? null"
+              :label="t('profile.timezone')"
+              :options="zones"
+              data-testid="timezone"
+              @update:model-value="onZone"
+            />
+            <Button
+              v-if="systemZone"
+              size="sm"
+              data-testid="timezone-system"
+              @click="onZone(systemZone)"
+              >{{ t('profile.timezoneSystem') }}</Button
+            >
+          </div>
           <p v-if="err.timezone" role="alert" class="text-sm text-danger">{{ err.timezone }}</p>
         </div>
       </section>
