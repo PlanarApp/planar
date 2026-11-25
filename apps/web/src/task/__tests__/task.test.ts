@@ -107,7 +107,8 @@ describe('PLNRAPP-830: пустые поля под катом, меню «…»
     const probe = mount(
       defineComponent({
         setup() {
-          const menuFor = useTaskMenu(ids.space);
+          // as the views' context menu: with the value fields
+          const menuFor = useTaskMenu(ids.space, () => {});
           const tv = task(() => 'PLN-1');
           return () => {
             if (tv.value)
@@ -136,6 +137,21 @@ describe('PLNRAPP-830: пустые поля под катом, меню «…»
         return [...labels].sort((x, y) => y.length - x.length).find((l) => text?.startsWith(l));
       }),
     ).toEqual(labels);
+    expect(labels).toContain('Приоритет');
+  });
+  it('меню «…» › «Приоритет» открывает селектор приоритета формы', async () => {
+    w = await open();
+    await until(() => w.find('[aria-label="Меню задачи"]').exists());
+    await openMenu();
+    const item = [...document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+      (e) => e.textContent?.trim() === 'Приоритет',
+    )!;
+    item.click();
+    await until(() =>
+      [...document.body.querySelectorAll('[role="option"]')].some(
+        (e) => e.textContent?.trim() === 'Срочный',
+      ),
+    );
   });
 });
 

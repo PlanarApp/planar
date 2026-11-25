@@ -6,6 +6,7 @@ import {
   nextTick,
   onMounted,
   provide,
+  reactive,
   ref,
   watch,
 } from 'vue';
@@ -106,7 +107,7 @@ import AssignedComments from './AssignedComments.vue';
 import { TO_TASK } from './thread';
 import { plainDoc, selectionDraft } from './selectionDraft';
 import { quickCreate } from '../command/hotkeys';
-import { useTaskMenu } from '../tasks/taskMenu';
+import { useTaskMenu, type TaskMenuField } from '../tasks/taskMenu';
 import LinksBlock from '../links/LinksBlock.vue';
 import { useTaskLinks } from '../links';
 
@@ -221,7 +222,26 @@ const toggleWatch = () =>
 
 // --- menu: the same items as the task context menu in views (PLNRAPP-830); «Open» — the page of the task
 // (on the page itself — disabled), deletion closes the panel
-const menuFor = useTaskMenu(() => props.task.spaceId);
+// the value fields of the menu open the form's own picker (a collapsed empty field is shown first);
+// data-inline-edit on the field while opening: the closing menu does not take the focus back (that closes the picker)
+const fieldOpen = reactive<Record<TaskMenuField, boolean>>({
+  status: false,
+  priority: false,
+  assignee: false,
+  dates: false,
+});
+const opening = ref<TaskMenuField | null>(null);
+const menuFor = useTaskMenu(
+  () => props.task.spaceId,
+  (field) => {
+    kept.value.add(field);
+    opening.value = field;
+    requestAnimationFrame(() => {
+      fieldOpen[field] = true;
+      opening.value = null;
+    });
+  },
+);
 const { isMobile } = useBreakpoint();
 const menu = computed<MenuItem[]>(() =>
   menuFor(props.task).map((it) => {
@@ -722,8 +742,10 @@ const panelComponent = computed(() => {
               "
               data-testid="status-pill"
               data-col="status"
+              :data-inline-edit="opening === 'status' || undefined"
             >
               <StatusPicker
+                v-model:open="fieldOpen.status"
                 :model-value="task.statusId"
                 :space-id="task.spaceId"
                 :project-id="task.projectId"
@@ -776,8 +798,13 @@ const panelComponent = computed(() => {
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
               <Users :size="15" />{{ t('tasks.assignee') }}
             </dt>
-            <dd class="min-w-0" data-col="assignee">
+            <dd
+              class="min-w-0"
+              data-col="assignee"
+              :data-inline-edit="opening === 'assignee' || undefined"
+            >
               <AssigneePicker
+                v-model:open="fieldOpen.assignee"
                 :model-value="task.assigneeIds"
                 :space-id="task.spaceId"
                 @update:model-value="(v: string[]) => setAssignees(task.id, v)"
@@ -788,8 +815,13 @@ const panelComponent = computed(() => {
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
               <CalendarDays :size="15" />{{ t('task.dates') }}
             </dt>
-            <dd class="min-w-0" data-col="dates">
+            <dd
+              class="min-w-0"
+              data-col="dates"
+              :data-inline-edit="opening === 'dates' || undefined"
+            >
               <TaskDatesPicker
+                v-model:open="fieldOpen.dates"
                 :task-id="task.id"
                 :start="task.startDate"
                 :due="task.dueDate"
@@ -802,8 +834,13 @@ const panelComponent = computed(() => {
             <dt class="flex w-32 shrink-0 items-center gap-2 text-fg-muted">
               <Flag :size="15" />{{ t('tasks.priorityTitle') }}
             </dt>
-            <dd class="min-w-0" data-col="priority">
+            <dd
+              class="min-w-0"
+              data-col="priority"
+              :data-inline-edit="opening === 'priority' || undefined"
+            >
               <PriorityPicker
+                v-model:open="fieldOpen.priority"
                 :model-value="task.priority"
                 @update:model-value="(v: number) => updateTask(task.id, { priority: v })"
               />
