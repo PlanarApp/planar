@@ -883,7 +883,8 @@ export default {
     unpin: 'Unpin: cover the screen',
     delete: 'Delete',
     deleteTitle: 'Delete task?',
-    deleteText: 'Subtasks, checklist, attachments and comments will be deleted too. This cannot be undone.',
+    deleteText:
+      'Subtasks, checklist, attachments and comments will be deleted too. This cannot be undone.',
     cancel: 'Cancel',
     save: 'Save',
     edit: 'Edit',
