@@ -13,7 +13,7 @@ import {
 import { uuidv7 } from '@planar/shared';
 import { matched } from '@planar/module-automations/api';
 import { AI_BOT_LOGIN, type AiAction, type AiEvent, type AiRunKind } from '../shared/index.js';
-import { resolveConnection, secretOf } from './connections.js';
+import { pickModel, resolveConnection, secretOf } from './connections.js';
 import { kbBlock } from './aikb/block.js';
 import {
   chatTools,
@@ -767,6 +767,21 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
   }
   // an assignment: the action the active pack binds to the event, else the built-in prompt
   if (d.kind !== 'action') action = await eventAction(api.db, task.projectId, d.kind);
+  // the model of the run — the action's own, else the rule's first model of the connection's provider, else the connection's
+  const conn0 = await resolveConnection(api.db, task.projectId);
+  if (action && !action.model && d.kind === 'action' && d.ruleId && conn0) {
+    const m = pickModel(
+      (
+        await one(
+          api.db,
+          sql`select models from ai_harness_keys where kind = 'rule' and entity_id = ${d.ruleId}::uuid`,
+        )
+      )?.models as string[] | undefined,
+      conn0.provider,
+    );
+    if (m) action = { ...action, model: m };
+  }
+  const runModel = action?.model ?? conn0?.model ?? null;
   const itemId = (item?.id as string | undefined) ?? null;
   // an assignment on a task with an open MR: the agent with the repository, as the action «Разработка» (PLNRAPP-195)
   const mr = d.kind === 'action' ? null : await codeTargetOf(api.db, task);
@@ -802,10 +817,10 @@ export async function handle(d: AiRunData, api: JobApi): Promise<void> {
   const id = d.runId ?? uuidv7();
   const depth = parent ? (parent.n as number) + 1 : 0;
   await api.db.execute(
-    sql`insert into ai_runs (id, task_id, project_id, kind, action_id, rule_id, item_id, state, chain_id, chain_depth, restart_of)
+    sql`insert into ai_runs (id, task_id, project_id, kind, action_id, rule_id, item_id, state, chain_id, chain_depth, restart_of, model)
         values (${id}, ${task.id}, ${task.projectId}, ${d.kind}, ${action?.id ?? null}, ${d.kind === 'action' ? (d.ruleId ?? null) : null},
-          ${itemId}, 'running', ${(parent?.c as string | undefined) ?? id}, ${depth}, ${d.restartOf ?? null})
-        on conflict (id) do update set state = 'running', action_id = excluded.action_id, rule_id = excluded.rule_id,
+          ${itemId}, 'running', ${(parent?.c as string | undefined) ?? id}, ${depth}, ${d.restartOf ?? null}, ${runModel})
+        on conflict (id) do update set state = 'running', action_id = excluded.action_id, rule_id = excluded.rule_id, model = excluded.model,
           item_id = excluded.item_id, chain_id = excluded.chain_id, chain_depth = excluded.chain_depth,
           started_at = now(), updated_at = now() where ai_runs.state = 'queued'`,
   );

@@ -836,6 +836,38 @@ describe('прогон по правилу', () => {
   });
 });
 
+describe('модель прогона: действие → модели правила → модель подключения', () => {
+  const runWith = async (models: string[] | null) => {
+    const ruleId = uuidv7();
+    await w.admin.ok('automations.create', {
+      id: ruleId,
+      projectId: P,
+      name: `Модели ${ruleId}`,
+      trigger: { type: 'task.status_changed', to: [S.backlog] },
+      actions: [{ type: 'ai_run', aiActionId: actionId }],
+    });
+    if (models)
+      await raw(
+        `insert into ai_harness_keys (id, project_id, kind, key, entity_id, models) values ($1, $2, 'rule', $3, $4, $5)`,
+        [uuidv7(), P, `k-${ruleId}`, ruleId, JSON.stringify(models)],
+      );
+    const t = await task({ assignees: [{ id: uuidv7(), userId: bot }] });
+    await handler('ai', 'ai.run')(
+      { kind: 'action', taskId: t, actionId, ruleId, manual: true },
+      api,
+    );
+    return (await runsOf(t))[0]!.model;
+  };
+
+  it('первая модель правила провайдера подключения; без моделей и при недоступных — модель подключения', async () => {
+    expect(
+      await runWith(['anthropic:claude-x', 'openai-compatible:rule-m', 'openai-compatible:b']),
+    ).toBe('rule-m');
+    expect(await runWith(null)).toBe('fake');
+    expect(await runWith(['anthropic:claude-x'])).toBe('fake');
+  });
+});
+
 describe('движок: приёмка, доработка, надзор, сверка (PLNRAPP-404)', () => {
   const start = (t: string) =>
     handler('ai', 'ai.run')({ kind: 'action', taskId: t, actionId }, api);
