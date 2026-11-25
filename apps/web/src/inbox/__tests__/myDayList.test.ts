@@ -1,4 +1,5 @@
-// PLNRAPP-864: «My day» — the List with the day filter (my tasks due today and unfinished overdue ones)
+// PLNRAPP-864, PLNRAPP-868: «My day» — the List with the day filter (my unfinished tasks with a due date) in the
+// blocks «Today / Tomorrow / Later»
 import 'fake-indexeddb/auto';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -90,32 +91,58 @@ beforeEach(async () => {
 });
 afterEach(() => w?.unmount());
 
-describe('PLNRAPP-864 «Мой день» — список с фильтром по сроку', () => {
-  it('мои задачи на сегодня (любой статус) и просроченные незакрытые; остальные — нет', async () => {
-    await mineTask(1, { dueDate: localToday() });
-    await mineTask(2, { dueDate: localToday(), statusId: ids.done });
-    await mineTask(3, { dueDate: localToday(-1) });
-    await mineTask(4, { dueDate: localToday(-1), statusId: ids.done });
-    await mineTask(5, { dueDate: localToday(1) });
-    await mineTask(6, {});
-    await mineTask(7, { dueDate: localToday() }, ids.bob);
+/** block → titles of its rows, in the order of the list */
+const blocks = () => {
+  const out: Record<string, string[]> = {};
+  let cur = '';
+  for (const r of w.findAll('[role=row]')) {
+    if (r.attributes('data-testid') === 'group-row') {
+      cur = r.findAll('span')[0]!.text();
+      out[cur] = [];
+    } else if (r.attributes('data-task') !== undefined)
+      out[cur]!.push(r.get('[data-testid=row-title]').text());
+  }
+  return out;
+};
+
+describe('PLNRAPP-868 «Мой день» — блоки «Сегодня / Завтра / Потом»', () => {
+  it('просроченная и сегодняшняя — в «Сегодня», завтрашняя — в «Завтра», через 3 дня — в «Потом»; без срока, закрытые и чужие — нет', async () => {
+    await mineTask(1, { dueDate: localToday(-1) });
+    await mineTask(2, { dueDate: localToday() });
+    await mineTask(3, { dueDate: localToday(1) });
+    await mineTask(4, { dueDate: localToday(3) });
+    await mineTask(5, {});
+    await mineTask(6, { dueDate: localToday(), statusId: ids.done });
+    await mineTask(7, { dueDate: localToday(-1), statusId: ids.done });
+    await mineTask(8, { dueDate: localToday() }, ids.bob);
     await show();
-    await until(() => titles().length === 3);
-    expect(titles().sort()).toEqual(['T1', 'T2', 'T3']);
+    await until(() => titles().length === 4);
+    expect(blocks()).toEqual({ Сегодня: ['T1', 'T2'], Завтра: ['T3'], Потом: ['T4'] });
   });
 
-  it('смена срока сразу убирает задачу из дня или добавляет; закрытая просроченная уходит', async () => {
-    const t1 = await mineTask(1, { dueDate: localToday() });
-    const t2 = await mineTask(2, { dueDate: localToday(2) });
-    const t3 = await mineTask(3, { dueDate: localToday(-1) });
+  it('группировка и сортировка «Вида» не применяются: блоки по сроку, внутри — по сроку', async () => {
+    await mineTask(1, { dueDate: localToday(5), priority: 1 });
+    await mineTask(2, { dueDate: localToday(2), priority: 4 });
     await show();
-    await until(() => titles().join() === 'T1,T3');
+    options.groupBy = 'priority';
+    options.sortBy = 'priority';
+    await until(() => titles().length === 2);
+    expect(blocks()).toEqual({ Сегодня: [], Завтра: [], Потом: ['T2', 'T1'] });
+  });
+
+  it('смена срока сразу переносит задачу между блоками; срок убран или задача закрыта — уходит', async () => {
+    const t1 = await mineTask(1, { dueDate: localToday() });
+    const t2 = await mineTask(2, { dueDate: localToday(4) });
+    await show();
+    await until(() => blocks()['Сегодня']?.join() === 'T1');
     await setDue(t1, localToday(1));
-    await until(() => titles().join() === 'T3');
-    await setDue(t2, localToday());
-    await until(() => titles().join() === 'T2,T3');
-    await db.table('tasks').put({ ...(await db.table('tasks').get(t3)), statusId: ids.done });
+    await until(() => blocks()['Завтра']?.join() === 'T1');
+    await setDue(t2, localToday(-2));
+    await until(() => blocks()['Сегодня']?.join() === 'T2');
+    await setDue(t1, null);
     await until(() => titles().join() === 'T2');
+    await db.table('tasks').put({ ...(await db.table('tasks').get(t2)), statusId: ids.done });
+    await until(() => titles().length === 0);
   });
 
   it('карточки — строки Списка: свойства меню «Вид» применяются сразу, без кнопки «убрать из дня»', async () => {
@@ -129,6 +156,8 @@ describe('PLNRAPP-864 «Мой день» — список с фильтром �
     await until(() => !row().find('[data-col=priority]').exists());
     options.fields = [...options.fields, 'priority'];
     await until(() => row().find('[data-col=priority]').exists());
+    options.showKey = false;
+    await until(() => !row().find('[data-testid=row-key]').exists());
     expect(w.find('[data-testid=my-day-remove]').exists()).toBe(false);
     expect(w.text()).not.toMatch(/убрать из/i);
   });

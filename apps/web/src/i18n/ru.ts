@@ -171,6 +171,9 @@ export default {
     title: 'Мой день',
     toTomorrow: 'На завтра',
     add: 'В мой день',
+    today: 'Сегодня',
+    tomorrow: 'Завтра',
+    later: 'Потом',
   },
   inbox: {
     all: 'Все',

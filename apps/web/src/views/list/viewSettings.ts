@@ -1,5 +1,12 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
-import { groupTasks, sortTasks, type GroupCtx, type SortBy, type TaskView } from '../../tasks';
+import {
+  groupTasks,
+  sortTasks,
+  type GroupCtx,
+  type SortBy,
+  type TaskGroup,
+  type TaskView,
+} from '../../tasks';
 import { enabledForProject } from '../../modules/registry';
 import { fieldModule, type ViewOptions } from '../options';
 import { nextSort } from '../sortHead';
@@ -30,6 +37,11 @@ export interface ViewSettingsCtx {
   group: MaybeRefOrGetter<GroupCtx>;
   /** the view filter; none — every task passes */
   passes?: MaybeRefOrGetter<(task: TaskView) => boolean>;
+  /**
+   * PLNRAPP-868: the screen's own groups (with their order of tasks) instead of the "View" grouping and
+   * sorting — e.g. the blocks of «My day»; none — the "View" ones
+   */
+  groups?: MaybeRefOrGetter<((tasks: TaskView[]) => TaskGroup[]) | undefined>;
 }
 
 /**
@@ -56,6 +68,8 @@ export function useViewSettings(
     const list = (toValue(tasks) ?? []).filter(
       (x) => (o.showSubtasks || !x.parentId) && (!passes || passes(x)),
     );
+    const own = toValue(ctx.groups);
+    if (own) return own(list);
     return groupTasks(list, o.groupBy, toValue(ctx.group))
       .filter((g) => o.groupBy === 'none' || !o.hideEmptyGroups || g.tasks.length)
       .map((g) => ({ ...g, tasks: sortTasks(g.tasks, o.sortBy, o.sortDir) }));
@@ -67,7 +81,12 @@ export function useViewSettings(
     showEmpty: !!options.value.showEmpty,
   }));
   // dragging changes the order only in the "Manual" sort
-  const manual = computed(() => options.value.sortBy === 'rank' && options.value.sortDir === 'asc');
+  const manual = computed(
+    () =>
+      !toValue(ctx.groups) && options.value.sortBy === 'rank' && options.value.sortDir === 'asc',
+  );
+  /** groups are shown with their headers: the "View" grouping or the screen's own groups */
+  const grouped = computed(() => !!toValue(ctx.groups) || options.value.groupBy !== 'none');
   function update(patch: Partial<ViewOptions>) {
     const s = toValue(settings);
     if (s.update) s.update(patch);
@@ -75,5 +94,5 @@ export function useViewSettings(
   }
   /** sorting by the column header: ascending → descending → manual order */
   const sortBy = (by: SortBy) => update(nextSort(options.value, by));
-  return { options, fields, columns, groups, density, manual, update, sortBy };
+  return { options, fields, columns, groups, grouped, density, manual, update, sortBy };
 }
