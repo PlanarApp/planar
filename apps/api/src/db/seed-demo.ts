@@ -91,7 +91,7 @@ function prng(seed: number) {
 
 const USERS = [
   ['maya', 'Maya Chen', 'owner', '#6366f1'],
-  ['demo', 'Demo User', 'member', '#0ea5e9'],
+  ['demo', 'Demo User', 'admin', '#0ea5e9'],
   ['liam', 'Liam Walker', 'member', '#10b981'],
   ['sofia', 'Sofia Rossi', 'member', '#f43f5e'],
   ['noah', 'Noah Kim', 'member', '#f59e0b'],
