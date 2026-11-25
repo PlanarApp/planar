@@ -35,7 +35,6 @@ import {
   type AssignedComment,
 } from './queries';
 import { WORK_SUBS, workSub } from './subs';
-import { useMyDay } from './myDay';
 import TaskStatusCell from './TaskStatusCell.vue';
 
 // group "My work", as in Plane: summary, assigned, comments for me, created, watched, activity
@@ -69,7 +68,7 @@ const subTabs = computed(() =>
     count: subCounts.value[w] || undefined,
   })),
 );
-// «My day» — only the planner, without a view and Me Mode (PLNRAPP-709); the task sections — a view with Me Mode
+// «My day» — the List with the day filter, without Me Mode (PLNRAPP-864); the task sections — a view with Me Mode
 const taskSub = computed(() =>
   (['day', 'assigned', 'created', 'watched'] as const).find((w) => w === sub.value),
 );
@@ -111,10 +110,11 @@ const unreadMentions = computed(
 );
 const count = (rows: { projectId: string }[] | undefined) =>
   (rows ?? []).filter((r) => inScope(r.projectId)).length;
-const day = useMyDay(uid);
-// task tabs count open tasks; «My day» — today's not done
+// task tabs count open tasks; «My day» — open ones due today or earlier
 const subCounts = computed<Partial<Record<string, number>>>(() => ({
-  day: (day.value?.today ?? []).filter((x) => !x.done && inScope(x.task.projectId)).length,
+  day: (assigned.value ?? []).filter(
+    (r) => inScope(r.projectId) && !!r.dueDate && r.dueDate <= localToday(),
+  ).length,
   assigned: count(assigned.value),
   created: count(created.value),
   watched: count(watched.value),
