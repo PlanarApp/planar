@@ -15,7 +15,7 @@ import {
   type TaskView,
 } from '../../tasks';
 import { AvatarStack } from '../../ui';
-import { dateTone, formatDue } from '../list/due';
+import { dueTone as dueToneOf, formatDue } from '../list/due';
 import DatesValue from '../../tasks/fields/DatesValue.vue';
 import LabelsValue from '../../tasks/fields/LabelsValue.vue';
 
@@ -61,7 +61,7 @@ const due = computed(() =>
 // the icon without text shows the due date's color (only a start — the start's)
 const dueTone = computed(() => {
   const d = props.task.dueDate ?? props.task.startDate;
-  return d ? dateTone(d) : '';
+  return dueToneOf(d);
 });
 const empty = 'text-fg-subtle opacity-60';
 </script>

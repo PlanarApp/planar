@@ -882,19 +882,46 @@ describe('list:row', () => {
       ]);
     await show();
     const tone = (k: string) => row(k).findAll('[data-col=dueDate] span').at(-1)!.classes();
-    expect(tone('PLN-1')).toContain('text-danger');
-    expect(tone('PLN-2')).toContain('text-success');
-    expect(tone('PLN-3')).toContain('text-fg');
+    expect(tone('PLN-1')).toContain('text-due-overdue');
+    expect(tone('PLN-2')).toContain('text-due-today');
+    expect(tone('PLN-3')).toContain('text-due-future');
   });
   it('list:row начало и срок — оба в ячейке, каждый своим цветом', async () => {
     await db.table('tasks').put(task(1, { startDate: day(-2), dueDate: day(0) }));
     await show();
     const spans = row('PLN-1').findAll('[data-testid=task-dates-value] > span');
     expect(spans.map((x) => x.classes())).toEqual([
-      expect.arrayContaining(['text-danger']),
+      expect.arrayContaining(['text-due-overdue']),
       expect.arrayContaining(['text-fg-muted']),
-      expect.arrayContaining(['text-success']),
+      expect.arrayContaining(['text-due-today']),
     ]);
+  });
+  it('list:card срок на мобильной карточке 375 px (PLNRAPP-872): те же токены, не белый', async () => {
+    await db
+      .table('tasks')
+      .bulkPut([
+        task(1, { dueDate: day(-1) }),
+        task(2, { dueDate: day(0) }),
+        task(3, { dueDate: day(3) }),
+      ]);
+    const cw = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth')!;
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 375 });
+    try {
+      await show();
+      const tone = (k: string) => {
+        const f = row(k).get('[data-testid=card-fields]');
+        return f
+          .findAll('span')
+          .find((s) => /\d/.test(s.text()) && !s.find('span').exists())!
+          .classes();
+      };
+      expect(tone('PLN-1')).toContain('text-due-overdue');
+      expect(tone('PLN-2')).toContain('text-due-today');
+      expect(tone('PLN-3')).toContain('text-due-future');
+      for (const k of ['PLN-1', 'PLN-2', 'PLN-3']) expect(tone(k)).not.toContain('text-fg');
+    } finally {
+      Object.defineProperty(HTMLElement.prototype, 'clientWidth', cw);
+    }
   });
   it('list:row без меток, срока и исполнителей лишнего нет; пикеры не ловят клики', async () => {
     await db.table('tasks').put(task(1));

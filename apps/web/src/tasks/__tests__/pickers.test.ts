@@ -151,13 +151,22 @@ describe('tasks:pickers', () => {
         `12 нояб. ${y + 1} – 19 нояб. ${y + 1}`,
       );
       expect(value(`${y + 1}-11-12`, null).text).toBe(`с 12 нояб. ${y + 1}`);
-      expect(value(null, `${y + 1}-11-20`)).toMatchObject({ alarm: true, tones: ['text-fg'] });
+      expect(value(null, `${y + 1}-11-20`)).toMatchObject({
+        alarm: true,
+        tones: ['text-due-future'],
+      });
     });
     it('каждая дата своим цветом: прошлое — красным, сегодня — зелёным, будущее — цветом текста', () => {
-      expect(value(null, localToday(-1)).tones).toEqual(['text-danger']);
-      expect(value(localToday(-5), localToday()).tones).toEqual(['text-danger', 'text-success']);
-      expect(value(localToday(), localToday(3)).tones).toEqual(['text-success', 'text-fg']);
-      expect(value(localToday(2), null).tones).toEqual(['text-fg']);
+      expect(value(null, localToday(-1)).tones).toEqual(['text-due-overdue']);
+      expect(value(localToday(-5), localToday()).tones).toEqual([
+        'text-due-overdue',
+        'text-due-today',
+      ]);
+      expect(value(localToday(), localToday(3)).tones).toEqual([
+        'text-due-today',
+        'text-due-future',
+      ]);
+      expect(value(localToday(2), null).tones).toEqual(['text-due-future']);
     });
     it('диалог: начало и срок, очистка обеих', async () => {
       const w = mount(TaskDatesPicker, { ...opts, props: { start: null, due: '2026-11-20' } });
