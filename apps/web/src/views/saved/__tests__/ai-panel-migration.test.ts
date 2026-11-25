@@ -124,7 +124,12 @@ describe('PLNRAPP-664: старый фильтр панели «Статус И�
   });
   it('на панели нет селектора «Статус ИИ» (модуль ai включён)', async () => {
     await setEnabledModules(['ai']);
-    const props = { spaceId: ids.space, projectId: ids.project, options: optionsFrom(undefined) };
+    const props = {
+      spaceId: ids.space,
+      projectId: ids.project,
+      layout: 'list',
+      options: optionsFrom(undefined),
+    };
     const w = mount(() => h(TooltipProvider, null, () => h(OptionsBar, props)), {
       global: { plugins: [createI18n({ legacy: false, locale: 'ru', messages: { ru, en } })] },
     });

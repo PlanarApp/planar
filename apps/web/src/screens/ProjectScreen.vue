@@ -243,6 +243,7 @@ onBeforeUnmount(() => ro?.disconnect());
               v-model:filter="draftFilter"
               :space-id="spaceId"
               :project-id="projectId"
+              :layout="active.key"
             >
               <!-- in a saved view a pick changes its layout (draft, «Save» keeps it) — PLNRAPP-113 -->
               <template #layout>

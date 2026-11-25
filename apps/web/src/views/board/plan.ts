@@ -7,9 +7,10 @@ import {
   moveTask,
   setAssignees,
   setLabels,
+  sortTasks,
   updateTask,
 } from '../../tasks';
-import type { GroupBy, TaskGroup } from '../../tasks';
+import type { GroupBy, SortBy, TaskGroup } from '../../tasks';
 
 export interface MovePlan {
   id: string;
@@ -36,13 +37,15 @@ export const swap = (
 };
 
 /**
- * Columns: inside — by rank (the view's sort does not apply on the board, order is manual).
+ * Columns: inside — by rank (the manual order); the view's sort other than rank — by it, ties by rank.
+ * A card dropped in a sorted column takes its place by the sort.
  * groupTasks drops empty groups, but on the board one can also drag into an empty column — we add it.
  */
 export function boardColumns(
   tasks: Parameters<typeof groupTasks>[0],
   by: GroupBy,
   ctx: Parameters<typeof groupTasks>[2],
+  sort?: { by: SortBy; dir: 'asc' | 'desc' },
 ): TaskGroup[] {
   const got = new Map(groupTasks(tasks, by, ctx).map((g) => [g.key, g]));
   const t = (k: string) => i18n.global.t(k);
@@ -61,10 +64,13 @@ export function boardColumns(
   return [
     ...all.map((c) => got.get(c.key) ?? { ...c, tasks: [] }),
     ...[...got.values()].filter((g) => by === 'status' || !known.has(g.key)),
-  ].map((g) => ({
-    ...g,
-    tasks: g.tasks.slice().sort((a, b) => (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0)),
-  }));
+  ].map((g) => {
+    const byRank = g.tasks.slice().sort((a, b) => (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0));
+    return {
+      ...g,
+      tasks: sort && sort.by !== 'rank' ? sortTasks(byRank, sort.by, sort.dir) : byRank,
+    };
+  });
 }
 
 /**

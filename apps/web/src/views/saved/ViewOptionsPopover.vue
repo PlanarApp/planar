@@ -9,12 +9,30 @@ import {
   SlidersHorizontal,
 } from 'lucide-vue-next';
 import { Button, Popover, Select } from '../../ui';
-import { fieldModule, TASK_FIELDS, type TaskField, type ViewOptions } from '../options';
+import {
+  fieldModule,
+  LAYOUT_SETTINGS,
+  NOT_ON_BOARD,
+  TASK_FIELDS,
+  type TaskField,
+  type ViewOptions,
+  type ViewSetting,
+} from '../options';
 import { tableColumns } from '../table/menu';
 import { enabledForProject } from '../../modules/registry';
 
+// layout — the current view (list, board, …, «day»): only the settings it applies are shown
+const props = defineProps<{ layout: string }>();
 const options = defineModel<ViewOptions>('options', { required: true });
 const { t } = useI18n();
+const has = (s: ViewSetting) => LAYOUT_SETTINGS[props.layout]?.includes(s) ?? false;
+const fieldItems = computed(() =>
+  TASK_FIELDS.filter(
+    (f) =>
+      (!fieldModule(f) || enabledForProject(fieldModule(f)!)) &&
+      !(props.layout === 'board' && NOT_ON_BOARD.includes(f)),
+  ),
+);
 
 const groups = ['status', 'assignee', 'priority', 'label', 'none'] as const;
 const sorts = ['rank', 'priority', 'dueDate', 'createdAt', 'updatedAt', 'title'] as const;
@@ -41,8 +59,13 @@ const toggleField = (f: TaskField) =>
     >
       <!-- выбор вида — вверху меню, табов видов нет (PLNRAPP-71) -->
       <slot />
-      <Select v-model="options.groupBy" :label="t('views.groupBy')" :options="groupOptions" />
-      <div class="flex items-end gap-2">
+      <Select
+        v-if="has('groupBy')"
+        v-model="options.groupBy"
+        :label="t('views.groupBy')"
+        :options="groupOptions"
+      />
+      <div v-if="has('sort')" class="flex items-end gap-2">
         <Select v-model="options.sortBy" :label="t('views.sortBy')" :options="sortOptions" />
         <Button
           :icon="ArrowDownUp"
@@ -51,7 +74,7 @@ const toggleField = (f: TaskField) =>
           @click="options.sortDir = options.sortDir === 'asc' ? 'desc' : 'asc'"
         />
       </div>
-      <div class="flex flex-wrap items-center gap-2">
+      <div v-if="has('subtasks')" class="flex flex-wrap items-center gap-2">
         <Button
           :icon="ListTree"
           :variant="options.showSubtasks ? 'primary' : 'secondary'"
@@ -61,7 +84,7 @@ const toggleField = (f: TaskField) =>
           {{ t('views.subtasks') }}
         </Button>
         <Button
-          v-if="options.showSubtasks"
+          v-if="options.showSubtasks && has('subtasksCollapsed')"
           :icon="options.subtasksCollapsed ? ChevronsDownUp : ChevronsUpDown"
           :aria-label="
             t(options.subtasksCollapsed ? 'views.subtasksCollapsed' : 'views.subtasksExpanded')
@@ -74,28 +97,28 @@ const toggleField = (f: TaskField) =>
           @click="options.subtasksCollapsed = !options.subtasksCollapsed"
         />
       </div>
-      <label class="inline-flex items-center gap-1.5 text-sm">
+      <label v-if="has('showEmpty')" class="inline-flex items-center gap-1.5 text-sm">
         <input v-model="options.showEmpty" type="checkbox" data-testid="show-empty" />
         {{ t('views.showEmpty') }}
       </label>
-      <label class="inline-flex items-center gap-1.5 text-sm">
+      <label v-if="has('hideEmptyGroups')" class="inline-flex items-center gap-1.5 text-sm">
         <input v-model="options.hideEmptyGroups" type="checkbox" data-testid="hide-empty-groups" />
         {{ t('views.hideEmptyGroups') }}
       </label>
-      <label class="inline-flex items-center gap-1.5 text-sm">
+      <label v-if="has('wrapTitles')" class="inline-flex items-center gap-1.5 text-sm">
         <input v-model="options.wrapTitles" type="checkbox" data-testid="wrap-titles" />
         {{ t('views.wrapTitles') }}
       </label>
-      <label class="inline-flex items-center gap-1.5 text-sm">
+      <label v-if="has('showKey')" class="inline-flex items-center gap-1.5 text-sm">
         <input v-model="options.showKey" type="checkbox" data-testid="show-key" />
         {{ t('views.showKey') }}
       </label>
-      <label class="inline-flex items-center gap-1.5 text-sm">
+      <label v-if="has('showLabelNames')" class="inline-flex items-center gap-1.5 text-sm">
         <input v-model="options.showLabelNames" type="checkbox" data-testid="show-label-names" />
         {{ t('views.showLabelNames') }}
       </label>
       <div
-        v-if="tableColumns"
+        v-if="has('fields') && layout === 'table' && tableColumns"
         role="group"
         :aria-label="t('table.columns')"
         class="flex flex-col gap-1"
@@ -117,15 +140,14 @@ const toggleField = (f: TaskField) =>
           {{ c.label }}
         </label>
       </div>
-      <div v-else role="group" :aria-label="t('views.fields.title')" class="flex flex-col gap-1">
+      <div
+        v-else-if="has('fields') && layout !== 'table'"
+        role="group"
+        :aria-label="t('views.fields.title')"
+        class="flex flex-col gap-1"
+      >
         <span class="text-xs text-fg-muted">{{ t('views.fields.title') }}</span>
-        <label
-          v-for="f in TASK_FIELDS.filter(
-            (x) => !fieldModule(x) || enabledForProject(fieldModule(x)!),
-          )"
-          :key="f"
-          class="inline-flex items-center gap-1.5 text-sm"
-        >
+        <label v-for="f in fieldItems" :key="f" class="inline-flex items-center gap-1.5 text-sm">
           <input
             type="checkbox"
             :checked="options.fields.includes(f)"

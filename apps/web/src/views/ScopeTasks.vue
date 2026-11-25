@@ -173,6 +173,7 @@ const selectTab = (k: string) =>
         :no-me="!!me"
         v-model:filter="draftFilter"
         :space-id="scope.spaceIds.join(',')"
+        :layout="active?.key ?? 'list'"
       >
         <template v-if="active" #layout>
           <ViewLayouts
@@ -182,7 +183,7 @@ const selectTab = (k: string) =>
           />
         </template>
       </OptionsBar>
-      <ViewOptionsPopover v-else v-model:options="options" />
+      <ViewOptionsPopover v-else v-model:options="options" layout="day" />
     </ToolbarRoot>
     <ViewChangesBar
       v-slot="{ hide }"

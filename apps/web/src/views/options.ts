@@ -30,6 +30,36 @@ export const TASK_FIELDS: TaskField[] = [
 /** module fields: offered and shown only where the module is on; not Table columns */
 export const fieldModule = (f: string) => (isAiField(f) ? 'ai' : f === 'git' ? 'gitlab' : null);
 
+/** the settings of the "View" menu; a layout shows only those it applies */
+export type ViewSetting =
+  | 'groupBy'
+  | 'sort'
+  | 'subtasks'
+  | 'subtasksCollapsed'
+  | 'showEmpty'
+  | 'hideEmptyGroups'
+  | 'wrapTitles'
+  | 'showKey'
+  | 'showLabelNames'
+  | 'fields';
+const CARDS: ViewSetting[] = [
+  'showEmpty',
+  'hideEmptyGroups',
+  'wrapTitles',
+  'showKey',
+  'showLabelNames',
+];
+/** «day» — the «My day» List (its blocks instead of grouping and sorting); a layout not here (module views) — none */
+export const LAYOUT_SETTINGS: Record<string, readonly ViewSetting[]> = {
+  list: ['groupBy', 'sort', 'subtasks', 'subtasksCollapsed', ...CARDS, 'fields'],
+  day: ['subtasks', 'subtasksCollapsed', ...CARDS, 'fields'],
+  board: ['groupBy', 'sort', 'subtasks', ...CARDS, 'fields'],
+  table: ['sort', 'subtasks', 'subtasksCollapsed', 'wrapTitles', 'fields'],
+  calendar: ['subtasks'],
+};
+/** fields with no place on a Board card */
+export const NOT_ON_BOARD: readonly TaskField[] = ['aiCost', 'aiTime'];
+
 export interface ViewOptions {
   groupBy: GroupBy;
   sortBy: SortBy;

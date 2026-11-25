@@ -90,6 +90,7 @@ const columns = computed(() =>
       statusKey: statusKey.value,
       labelKey: labelKey.value,
     },
+    { by: props.options.sortBy, dir: props.options.sortDir },
   ).filter(
     (g) => props.options.groupBy === 'none' || !props.options.hideEmptyGroups || g.tasks.length,
   ),
@@ -427,6 +428,8 @@ function add(key: string, title: string) {
           :space-id="scope ? undefined : spaceId"
           :show-empty="options.showEmpty"
           :wrap="options.wrapTitles"
+          :show-key="options.showKey"
+          :label-names="options.showLabelNames"
           :projects="projectNames"
           :sortable="options.groupBy === 'status' && !scope"
           :no-add="!!scope && !scope.createIn"

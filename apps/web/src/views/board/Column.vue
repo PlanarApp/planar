@@ -38,6 +38,10 @@ const props = defineProps<{
   noAdd?: boolean;
   /** whole task names on the cards (the "Wrap task names" option) */
   wrap?: boolean;
+  /** the task key on the card (the "Show task key" option) */
+  showKey?: boolean;
+  /** tag names instead of tag icons on mobile (the "Show tag names" option) */
+  labelNames?: boolean;
   /** the board's keyboard-focused card (ringed, scrolled into view) */
   focusedId?: string | null;
   /** PLNRAPP-293: how many tasks a drag of a selected card carries; > 1 — the «+N» badge in the drag preview */
@@ -59,7 +63,7 @@ const filled = (x: TaskView, c: CardCol) =>
     : c === 'priority'
       ? !!x.priority
       : c === 'dueDate'
-        ? !!x.dueDate
+        ? !!(x.dueDate || x.startDate)
         : c === 'assignee'
           ? x.assigneeIds.length > 0
           : x.labelIds.some((l) => label(l));
@@ -329,6 +333,11 @@ function submit() {
             :parent="x.parentId ? parents?.get(x.parentId) : undefined"
             :project-name="projects?.get(x.projectId)"
             :wrap="wrap"
+            :show-key="showKey"
+            :label-names="labelNames"
+            :status="fields.includes('status')"
+            :ai="fields.includes('ai')"
+            :git="fields.includes('git')"
           />
         </article>
       </VueDraggable>

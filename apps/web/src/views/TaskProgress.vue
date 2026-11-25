@@ -13,10 +13,14 @@ import { useTaskProgress, type Ratio } from './progress';
 // as the green chip of closed subtasks); the click does nothing.
 // «Mine» is counted here from the tasks row counters and the signed-in user (reactively): the cached project
 // projection may be built before /api/auth/me answers, and then the accent would be missing until the task changes.
+// expandable — the subtasks chip is a button that shows / hides them (Board card), expanded — they are shown
 const props = defineProps<{
   taskId: string;
   comments?: Parameters<typeof assignedCommentsOf>[0];
+  expandable?: boolean;
+  expanded?: boolean;
 }>();
+const emit = defineEmits<{ toggle: [] }>();
 const auth = useAuth();
 const assigned = computed(
   () => props.comments && assignedCommentsOf(props.comments, auth.user.value?.id),
@@ -38,12 +42,20 @@ const commentsChip = (c: AssignedComments) =>
 </script>
 
 <template>
-  <span
+  <component
+    :is="expandable ? 'button' : 'span'"
     v-if="progress?.subtasks.total"
-    :class="subtasksChip(progress.subtasks)"
+    :type="expandable ? 'button' : undefined"
+    :aria-expanded="expandable ? expanded : undefined"
+    :class="[
+      subtasksChip(progress.subtasks),
+      expandable && 'cursor-pointer outline-none hover:bg-bg-muted focus-visible:ring-2 ring-focus',
+    ]"
     :title="t('task.subtasks')"
     data-testid="row-children"
-    ><ListTree :size="12" />{{ progress.subtasks.done }}/{{ progress.subtasks.total }}</span
+    :data-no-drag="expandable || undefined"
+    @click="expandable && ($event.stopPropagation(), emit('toggle'))"
+    ><ListTree :size="12" />{{ progress.subtasks.done }}/{{ progress.subtasks.total }}</component
   >
   <span
     v-if="assigned && assigned.total > assigned.resolved"
