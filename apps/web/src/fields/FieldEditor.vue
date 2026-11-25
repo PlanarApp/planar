@@ -4,7 +4,8 @@ import { useI18n } from 'vue-i18n';
 import { fieldValueSchema, type Row } from '@planar/shared';
 import { DueDatePicker, useMembers } from '../tasks';
 import { UserPicker } from '../pickers';
-import { Button, Input, Select } from '../ui';
+import { X } from 'lucide-vue-next';
+import { IconButton, Input, Select } from '../ui';
 
 const props = defineProps<{ def: Row<'fieldDefs'>; value?: unknown; spaceId: string }>();
 const emit = defineEmits<{ 'update:value': [value: unknown | null] }>();
@@ -91,9 +92,6 @@ const choices = computed(() =>
         :placeholder="'—'"
         @update:model-value="(v) => v && commit(v)"
       />
-      <Button v-if="value != null" size="sm" variant="ghost" @click="commit(null)">{{
-        t('fields.clear')
-      }}</Button>
     </template>
     <Input
       v-else
@@ -103,6 +101,14 @@ const choices = computed(() =>
       :error="invalid ? t('fields.invalid') : undefined"
       @change="commitDraft"
       @keydown.enter="commitDraft"
+    />
+    <IconButton
+      v-if="value != null && (def.type === 'date' || def.type === 'select' || def.type === 'user')"
+      :icon="X"
+      :label="t('fields.clear')"
+      size="sm"
+      data-testid="field-clear"
+      @click="commit(null)"
     />
   </div>
 </template>
