@@ -1,4 +1,4 @@
-// PLNRAPP-709: the «My day» tab of «My work» — only the planner by dueDate, no task list (view) under it
+// PLNRAPP-709, PLNRAPP-864: the «My day» tab of «My work» — the List with the day filter, not a view of the switcher
 import 'fake-indexeddb/auto';
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -72,13 +72,15 @@ const show = (props: Record<string, unknown>) => {
 };
 
 describe('PLNRAPP-709 вкладка «Мой день»', () => {
-  it('под планировщиком нет списка задач; табы разделов на месте, переключателя видов нет', async () => {
+  it('список «Моего дня» вместо вида; табы разделов и меню «Вид» на месте, переключателя видов и фильтра нет', async () => {
     const w = show({ day: true });
     await vi.waitFor(() => expect(w.find('[data-testid=my-day]').exists()).toBe(true));
     await flushPromises();
     expect(w.find('[data-testid=view-stub]').exists()).toBe(false);
     expect(w.find('[data-testid=view-layout]').exists()).toBe(false);
     expect(w.find('[data-testid=tabs]').exists()).toBe(true);
+    expect(w.find('[data-testid=view-toggle]').exists()).toBe(true);
+    expect(w.find('[data-testid=filter-toggle]').exists()).toBe(false);
   });
 
   it('раздел с Me Mode («Назначенные») по-прежнему рисует вид', async () => {

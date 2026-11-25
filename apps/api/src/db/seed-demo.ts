@@ -183,7 +183,7 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       ['Search results stale after reindex', 4, 2, null, 'liam', 'bug'],
       // a closed subtask of «Add API v2 pagination»: the «Closed N» accordion in the card (PLNRAPP-542)
       ['Draft cursor pagination RFC', 3, 2, -4, 'liam', 'docs', 3],
-      // My day: today, closed — under the collapsed «Completed (2)» cut of the Today block (PLNRAPP-850)
+      // My day: today, closed — the day List shows them too, as a list with this filter (PLNRAPP-864)
       ['Review API v2 changelog', 3, 2, 0, 'demo,maya', 'docs'],
       ['Benchmark legacy pagination', 4, 1, 0, 'demo,maya', 'improvement'],
     ],
@@ -213,7 +213,7 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
       ['Launch landing page copy', 2, 4, 3, 'emma,demo', 'docs'],
       ['Press kit and logos', 2, 3, 8, 'emma', 'docs'],
       ['Product Hunt launch plan', 1, 4, 20, 'sofia,emma', 'feature'],
-      ['Launch webinar outline', 1, 3, 1, 'demo,maya', 'research'], // My day: tomorrow
+      ['Launch webinar outline', 1, 3, 1, 'demo,maya', 'research'], // tomorrow: not in My day
       ['Email sequence for beta users', 2, 3, -3, 'emma', 'feature'],
       ['Partner outreach list', 3, 2, -11, 'sofia', 'research'],
       ['Case study: Northwind Logistics', 1, 2, 30, 'emma', 'docs'],
@@ -245,7 +245,7 @@ const PROJECTS: { space: number; name: string; key: string; icon: string; tasks:
     icon: '💬',
     tasks: [
       ['Article: connecting GitLab', 3, 2, -10, 'jack', 'docs'],
-      ['Article: setting up recurring tasks', 2, 2, -1, 'demo,maya', 'docs'], // My day: carry over
+      ['Article: setting up recurring tasks', 2, 2, -1, 'demo,maya', 'docs'], // My day: overdue
       ['Refund request from Acme Corp', 2, 4, -1, 'omar', 'bug'],
       ['Triage backlog of old tickets', 1, 3, 4, 'jack,omar', 'improvement'],
       ['Chatbot answers review', 1, 2, 19, 'demo', 'research'],
@@ -1993,9 +1993,9 @@ async function insertAll(tx: Tx, now: Date) {
     })),
   );
 
-  // «My day» (PLNRAPP-709) is built from tasks by dueDate: maya is an assignee of RDM-3, PLT-7, PLT-10 (today),
-  // MKT-4 (tomorrow) and SUP-2 (overdue — «Carry over to today») in PROJECTS; PLT-18, PLT-19 — closed today,
-  // under the «Completed» cut (PLNRAPP-850)
+  // «My day» (PLNRAPP-864) is the List with the filter «assignee — me, due today or overdue and not closed»:
+  // maya is an assignee of RDM-3, PLT-7, PLT-10 (today), SUP-2 (overdue) and PLT-18, PLT-19 (closed today) in
+  // PROJECTS — they are in the day; MKT-4 (tomorrow) is not, «Due date → Today» brings it in
   // the tasks demo watches
   const watched: [string, number][] = [
     ['PLT', 4],

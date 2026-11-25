@@ -169,22 +169,8 @@ export default {
   },
   myDay: {
     title: 'My day',
-    empty:
-      'Nothing due today — set today as the due date of your task in the «Due date» menu or with «Add to my day» in a task menu.',
-    none: 'No tasks',
-    block: { today: 'Today', tomorrow: 'Tomorrow', later: 'Later' },
-    left: '{n} of {total} left',
-    postpone: 'Unfinished — to tomorrow',
-    toToday: 'Move to today',
-    tomorrow: 'Move to tomorrow',
     toTomorrow: 'For tomorrow',
-    pick: 'Move to a date',
-    remove: 'Remove from my day',
     add: 'Add to my day',
-    carry: 'Unfinished from earlier days: {n}',
-    carryOver: 'Move to today',
-    moveFailed: 'Could not move the tasks',
-    completed: 'Completed ({n})',
   },
   inbox: {
     all: 'All',
