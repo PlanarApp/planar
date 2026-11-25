@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { BASE, Client } from '../lib.js';
-import { pick, uniq } from './helpers.js';
+import { uniq } from './helpers.js';
 
 // 2FA in a real browser: passkey via the Chromium virtual authenticator (biometrics → isUserVerified), TOTP, app lock
 
@@ -81,14 +81,31 @@ test('passkey, блокировка при открытии, вход без п�
   await page.goto('/profile?tab=security');
 
   // lock on every open: a reload asks for the passkey
-  await pick(page.getByRole('combobox', { name: 'Блокировка приложения' }), 'При каждом открытии');
+  await page.getByTestId('lock-on-open').check();
   await expect(page.getByTestId('lock-wipe')).toBeVisible();
   await page.reload();
   await expect(page.getByTestId('lock-screen')).toBeVisible();
-  expect((await page.request.get('/api/v1/spaces')).status()).toBe(423);
+  await expect.poll(async () => (await page.request.get('/api/v1/spaces')).status()).toBe(423);
   await page.getByTestId('factor-passkey').click();
   await expect(page.getByTestId('lock-screen')).toBeHidden();
   expect((await page.request.get('/api/v1/spaces')).status()).toBe(200);
+
+  // on inactivity: a full-screen countdown, a click cancels it (the clock is moved forward)
+  await page.goto('/profile?tab=security');
+  await page.getByTestId('factor-passkey').click();
+  await page.getByTestId('lock-on-open').uncheck();
+  await page.getByTestId('lock-idle').check();
+  await page.clock.install();
+  await page.clock.fastForward('05:02');
+  await expect(page.getByTestId('idle-countdown')).toBeVisible();
+  await page.getByTestId('idle-countdown').click();
+  await expect(page.getByTestId('idle-countdown')).toBeHidden();
+  await page.clock.fastForward('05:20');
+  await expect(page.getByTestId('lock-screen')).toBeVisible();
+  await page.getByTestId('factor-passkey').click();
+  await expect(page.getByTestId('lock-screen')).toBeHidden();
+  await page.getByTestId('lock-idle').uncheck();
+  await page.getByTestId('lock-on-open').check();
 
   // passwordless sign-in with the discoverable key
   await signOut(page);

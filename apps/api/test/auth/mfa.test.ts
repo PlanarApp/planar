@@ -134,9 +134,9 @@ describe('блокировка приложения', () => {
   it('без фактора не включить; lock → 423 кроме auth; разблокировка кодом; простой — блокирует сервер', async () => {
     const u = await userWithPassword();
     const cookie = await loginCookie(db, u.id);
-    const lock = { lockMinutes: 5, lockWipe: false };
+    const lock = { lockOnOpen: false, lockMinutes: 5, lockWipe: false };
     expect((await req('PATCH', '/api/auth/lock', { cookie, body: lock })).statusCode).toBe(409);
-    const { secret } = await enableTotp(cookie);
+    const { secret, codes } = await enableTotp(cookie);
     expect((await req('PATCH', '/api/auth/lock', { cookie, body: lock })).statusCode).toBe(200);
 
     expect((await req('POST', '/api/auth/lock', { cookie })).statusCode).toBe(204);
@@ -156,6 +156,23 @@ describe('блокировка приложения', () => {
       .where(eq(sessions.userId, u.id));
     expect((await req('GET', '/api/v1/spaces', { cookie })).statusCode).toBe(423);
     // the lock is kept even though the request touched lastSeenAt
+    expect((await req('GET', '/api/v1/spaces', { cookie })).statusCode).toBe(423);
+
+    // «on every open» alone: the server locks after 3 minutes without requests
+    const un2 = await req('POST', '/api/auth/unlock', { cookie, body: { code: codes[0] } });
+    expect(un2.statusCode).toBe(204);
+    const onOpen = { lockOnOpen: true, lockMinutes: null, lockWipe: false };
+    expect((await req('PATCH', '/api/auth/lock', { cookie, body: onOpen })).statusCode).toBe(200);
+    expect((await req('GET', '/api/auth/me', { cookie })).json()).toMatchObject(onOpen);
+    await db
+      .update(sessions)
+      .set({ lastSeenAt: sql`now() - interval '2 minutes'` })
+      .where(eq(sessions.userId, u.id));
+    expect((await req('GET', '/api/v1/spaces', { cookie })).statusCode).toBe(200);
+    await db
+      .update(sessions)
+      .set({ lastSeenAt: sql`now() - interval '4 minutes'` })
+      .where(eq(sessions.userId, u.id));
     expect((await req('GET', '/api/v1/spaces', { cookie })).statusCode).toBe(423);
   });
 });

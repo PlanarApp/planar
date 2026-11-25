@@ -31,7 +31,11 @@ const mfaPending = ref<{ totp: boolean; passkey: boolean } | null>(null);
 /** 2FA is required by the instance policy and not set up: only the security settings */
 const mfaSetup = ref(false);
 /** app lock (auth/lock.ts): settings and the current state */
-const lockPrefs = ref<{ minutes: number | null; wipe: boolean }>({ minutes: null, wipe: false });
+const lockPrefs = ref<{ onOpen: boolean; minutes: number | null; wipe: boolean }>({
+  onOpen: false,
+  minutes: null,
+  wipe: false,
+});
 const locked = ref(false);
 /** a factor is set up: «Lock» in the user menu */
 const canLock = ref(false);
@@ -40,6 +44,7 @@ type Me = {
   user: User;
   mfaSetup?: boolean;
   locked?: boolean;
+  lockOnOpen?: boolean;
   lockMinutes?: number | null;
   lockWipe?: boolean;
   canLock?: boolean;
@@ -49,7 +54,8 @@ function signedIn(r: Me) {
   user.value = r.user;
   store(r.user);
   mfaSetup.value = !!r.mfaSetup;
-  if (r.lockMinutes !== undefined) lockPrefs.value = { minutes: r.lockMinutes, wipe: !!r.lockWipe };
+  if (r.lockMinutes !== undefined)
+    lockPrefs.value = { onOpen: !!r.lockOnOpen, minutes: r.lockMinutes, wipe: !!r.lockWipe };
   locked.value = !!r.locked;
   if (r.canLock !== undefined) canLock.value = r.canLock;
   adoptBrowserZone(r.user);

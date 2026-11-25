@@ -11,7 +11,9 @@ export interface Security {
   totp: boolean;
   recoveryLeft: number;
   passkeys: Passkey[];
-  /** null — off; 0 — on every open; N — after N minutes of inactivity */
+  /** lock on every open of the app */
+  lockOnOpen: boolean;
+  /** lock after N minutes of inactivity; null — off */
   lockMinutes: number | null;
   lockWipe: boolean;
   /** 2FA is required by the instance policy */
@@ -30,8 +32,11 @@ export const totpEnable = (code: string) =>
 export const totpDisable = (code: string) => api<void>('POST', '/api/auth/totp/disable', { code });
 export const newRecoveryCodes = (p: Proof) =>
   api<{ recoveryCodes: string[] }>('POST', '/api/auth/recovery-codes', p);
-export const setLock = (b: { lockMinutes: number | null; lockWipe: boolean }) =>
-  api('PATCH', '/api/auth/lock', b);
+export const setLock = (b: {
+  lockOnOpen: boolean;
+  lockMinutes: number | null;
+  lockWipe: boolean;
+}) => api('PATCH', '/api/auth/lock', b);
 export const deletePasskey = (id: string) =>
   api<void>('DELETE', `/api/auth/passkeys/${encodeURIComponent(id)}`);
 

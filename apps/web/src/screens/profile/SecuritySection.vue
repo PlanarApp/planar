@@ -50,7 +50,11 @@ async function load() {
   s.value = await getSecurity();
   // the first factor makes the session full (policy): the app opens
   if (mfaSetup.value && !s.value.setup) mfaSetup.value = false;
-  lockPrefs.value = { minutes: s.value.lockMinutes, wipe: s.value.lockWipe };
+  lockPrefs.value = {
+    onOpen: s.value.lockOnOpen,
+    minutes: s.value.lockMinutes,
+    wipe: s.value.lockWipe,
+  };
   canLock.value = s.value.totp || s.value.passkeys.length > 0;
 }
 onMounted(() => load().catch(fail('page')));
@@ -82,15 +86,19 @@ const confirmAsk = () =>
 const add = () => act('passkey', () => addPasskey(deviceName()));
 const remove = (id: string) => act('passkey', () => deletePasskey(id));
 
-const lockOptions = () => [
-  { value: 'off', label: t('security.lockOff') },
-  { value: '0', label: t('security.lockOpen') },
-  ...[5, 15, 60].map((n) => ({ value: String(n), label: t('security.lockAfter', { n }) })),
-];
-const saveLock = (minutes: string | null, wipe = s.value!.lockWipe) =>
+const idleOptions = () =>
+  [1, 5, 15, 30, 60].map((n) => ({ value: String(n), label: t('security.lockAfter', { n }) }));
+type LockPatch = Partial<{ lockOnOpen: boolean; lockMinutes: number | null; lockWipe: boolean }>;
+const saveLock = (p: LockPatch) =>
   act('lock', () =>
-    setLock({ lockMinutes: minutes === 'off' || !minutes ? null : +minutes, lockWipe: wipe }),
+    setLock({
+      lockOnOpen: s.value!.lockOnOpen,
+      lockMinutes: s.value!.lockMinutes,
+      lockWipe: s.value!.lockWipe,
+      ...p,
+    }),
   );
+const checked = (e: Event) => (e.target as HTMLInputElement).checked;
 
 async function copyCodes() {
   try {
@@ -235,19 +243,40 @@ const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString() : '');
       <p class="text-sm text-fg-muted">
         {{ hasFactor ? t('security.lockText') : t('security.lockNeedsFactor') }}
       </p>
-      <Select
-        :model-value="s.lockMinutes === null ? 'off' : String(s.lockMinutes)"
-        :label="t('security.lock')"
-        :options="lockOptions()"
-        :disabled="!hasFactor"
-        @update:model-value="(v) => saveLock(v)"
-      />
-      <label v-if="s.lockMinutes !== null" class="flex items-center gap-2 text-sm">
+      <label class="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          :checked="s.lockOnOpen"
+          :disabled="!hasFactor"
+          data-testid="lock-on-open"
+          @change="saveLock({ lockOnOpen: checked($event) })"
+        />
+        {{ t('security.lockOpen') }}
+      </label>
+      <label class="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          :checked="s.lockMinutes !== null"
+          :disabled="!hasFactor"
+          data-testid="lock-idle"
+          @change="saveLock({ lockMinutes: checked($event) ? 5 : null })"
+        />
+        {{ t('security.lockIdle') }}
+      </label>
+      <div v-if="s.lockMinutes !== null" class="pl-6">
+        <Select
+          :model-value="String(s.lockMinutes)"
+          :label="t('security.lockIdleTime')"
+          :options="idleOptions()"
+          @update:model-value="(v) => v && saveLock({ lockMinutes: +v })"
+        />
+      </div>
+      <label v-if="s.lockOnOpen || s.lockMinutes !== null" class="flex items-center gap-2 text-sm">
         <input
           type="checkbox"
           :checked="s.lockWipe"
           data-testid="lock-wipe"
-          @change="saveLock(String(s.lockMinutes), ($event.target as HTMLInputElement).checked)"
+          @change="saveLock({ lockWipe: checked($event) })"
         />
         {{ t('security.lockWipe') }}
       </label>

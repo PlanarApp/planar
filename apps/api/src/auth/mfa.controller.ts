@@ -53,7 +53,10 @@ const assertion = z.object({
 });
 const proof = z.union([code, assertion]);
 const lockBody = z.object({
-  lockMinutes: z.union([z.literal(0), z.literal(5), z.literal(15), z.literal(60)]).nullable(),
+  lockOnOpen: z.boolean(),
+  lockMinutes: z
+    .union([z.literal(1), z.literal(5), z.literal(15), z.literal(30), z.literal(60)])
+    .nullable(),
   lockWipe: z.boolean(),
 });
 
@@ -89,7 +92,11 @@ export class MfaController {
   private async afterRemoval(userId: string) {
     const f = await factors(this.db, userId);
     if (!f.totp && !f.passkey)
-      await setSecurity(this.db, userId, { lockMinutes: null, recoveryCodes: [] });
+      await setSecurity(this.db, userId, {
+        lockOnOpen: false,
+        lockMinutes: null,
+        recoveryCodes: [],
+      });
   }
 
   @Get('security')
@@ -110,6 +117,7 @@ export class MfaController {
       totp: !!s?.totpEnabled,
       recoveryLeft: s?.recoveryCodes.length ?? 0,
       passkeys: keys,
+      lockOnOpen: s?.lockOnOpen ?? false,
       lockMinutes: s?.lockMinutes ?? null,
       lockWipe: s?.lockWipe ?? false,
       required: policyApplies(await mfaPolicy(this.db), me.role),
@@ -263,7 +271,7 @@ export class MfaController {
     const me = this.session(req);
     const b = parseBody(lockBody, body);
     const f = await factors(this.db, me.userId);
-    if (b.lockMinutes !== null && !f.totp && !f.passkey)
+    if ((b.lockOnOpen || b.lockMinutes !== null) && !f.totp && !f.passkey)
       throw new HttpError(
         409,
         'conflict',

@@ -564,7 +564,9 @@ export const userSecurity = pgTable('user_security', {
     .array()
     .notNull()
     .default(sql`'{}'::text[]`),
-  /** app lock: null — off; 0 — on every open; N — after N minutes of inactivity */
+  /** app lock on every open of the app */
+  lockOnOpen: boolean().notNull().default(false),
+  /** app lock after N minutes of inactivity; null — off */
   lockMinutes: integer(),
   /** on lock the client clears its local replica */
   lockWipe: boolean().notNull().default(false),

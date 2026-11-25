@@ -617,6 +617,13 @@
       "when": 1796707200000,
       "tag": "0087_user_2fa",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1796793600000,
+      "tag": "0088_lock_on_open",
+      "breakpoints": true
     }
   ]
 }

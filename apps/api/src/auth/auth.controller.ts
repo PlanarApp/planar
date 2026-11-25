@@ -197,6 +197,7 @@ export class AuthController {
       user: publicUser(user!),
       mfaSetup: me.state === 'setup',
       locked: me.state === 'locked',
+      lockOnOpen: s?.lockOnOpen ?? false,
       lockMinutes: s?.lockMinutes ?? null,
       lockWipe: s?.lockWipe ?? false,
       /** a factor is set up: the app can be locked (menu «Lock») */

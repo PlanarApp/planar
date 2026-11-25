@@ -128,8 +128,12 @@ export async function authenticateRaw(
 
 export const lockedError = () => new HttpError(423, 'locked', 'Приложение заблокировано');
 
-/** App lock without the client (tab closed, device taken): no requests for this long — locked. */
-export const lockIdleMs = (lockMinutes: number) => Math.max(lockMinutes, 3) * 60_000;
+/**
+ * App lock without the client (tab closed, device taken): no requests for this long — locked;
+ * null — no lock setting. «On every open» alone — 3 minutes.
+ */
+export const lockIdleMs = (lockMinutes: number | null, lockOnOpen: boolean | null) =>
+  lockMinutes != null || lockOnOpen ? Math.max(lockMinutes ?? 0, 3) * 60_000 : null;
 
 async function authenticateAny(
   db: Db,
@@ -151,6 +155,7 @@ async function authenticateAny(
       role: users.role,
       deactivated: users.deactivatedAt,
       lockMinutes: userSecurity.lockMinutes,
+      lockOnOpen: userSecurity.lockOnOpen,
     })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
@@ -168,11 +173,12 @@ async function authenticateAny(
   }
   // the idle check goes before lastSeenAt is touched: the lock is kept in lockedAt
   let locked = !!row.s.lockedAt;
+  const idle = lockIdleMs(row.lockMinutes, row.lockOnOpen);
   if (
     !locked &&
     !row.s.state &&
-    row.lockMinutes != null &&
-    Date.now() - Date.parse(row.s.lastSeenAt) > lockIdleMs(row.lockMinutes)
+    idle !== null &&
+    Date.now() - Date.parse(row.s.lastSeenAt) > idle
   ) {
     locked = true;
     await db
