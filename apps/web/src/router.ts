@@ -90,22 +90,6 @@ router.beforeEach(async (to) => {
     };
   if (node && seg === 'work' && to.query.v === CARDS)
     return { path: to.path, query: { ...to.query, v: 'list' }, hash: to.hash, replace: true };
-  // the former workspace settings tab (/w/settings?s=…) is the global /settings; the AI pages of the levels (ai:space,
-  // ai:project, ai:tasks, …) are the global AI page — the connection is inherited by spaces and projects (PLNRAPP-568)
-  if (to.name === 'workspace' && seg === 'settings') {
-    const { s, ...query } = to.query;
-    const ai = String(s ?? '').startsWith('ai');
-    return {
-      path: `/settings/${ai ? 'ai:workspace' : (s ?? '')}`,
-      query: s === 'ai:tasks' ? { ...query, tab: 'tasks' } : query,
-      replace: true,
-    };
-  }
-  if (
-    to.name === 'settings' &&
-    ['ai', 'ai:space', 'ai:project'].includes(String(to.params.section))
-  )
-    return { path: '/settings/ai:workspace', query: to.query, replace: true };
   if (to.name === 'module') {
     // module routes are added lazily — wait and repeat the navigation.
     // Settings are not known yet (cold entry) — don't hold the transition: ModuleScreen shows a skeleton and repeats the navigation itself.

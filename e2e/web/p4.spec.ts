@@ -115,8 +115,11 @@ test('pf6: шаблоны — «Сохранить как шаблон», про
     )
     .toBe(true);
 
-  await spa(page, '/settings/templates:templates', page.getByTestId('templates-settings'));
-  await pickIn(page, 'Пространство', `e2e ${f.spaceId}`);
+  await spa(
+    page,
+    `/s/${f.spaceId}/settings?s=templates:templates`,
+    page.getByTestId('templates-settings'),
+  );
   const row = page.getByTestId('tpl-row').filter({ hasText: tplName });
   await expect(row).toBeVisible();
 

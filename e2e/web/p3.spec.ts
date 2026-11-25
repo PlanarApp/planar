@@ -139,8 +139,11 @@ test.describe('формы', () => {
   }) => {
     const f = await fixture([uniq('Формы')]);
     const adminPage = await loginAs(browser, 'admin');
-    await spa(adminPage, '/settings/forms:forms', adminPage.getByTestId('fm-project'));
-    await adminPage.getByTestId('fm-project').selectOption(f.projectId);
+    await spa(
+      adminPage,
+      `/p/${f.projectId}/settings?s=forms:forms`,
+      adminPage.getByTestId('fm-status'),
+    );
     await adminPage.getByTestId('fm-status').selectOption(f.statusIds[1]!);
     const formTitle = uniq('Обратная связь');
     await adminPage.getByTestId('fm-title').fill(formTitle);
@@ -188,8 +191,7 @@ test.describe('формы', () => {
   test('p3: форма — конструктор сохраняет добавленное поле e-mail', async ({ browser }) => {
     const f = await fixture([uniq('Поля')]);
     const page = await loginAs(browser, 'admin');
-    await spa(page, '/settings/forms:forms', page.getByTestId('fm-project'));
-    await page.getByTestId('fm-project').selectOption(f.projectId);
+    await spa(page, `/p/${f.projectId}/settings?s=forms:forms`, page.getByTestId('fm-title'));
     const formTitle = uniq('Поля формы');
     await page.getByTestId('fm-title').fill(formTitle);
     await page.getByTestId('fm-create').click();

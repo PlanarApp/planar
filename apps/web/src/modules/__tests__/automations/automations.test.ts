@@ -78,7 +78,7 @@ const FB = defineComponent({
 const stubs = { global: { stubs: { FilterBuilder: FB } } };
 // IconButton/Menu require TooltipProvider (App.vue provides it) and i18n
 const mount = (c: object, o: { global?: object } = {}) =>
-  vmount(defineComponent({ render: () => vh(TooltipProvider, () => vh(c)) }), {
+  vmount(defineComponent({ render: () => vh(TooltipProvider, () => vh(c, { projectId: P })) }), {
     global: { plugins: [i18n], ...o.global },
   } as never);
 // Select (Reka) doesn't expand in jsdom: value selection is a component event

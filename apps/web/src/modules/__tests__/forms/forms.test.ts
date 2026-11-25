@@ -169,7 +169,7 @@ describe('pt5b:', () => {
     await h.db
       .table('statuses')
       .put({ id: st, spaceId: sp, projectId: pr, name: 'Todo', rank: 'a' });
-    const w = mount(Settings);
+    const w = mount(Settings, { props: { projectId: pr } });
     await vi.waitFor(() => expect(w.findAll('[data-testid=fm-status] option')).toHaveLength(1));
     await w.get('[data-testid=fm-title]').setValue('Обратная связь');
     await w.get('form').trigger('submit');

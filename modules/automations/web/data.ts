@@ -109,7 +109,6 @@ export const blankAction = (type: Action['type']): Action => {
 const TEXT = {
   ru: {
     title: 'Автоматизации',
-    project: 'Проект',
     rules: 'Правила',
     none: 'Правил нет',
     add: 'Новое правило',
@@ -202,7 +201,6 @@ const TEXT = {
   },
   en: {
     title: 'Automations',
-    project: 'Project',
     rules: 'Rules',
     none: 'No rules',
     add: 'New rule',

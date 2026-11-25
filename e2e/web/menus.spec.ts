@@ -90,7 +90,7 @@ test('баг DataCloneError: правило автоматизации созд�
   await enableModules(await Client.login('admin'));
   const page = await loginAs(browser, 'admin');
   const name = uniq('Правило');
-  await page.goto(`/settings/automations:rules?project=${f.projectId}`);
+  await page.goto(`/p/${f.projectId}/settings?s=automations:rules`);
   await page.locator('[data-role=new]').click();
   const ed = page.getByTestId('editor');
   await ed.getByLabel('Название').first().fill(name);

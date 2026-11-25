@@ -49,27 +49,8 @@ const subs = ref<HookSub[]>([]);
 onMounted(async () => (subs.value = await fetchSubscriptions().catch(() => [])));
 const spaces = useSpaces();
 const projects = computed(() => (spaces.value ?? []).flatMap((s) => s.projects));
-// the selected project — in the address (?project=): after a reload, the rules of the same project are shown
-const router = useRouter();
-// without a router (page tests) — the selection is simply not remembered
-const query = () => router?.currentRoute.value.query ?? {};
-// projectId — settings of the project group: the project is set, no choice
-const props = defineProps<{ projectId?: string }>();
-const projectId = ref(
-  props.projectId ?? (typeof query().project === 'string' ? (query().project as string) : ''),
-);
-watch(
-  projects,
-  (p) => {
-    if (!p.length || props.projectId) return; // the replica is still loading — do not reset the selection from the address
-    if (!projectId.value || !p.some((x) => x.id === projectId.value)) projectId.value = p[0]!.id;
-  },
-  { immediate: true },
-);
-watch(projectId, (id) => {
-  if (id && !props.projectId && query().project !== id)
-    void router?.replace({ query: { ...query(), project: id } });
-});
+const props = defineProps<{ projectId: string }>();
+const projectId = computed(() => props.projectId);
 const spaceId = computed(() => projects.value.find((p) => p.id === projectId.value)?.spaceId ?? '');
 const statuses = useStatuses(spaceId);
 const members = useMembers(spaceId);
@@ -199,16 +180,6 @@ const setValue = (i: number, raw: string) => {
     <header class="flex flex-col gap-0.5">
       <h1 class="text-lg font-semibold">{{ tx.title }}</h1>
     </header>
-    <div class="flex items-center gap-2 text-sm" data-role="project">
-      {{ tx.project }}
-      <Select
-        v-if="!props.projectId"
-        v-model="projectId"
-        :label="tx.project"
-        :options="opts(pickers.projectId)"
-      />
-    </div>
-
     <div v-if="!draft" class="flex flex-col gap-2">
       <div class="flex items-center justify-between">
         <h2 class="font-medium">{{ tx.rules }}</h2>
