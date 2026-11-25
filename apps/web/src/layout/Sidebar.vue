@@ -18,7 +18,7 @@ import type { LocalizedText } from '../modules/types';
 import { VueDraggable } from 'vue-draggable-plus';
 import { favorites as favStore, sidebarCollapse as sc, useNavData, useUserMenu } from './nav';
 import { useAuth } from '../auth/useAuth';
-import { useSidebarActions } from './sidebarActions';
+import { createSpace, useSidebarActions } from './sidebarActions';
 import { quickCreate } from '../command/hotkeys';
 import { useRoute } from 'vue-router';
 import { CheckSquare, FolderPlus, LayoutGrid } from 'lucide-vue-next';
@@ -93,7 +93,7 @@ const route = useRoute();
 const createItems = (): MenuItem[] => {
   const pid =
     route.name === 'project' || route.name === 'savedView' ? String(route.params.projectId) : '';
-  const space = spaces.value.find((s) => s.projects.some((p) => p.id === pid)) ?? spaces.value[0];
+  const space = createSpace(spaces.value, route);
   return [
     {
       id: 'task',

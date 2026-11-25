@@ -27,6 +27,20 @@ const TRANSLIT: Record<string, string> = Object.fromEntries(
     .map((p) => p.split(':') as [string, string]),
 );
 
+/** Space for "Create → Project": the selected space; else the selected project's; else the first. */
+export function createSpace(
+  spaces: NavSpace[],
+  route: { name?: unknown; params: Record<string, unknown> },
+): NavSpace | undefined {
+  const { name, params } = route;
+  if (name === 'space') {
+    const s = spaces.find((x) => x.id === params.spaceId);
+    if (s) return s;
+  }
+  const pid = name === 'project' || name === 'savedView' ? String(params.projectId) : '';
+  return spaces.find((s) => s.projects.some((p) => p.id === pid)) ?? spaces[0];
+}
+
 /** Project key from the name: Latin (Cyrillic — transliterated) and digits, 2–6 chars, no collisions. */
 export function projectKey(name: string, taken: Set<string>): string {
   const base =
