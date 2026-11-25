@@ -273,9 +273,14 @@ test('p3: GitLab — настройки, «Опросить сейчас», в �
   ]);
   try {
     const page = await loginAs(browser, 'admin');
-    await spa(page, `/p/${f.projectId}/settings?s=gitlab:project`, page.getByTestId('gl-url'));
+    await spa(page, `/p/${f.projectId}/settings?s=gitlab:project`, page.getByTestId('gl-choice'));
+    // the project's own connection (the choice is made by adding it)
+    await page.getByTestId('gl-choice').selectOption('__new');
+    await page.getByTestId('gl-name').fill('e2e');
     await page.getByTestId('gl-url').fill(gl.url);
     await page.getByTestId('gl-token').fill(token);
+    await page.getByTestId('gl-server-add').click();
+    await expect(page.getByTestId('gl-server')).toContainText('e2e');
     await page.getByTestId('gl-project-input').fill('grp/proj');
     await page.getByTestId('gl-add').click();
     await expect(page.getByTestId('gl-conn')).toContainText('grp/proj');
@@ -298,9 +303,13 @@ test('p3: GitLab — неверный токен: ошибка в настрой
   const gl = await fakeGitlab('right-token', []);
   try {
     const page = await loginAs(browser, 'admin');
-    await spa(page, `/p/${f.projectId}/settings?s=gitlab:project`, page.getByTestId('gl-url'));
+    await spa(page, `/p/${f.projectId}/settings?s=gitlab:project`, page.getByTestId('gl-choice'));
+    await page.getByTestId('gl-choice').selectOption('__new');
+    await page.getByTestId('gl-name').fill('e2e');
     await page.getByTestId('gl-url').fill(gl.url);
     await page.getByTestId('gl-token').fill('wrong-token');
+    await page.getByTestId('gl-server-add').click();
+    await expect(page.getByTestId('gl-server')).toContainText('e2e');
     await page.getByTestId('gl-project-input').fill('grp/proj');
     await page.getByTestId('gl-add').click();
     // the repository is searched with an invalid token: 401 from GitLab is shown as an error, no connection

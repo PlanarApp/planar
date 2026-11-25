@@ -659,6 +659,13 @@
       "when": 1797225600000,
       "tag": "0093_activity_task_created",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1797312000000,
+      "tag": "0094_gitlab_servers",
+      "breakpoints": true
     }
   ]
 }

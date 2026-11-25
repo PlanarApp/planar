@@ -11,14 +11,40 @@ import {
 
 const ts = () => timestamp({ withTimezone: true, mode: 'string' });
 
-// server table (not synced): a Planar project's connection to a GitLab repository
+// server table (not synced): a GitLab connection (host + token) of a level: workspace / space / project.
+// scopeId of the workspace level is the nil uuid (as in ai_connections)
+export const gitlabServers = pgTable(
+  'gitlab_servers',
+  {
+    id: uuid().primaryKey(),
+    scope: text().notNull(),
+    scopeId: uuid().notNull(),
+    name: text().notNull(),
+    baseUrl: text().notNull(),
+    tokenEnc: text().notNull(),
+    createdAt: ts().notNull().defaultNow(),
+  },
+  (t) => [index('gitlab_servers_scope_idx').on(t.scope, t.scopeId)],
+);
+
+// server table: the connection a level chose (a connection of its own or of a parent); no row — inherits
+export const gitlabChoices = pgTable(
+  'gitlab_choices',
+  {
+    scope: text().notNull(),
+    scopeId: uuid().notNull(),
+    serverId: uuid().notNull(),
+  },
+  (t) => [uniqueIndex('gitlab_choices_uq').on(t.scope, t.scopeId)],
+);
+
+// server table (not synced): a Planar project's binding to a GitLab repository on one of the connections
 export const gitlabConnections = pgTable(
   'gitlab_connections',
   {
     id: uuid().primaryKey(),
     projectId: uuid().notNull(),
-    baseUrl: text().notNull(),
-    tokenEnc: text().notNull(),
+    serverId: uuid().notNull(),
     gitlabProjectId: integer().notNull(),
     path: text().notNull(),
     cursor: ts(),

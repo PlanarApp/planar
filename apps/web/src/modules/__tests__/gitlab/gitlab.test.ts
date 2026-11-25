@@ -30,6 +30,7 @@ import * as data from '../../../../../../modules/gitlab/web/data';
 import { web } from '../../../../../../modules/gitlab/web';
 import MrPanel from '../../../../../../modules/gitlab/web/MrPanel.vue';
 import CardBadges from '../../../../../../modules/gitlab/web/CardBadges.vue';
+import ServersPanel from '../../../../../../modules/gitlab/web/ServersPanel.vue';
 import Settings from '../../../../../../modules/gitlab/web/GitlabSettings.vue';
 import { registerModules } from '../../registry';
 
@@ -72,6 +73,7 @@ const list = {
     },
   ],
 };
+let levels: { servers: unknown[]; choice: string | null; effective: string | null };
 let calls: { method: string; path: string; body: unknown }[];
 const res = (status: number, body?: unknown) => ({
   status,
@@ -81,6 +83,7 @@ const res = (status: number, body?: unknown) => ({
 
 beforeEach(() => {
   calls = [];
+  levels = { servers: [], choice: null, effective: null };
   mutate.mockClear();
   st.mrs.value = [];
   st.branches.value = [];
@@ -99,6 +102,7 @@ beforeEach(() => {
       calls.push({ method: o.method, path, body: o.body && JSON.parse(o.body) });
       if (o.method === 'DELETE' || path.endsWith('/poll')) return res(204);
       if (path.endsWith('/repos')) return res(200, { repos: [] });
+      if (path.includes('/levels/')) return res(200, levels);
       return res(200, list);
     }),
   );
@@ -112,10 +116,13 @@ const mountSettings = async () => {
 };
 
 describe('pt6b:', () => {
-  it('pt6b: манифест — панель задачи и настройки только в проекте и только для админа', () => {
+  it('pt6b: манифест — панель задачи и настройки на трёх уровнях, только для админа', () => {
     expect(web.taskPanels?.[0]?.id).toBe('mrs');
-    expect(web.settings).toHaveLength(1);
-    expect(web.settings?.[0]).toMatchObject({ id: 'project', level: 'project', adminOnly: true });
+    expect(web.settings?.map((x) => [x.id, x.level, x.adminOnly])).toEqual([
+      ['workspace', 'workspace', true],
+      ['space', 'space', true],
+      ['project', 'project', true],
+    ]);
     expect(() => registerModules([web])).not.toThrow();
   });
 
@@ -351,32 +358,101 @@ describe('pt6b:', () => {
 
   it('pt6b: настройки — подключения проекта, токен не показывается, ошибка видна', async () => {
     const w = await mountSettings();
-    expect(calls[0]).toMatchObject({ method: 'GET', path: '/api/gitlab/projects/p1/connections' });
-    const t = w.get('[data-testid=gl-token]');
-    expect((t.element as HTMLInputElement).type).toBe('password');
-    expect((t.element as HTMLInputElement).value).toBe('');
+    expect(calls.map((c) => c.path)).toContain('/api/gitlab/projects/p1/connections');
+    expect(w.find('[data-testid=gl-token]').exists()).toBe(false);
     expect(w.get('[data-testid=gl-error]').text()).toContain('unauthorized');
     expect(w.findAll('[data-testid=gl-conn]')).toHaveLength(1);
   });
 
-  it('pt6b: новое подключение шлёт адрес, токен и репозиторий; замена токена — PATCH', async () => {
+  it('pt6b: новый репозиторий шлёт только репозиторий — подключение берётся эффективное', async () => {
     const w = await mountSettings();
-    await w.get('[data-testid=gl-url]').setValue('https://gl.example/');
-    await w.get('[data-testid=gl-token]').setValue('glpat-x');
     await w.get('[data-testid=gl-project-input]').setValue(' g/new ');
     await w.get('[data-testid=gl-add-form]').trigger('submit');
     await flushPromises();
     expect(calls.find((c) => c.method === 'POST')).toMatchObject({
       path: '/api/gitlab/projects/p1/connections',
-      body: { baseUrl: 'https://gl.example/', token: 'glpat-x', project: 'g/new' },
+      body: { project: 'g/new' },
     });
-    expect((w.get('[data-testid=gl-token]').element as HTMLInputElement).value).toBe('');
-    await w.get('[data-testid=gl-conn-token]').setValue('glpat-y');
-    await w.get('[data-testid=gl-conn] form').trigger('submit');
+  });
+
+  it('уровень проекта: выбор подключения родителя, «наследовать», своё', async () => {
+    levels = {
+      servers: [
+        { id: 'g1', scope: 'workspace', name: 'main', baseUrl: 'https://gl.example' },
+        { id: 'g2', scope: 'space', name: 'team', baseUrl: 'https://gl2.example' },
+      ],
+      choice: null,
+      effective: 'g1',
+    };
+    const w = await mountSettings();
+    const sel = w.get('[data-testid=gl-choice]');
+    expect(sel.findAll('option').map((o) => o.text())).toEqual([
+      'inherit (main)',
+      'main · level_workspace',
+      'team · level_space',
+      'own',
+    ]);
+    await sel.setValue('g2');
+    await flushPromises();
+    expect(calls.find((c) => c.method === 'PUT')).toEqual({
+      method: 'PUT',
+      path: '/api/gitlab/levels/project/p1/choice',
+      body: { serverId: 'g2' },
+    });
+    await sel.setValue('');
+    await flushPromises();
+    expect(calls.filter((c) => c.method === 'PUT').at(-1)!.body).toEqual({ serverId: null });
+    // own: a form with name, address, token; the token field is a password
+    await sel.setValue('__new');
+    await w.get('[data-testid=gl-name]').setValue('mine');
+    await w.get('[data-testid=gl-url]').setValue('https://gl.example/');
+    const t = w.get('[data-testid=gl-token]');
+    expect((t.element as HTMLInputElement).type).toBe('password');
+    await t.setValue('glpat-x');
+    await w.get('[data-testid=gl-server-form]').trigger('submit');
+    await flushPromises();
+    expect(calls.find((c) => c.method === 'POST')).toMatchObject({
+      path: '/api/gitlab/servers',
+      body: {
+        scope: 'project',
+        scopeId: 'p1',
+        name: 'mine',
+        baseUrl: 'https://gl.example/',
+        token: 'glpat-x',
+      },
+    });
+  });
+
+  it('глобальный уровень: список подключений, добавление и удаление; токен не показывается', async () => {
+    levels = {
+      servers: [{ id: 'g1', scope: 'workspace', name: 'main', baseUrl: 'https://gl.example' }],
+      choice: null,
+      effective: 'g1',
+    };
+    const w = mount(ServersPanel, { props: { level: 'workspace' } });
+    await flushPromises();
+    expect(calls[0]!.path).toBe(
+      '/api/gitlab/levels/workspace/00000000-0000-0000-0000-000000000000',
+    );
+    expect(w.find('[data-testid=gl-choice]').exists()).toBe(false);
+    expect(w.findAll('[data-testid=gl-server]')).toHaveLength(1);
+    expect((w.get('[data-testid=gl-server-token]').element as HTMLInputElement).value).toBe('');
+    await w.get('[data-testid=gl-server-token]').setValue('new');
+    await w.get('[data-testid=gl-server] form').trigger('submit');
+    await w.get('[data-testid=gl-server-remove]').trigger('click');
     await flushPromises();
     expect(calls.find((c) => c.method === 'PATCH')).toMatchObject({
-      path: '/api/gitlab/connections/c1',
-      body: { token: 'glpat-y' },
+      path: '/api/gitlab/servers/g1',
+      body: { name: 'main', token: 'new' },
+    });
+    expect(calls.some((c) => c.method === 'DELETE' && c.path.endsWith('/servers/g1'))).toBe(true);
+    await w.get('[data-testid=gl-name]').setValue('second');
+    await w.get('[data-testid=gl-token]').setValue('t');
+    await w.get('[data-testid=gl-server-form]').trigger('submit');
+    await flushPromises();
+    expect(calls.find((c) => c.method === 'POST')!.body).toMatchObject({
+      scope: 'workspace',
+      name: 'second',
     });
   });
 

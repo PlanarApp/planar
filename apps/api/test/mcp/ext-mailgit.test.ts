@@ -130,16 +130,21 @@ let key: string;
 let tid: string;
 
 async function connect(projectId: string) {
-  const id = uuidv7();
+  const sid = uuidv7();
   await db.$client.query(
-    `insert into gitlab_connections (id, project_id, base_url, token_enc, gitlab_project_id, path)
-     values ($1,$2,$3,$4,42,'g/p42')`,
+    `insert into gitlab_servers (id, scope, scope_id, name, base_url, token_enc)
+     values ($1,'workspace','00000000-0000-0000-0000-000000000000','t',$2,$3)`,
     [
-      id,
-      projectId,
+      sid,
       `http://127.0.0.1:${(srv.address() as AddressInfo).port}`,
       encrypt(TOKEN, Buffer.from(process.env.PLANAR_SECRET_KEY!, 'base64')),
     ],
+  );
+  const id = uuidv7();
+  await db.$client.query(
+    `insert into gitlab_connections (id, project_id, server_id, gitlab_project_id, path)
+     values ($1,$2,$3,42,'g/p42')`,
+    [id, projectId, sid],
   );
   return id;
 }

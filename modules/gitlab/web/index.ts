@@ -1,5 +1,16 @@
 import { db, defineWebModule } from '@planar/web/modules';
+import { defineComponent, h } from 'vue';
 import { Branch } from './icons';
+import ServersPanel from './ServersPanel.vue';
+
+/** The connections panel as a settings page of a level: the group settings pass spaceId. */
+const page = (level: 'workspace' | 'space') =>
+  Promise.resolve({
+    default: defineComponent({
+      props: { spaceId: String, projectId: String },
+      setup: (p) => () => h(ServersPanel, { level, spaceId: p.spaceId }),
+    }),
+  });
 
 export const web = defineWebModule({
   id: 'gitlab',
@@ -22,7 +33,24 @@ export const web = defineWebModule({
     },
   ],
   settings: [
-    // only in the project: its connections to GitLab repositories and the status on MR merge
+    // workspace: the list of GitLab connections; space: which one it uses
+    {
+      id: 'workspace',
+      level: 'workspace',
+      label: { ru: 'GitLab', en: 'GitLab' },
+      icon: Branch,
+      adminOnly: true,
+      component: () => page('workspace'),
+    },
+    {
+      id: 'space',
+      level: 'space',
+      label: { ru: 'GitLab', en: 'GitLab' },
+      icon: Branch,
+      adminOnly: true,
+      component: () => page('space'),
+    },
+    // project: the connection it uses, its repositories and the status on MR merge
     {
       id: 'project',
       level: 'project',
