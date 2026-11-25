@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { defineAsyncComponent, ref, watch } from 'vue';
+import { useAuth } from '../auth/useAuth';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { quickCreate, ui, useHotkey } from './hotkeys';
@@ -47,7 +48,9 @@ useHotkey(
 );
 useHotkey('g i', () => void router.push('/inbox'), { label: 'cmd.hk.inbox' });
 useHotkey('g m', () => void router.push('/my'), { label: 'cmd.hk.my' });
-useHotkey('g s', () => void router.push('/settings'), { label: 'cmd.hk.settings' });
+useHotkey('g s', () => void (useAuth().isAdmin.value && router.push('/settings')), {
+  label: 'cmd.hk.settings',
+});
 </script>
 
 <template>

@@ -67,9 +67,9 @@ describe('cmd:palette', () => {
   });
   it('ввод фильтрует команды, Enter выполняет', async () => {
     key('k', { ctrlKey: true });
-    await ready('Настройки');
+    await ready('Мой день');
     await typeIn('входящ');
-    expect(body()).not.toContain('Настройки');
+    expect(body()).not.toContain('Мой день');
     document.body
       .querySelector('[role=listbox]')!
       .parentElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));

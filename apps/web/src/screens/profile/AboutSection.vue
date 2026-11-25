@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import AppSection from '../../pwa/AppSection.vue';
-import { releases } from './changelog';
+import { releases } from '../settings/changelog';
 
 const { t } = useI18n();
 // main open-source components (apps/web, apps/api package.json); links — the projects' home pages

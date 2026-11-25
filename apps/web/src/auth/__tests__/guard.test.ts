@@ -35,6 +35,15 @@ describe('auth:guard-login', () => {
     expect(router.currentRoute.value.path).toBe('/w/work');
     expect(useAuth().user.value?.login).toBe('ann');
   });
+  it('/settings — только админу воркспейса, остальным /profile', async () => {
+    mockFetch((m, p) => (p === '/api/auth/me' ? json(200, { user: mkUser() }) : undefined));
+    useAuth().user.value = mkUser({ role: 'member' });
+    await router.push('/settings/general');
+    expect(router.currentRoute.value.path).toBe('/profile');
+    useAuth().user.value = mkUser({ role: 'admin' });
+    await router.push('/settings/general');
+    expect(router.currentRoute.value.path).toBe('/settings/general');
+  });
 });
 
 describe('auth:guard-setup', () => {

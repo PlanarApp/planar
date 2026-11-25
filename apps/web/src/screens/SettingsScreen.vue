@@ -31,7 +31,6 @@ const SECTIONS = {
   data: { c: lazy('Data'), level: 'workspace' },
   // cloud-link: only on an instance hosted in the cloud
   cloud: { c: lazy('Cloud'), admin: true, cloud: true, level: 'workspace' },
-  about: { c: lazy('About'), level: 'workspace' },
 } as const satisfies Record<
   string,
   { level: Level | 'any'; c: unknown; admin?: true; cloud?: true }
@@ -100,7 +99,7 @@ const pages = computed(() =>
 const label = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
 // about the instance, not its content — at the very bottom, after module pages, behind a divider
-const TAIL: Id[] = ['cloud', 'about'];
+const TAIL: Id[] = ['cloud'];
 const item = (s: Id) => ({
   key: s as string,
   label: t(s === 'general' ? 'settings.general.title' : `settings.${s}`),

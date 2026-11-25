@@ -59,6 +59,8 @@ router.beforeEach(async (to) => {
   // 2FA is required by the instance policy: only the security settings until it is set up
   if (useAuth().mfaSetup.value && to.name !== 'profile')
     return { path: '/profile', query: { tab: 'security' } };
+  // workspace settings — admins only; the rest have everything personal in the profile
+  if (to.name === 'settings' && !useAuth().isAdmin.value) return '/profile';
   // former group tab "Inbox" — "My work › Activity"
   const seg = String((to.name === 'project' ? to.params.view : to.params.tab) ?? '');
   // bare node address — the last opened tab (by default "My work")

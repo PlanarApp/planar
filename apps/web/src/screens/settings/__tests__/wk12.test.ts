@@ -83,11 +83,12 @@ describe('wk12:', () => {
     expect(a.find('[data-testid=nav-wk12m\\:adm]').exists()).toBe(true);
     expect(a.find('[data-testid=mod-page]').exists()).toBe(true);
   });
-  it('PLANARAPP-64: «О программе» — в самом низу, за разделителем после страниц модулей', async () => {
+  it('«О программе» — в Профиле, не в настройках', async () => {
     await setEnabledModules(['wk12m']);
     const w = await open('/settings/wk12m:open', 'admin');
     const ids = w.findAll('nav > *').map((e) => e.attributes('data-testid'));
-    expect(ids.slice(-3)).toEqual(['nav-wk12m:adm', 'nav-sep', 'nav-about']);
+    expect(ids).not.toContain('nav-about');
+    expect(ids.at(-1)).toBe('nav-wk12m:adm');
   });
   it('PLNRAPP-86: страница модуля «Импорт» — внутри «Импорт/Экспорт» глобальных настроек, отдельного пункта нет', async () => {
     await setEnabledModules(['import']);

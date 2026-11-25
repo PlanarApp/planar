@@ -15,6 +15,8 @@ import { setWeekStart } from '../i18n/week';
 import { setLocale, type Locale } from '../i18n';
 import { useExtensions } from '../modules/registry';
 
+// lazy: PWA registration and the changelog are not needed for the other tabs
+const AboutSection = defineAsyncComponent(() => import('./profile/AboutSection.vue'));
 const { t, locale } = useI18n();
 const { user, mfaSetup } = useAuth();
 const { theme } = useTheme();
@@ -134,9 +136,11 @@ const themes = () => [
         { value: 'profile', label: t('profile.title') },
         { value: 'security', label: t('security.title') },
         { value: 'mcp', label: t('profile.mcp') },
+        { value: 'about', label: t('settings.about') },
       ]"
     />
     <TokensSection v-if="tab === 'mcp'" />
+    <AboutSection v-else-if="tab === 'about'" />
     <SecuritySection v-else-if="tab === 'security'" />
     <template v-else>
       <section class="flex flex-col gap-3" :aria-label="t('profile.title')">
