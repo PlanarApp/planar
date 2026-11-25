@@ -15,7 +15,7 @@ export {
 } from './queries';
 export type { TaskView } from './queries';
 export { groupTasks, labelColumns } from './group';
-export type { GroupBy, TaskGroup } from './group';
+export type { GroupBy, GroupCtx, TaskGroup } from './group';
 export { sortTasks } from './sort';
 export type { SortBy } from './sort';
 export {
