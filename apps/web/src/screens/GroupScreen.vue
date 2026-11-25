@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n';
 import {
   BarChart3,
   Briefcase,
-  FolderKanban,
   FileText,
   ListTodo,
   MessagesSquare,
@@ -18,7 +17,6 @@ import { useExtensions } from '../modules/registry';
 import type { GroupScope, LocalizedText } from '../modules/types';
 import { groupTab, groupUrl, lastTab, lastView, tabsFor, type GroupLevel } from '../layout/groups';
 import { useGroupTabs } from '../layout/useGroupTabs';
-import GroupList from './GroupList.vue';
 import ProjectScreen from './ProjectScreen.vue';
 import ScopeTasks from '../views/ScopeTasks.vue';
 import SettingsScreen from './SettingsScreen.vue';
@@ -88,7 +86,7 @@ const partComponent = computed(() => {
   return cache.get(p.key);
 });
 const selectPart = (k: string) => void router.replace({ query: { ...route.query, r: k } });
-// the tab and the view are remembered for any node; a tab missing at the level (Spaces, Projects) — "My work".
+// the tab and the view are remembered for any node; a tab missing at the level — "My work".
 // Module tabs are not checked: on a cold start modules are not known yet
 const seg = computed(() => String(route.params.view ?? route.params.tab ?? ''));
 watch(
@@ -106,7 +104,6 @@ watch(
 );
 const icons = {
   work: Briefcase,
-  projects: FolderKanban,
   tasks: ListTodo,
   docs: FileText,
   chats: MessagesSquare,
@@ -147,10 +144,6 @@ const icons = {
       />
       <SettingsScreen v-else-if="name && scope && tab === 'settings'" :scope="scope" />
       <MyWork v-else-if="name && scope && tab === 'work'" :scope="scope" />
-      <GroupList
-        v-else-if="name && scope && tab === 'projects' && level === 'space'"
-        :scope="scope"
-      />
       <div v-else-if="name && scope && part" class="flex h-full min-h-0 flex-col">
         <div v-if="parts.length > 1" class="shrink-0 border-b border-border px-2 py-1">
           <Tabs

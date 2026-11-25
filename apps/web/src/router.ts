@@ -66,6 +66,9 @@ router.beforeEach(async (to) => {
     const l = nodeLanding(to.path, lastTab.get());
     return { path: l.path, query: { ...l.query, ...to.query }, hash: to.hash, replace: true };
   }
+  // the removed space tab «Projects» (also remembered as the last tab) — "My work"
+  if (seg === 'projects' && to.name === 'space')
+    return { path: to.path.replace(/\/projects$/, '/work'), query: to.query, replace: true };
   if (seg === 'inbox' && ['project', 'space', 'workspace'].includes(String(to.name)))
     return {
       path: to.path.replace(/\/inbox$/, '/work'),
