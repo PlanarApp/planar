@@ -35,7 +35,7 @@ const props = defineProps<{
   projectText?: boolean;
   /** name on one line (a List row of fixed height) */
   oneLine?: boolean;
-  /** the whole name, wrapped by words (the "Wrap task names" option); otherwise up to 3 lines */
+  /** the whole name, wrapped by words (the "Wrap task names" option); otherwise one line */
   wrap?: boolean;
   depth?: number;
   /** the List card (mobile, narrow area): the compact layout, see above */
@@ -48,7 +48,7 @@ const props = defineProps<{
   labelNames?: boolean;
   /** the task key (the "Show task key" option) */
   showKey?: boolean;
-  /** the Board card: the status icon (the "Status" view field); `head` always has it */
+  /** the status icon (the "Status" view field) */
   status?: boolean;
 }>();
 const { t } = useI18n();
@@ -76,7 +76,13 @@ const copyKey = () =>
   <!-- статус, справа от него колонка: родитель мелко, ключ и название одним абзацем
        (перенос — по левому краю после статуса), поля и иконки — по тому же краю -->
   <div v-if="head" class="flex min-w-0 items-start gap-1">
-    <div data-no-drag role="gridcell" :class="['-ml-1 shrink-0', parent && 'mt-4']" @click.stop>
+    <div
+      v-if="status"
+      data-no-drag
+      role="gridcell"
+      :class="['-ml-1 shrink-0', parent && 'mt-4']"
+      @click.stop
+    >
       <StatusPicker
         compact
         :space-id="spaceId"
@@ -140,7 +146,6 @@ const copyKey = () =>
             :hot="hot"
             :project-name="projectName"
             :label-names="labelNames"
-            tag-icon
             :dense="!isMobile"
           />
         </template>
@@ -194,7 +199,12 @@ const copyKey = () =>
       <span
         class="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5"
         data-testid="card-badges"
-        ><TaskProgress
+        ><TaskAiStatus
+          v-if="ai"
+          :task="task"
+          data-no-drag
+          data-testid="card-ai"
+          @click.stop /><TaskProgress
           :task-id="task.id"
           :comments="task"
           expandable
@@ -215,9 +225,9 @@ const copyKey = () =>
         :style="{ width: `${depth * 12}px` }"
         aria-hidden="true"
       />
-      <!-- -ml-1.5: иконка статуса вровень с полями ниже (у кнопок пикеров свой отступ); под ней — ИИ (PLNRAPP-401) -->
-      <div v-if="status || ai" class="-ml-1.5 flex shrink-0 flex-col items-center">
-        <div v-if="status" data-no-drag role="gridcell" @click.stop>
+      <!-- -ml-1.5: иконка статуса вровень с полями ниже (у кнопок пикеров свой отступ) -->
+      <div v-if="status" class="-ml-1.5 flex shrink-0 flex-col items-center">
+        <div data-no-drag role="gridcell" @click.stop>
           <StatusPicker
             compact
             :space-id="spaceId"
@@ -226,14 +236,13 @@ const copyKey = () =>
             @update:model-value="updateTask(task.id, { statusId: $event })"
           />
         </div>
-        <TaskAiStatus v-if="ai" :task="task" data-no-drag data-testid="card-ai" @click.stop />
       </div>
       <BlockedIcon v-if="blocked" class="mt-1.5" />
       <p
         role="gridcell"
         :class="[
           'min-w-0 flex-1 pt-1 text-sm leading-snug text-fg',
-          oneLine ? 'truncate font-medium' : wrap ? 'break-words' : 'line-clamp-3',
+          oneLine ? 'truncate font-medium' : wrap ? 'break-words' : 'truncate',
         ]"
       >
         {{ task.title }}

@@ -8,7 +8,7 @@ import en from '../../../i18n/en';
 import ru from '../../../i18n/ru';
 import { i18n as appI18n } from '../../../i18n';
 import { db, registerMutators, startSync, stopSync } from '../../../sync';
-import { type GroupBy } from '../../../tasks';
+import { setLabels, type GroupBy } from '../../../tasks';
 import { ids, reset, task, until } from '../../../tasks/__tests__/data';
 import { resetBreakpoint } from '../../../ui';
 import { openTask, useSelection } from '../..';
@@ -112,6 +112,33 @@ describe('board:card', () => {
     await w.setProps({ options: { ...options('status'), fields: [] } });
     await until(() => !w.find('article [role=gridcell] button').exists());
     expect(w.find('[data-testid=card-ai]').exists()).toBe(false);
+    w.unmount();
+  });
+  it('board:card метки — иконкой метки, с «Показать имена меток» — и названием; перенос названий', async () => {
+    const t = task(1, { title: 'длинное название' });
+    await db.table('tasks').put(t);
+    await setLabels(t.id, [ids.bug]);
+    const opts = (o: Partial<ViewOptions>) => ({
+      ...options('status'),
+      fields: ['status', 'labels', 'ai'] as ViewOptions['fields'],
+      ...o,
+    });
+    const w = mount(View, {
+      props: {
+        projectId: ids.project,
+        options: opts({ showLabelNames: false, wrapTitles: false }),
+      },
+      global: { plugins: [i18n] },
+    });
+    await until(() => w.find('[data-testid=card-tag]').exists());
+    const tag = () => w.get('[data-testid=card-tag]');
+    expect(tag().text()).toBe('');
+    expect(tag().find('svg').exists()).toBe(true);
+    const title = () => w.findAll('article p[role=gridcell]').at(0)!;
+    expect(title().classes()).toContain('truncate');
+    await w.setProps({ options: opts({ showLabelNames: true, wrapTitles: true }) });
+    await until(() => tag().text() === 'bug');
+    expect(title().classes()).toContain('break-words');
     w.unmount();
   });
   it('board:sort сортировка вида — внутри колонок; «rank» — ручной порядок', async () => {

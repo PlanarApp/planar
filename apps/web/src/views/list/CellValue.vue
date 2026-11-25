@@ -2,10 +2,11 @@
 import { CalendarDays, Flag, Tag, UserRound } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import type { Row as DbRow } from '@planar/shared';
-import { AvatarStack, Badge } from '../../ui';
+import { AvatarStack } from '../../ui';
 import { PriorityIcon } from '../../tasks';
 import type { ListColumn } from './columns';
 import DatesValue from '../../tasks/fields/DatesValue.vue';
+import LabelsValue from '../../tasks/fields/LabelsValue.vue';
 
 // List cell value — the same at rest and inside the picker button (nothing changes on hover)
 defineProps<{
@@ -17,6 +18,8 @@ defineProps<{
   labels: DbRow<'labels'>[];
   /** the task's project name (the "Project" field) */
   project?: string;
+  /** label names next to the tag icons (the "Show label names" option) */
+  labelNames?: boolean;
 }>();
 const { t } = useI18n();
 const empty = 'text-fg-subtle opacity-50';
@@ -42,9 +45,7 @@ const empty = 'text-fg-subtle opacity-50';
     <Flag v-else :size="16" :class="empty" aria-hidden="true" />
   </template>
   <template v-else>
-    <span v-if="labels.length" class="flex gap-1 overflow-hidden">
-      <Badge v-for="l in labels" :key="l.id" dot :color="l.color ?? undefined">{{ l.name }}</Badge>
-    </span>
+    <LabelsValue v-if="labels.length" :labels="labels" :names="labelNames" />
     <Tag v-else :size="16" :class="empty" aria-hidden="true" />
   </template>
 </template>

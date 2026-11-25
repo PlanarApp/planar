@@ -261,6 +261,7 @@ function save() {
         :project-name="projectName"
         project-text
         head
+        :status="fields.includes('status')"
         :ai="fields.includes('ai')"
         :git="fields.includes('git')"
         :label-names="labelNames"
@@ -431,7 +432,8 @@ function save() {
                 :due-date="task.dueDate"
                 :priority="task.priority"
                 :labels="labelsSet"
-                :project="projectName" /></template
+                :project="projectName"
+                :label-names="labelNames" /></template
           ></AssigneePicker>
           <TaskDatesPicker
             v-else-if="c === 'dueDate'"
@@ -448,7 +450,8 @@ function save() {
                 :due-date="task.dueDate"
                 :priority="task.priority"
                 :labels="labelsSet"
-                :project="projectName" /></template
+                :project="projectName"
+                :label-names="labelNames" /></template
           ></TaskDatesPicker>
           <PriorityPicker
             v-else-if="c === 'priority'"
@@ -462,7 +465,8 @@ function save() {
                 :due-date="task.dueDate"
                 :priority="task.priority"
                 :labels="labelsSet"
-                :project="projectName" /></template
+                :project="projectName"
+                :label-names="labelNames" /></template
           ></PriorityPicker>
           <LabelPicker
             v-else
@@ -478,7 +482,8 @@ function save() {
                 :due-date="task.dueDate"
                 :priority="task.priority"
                 :labels="labelsSet"
-                :project="projectName" /></template
+                :project="projectName"
+                :label-names="labelNames" /></template
           ></LabelPicker>
         </template>
         <span v-else :class="box">
@@ -490,6 +495,7 @@ function save() {
             :priority="task.priority"
             :labels="labelsSet"
             :project="projectName"
+            :label-names="labelNames"
           />
         </span>
       </div>

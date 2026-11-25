@@ -33,6 +33,7 @@ const clamp = (n: number) => Math.round(Math.min(MAX, Math.max(MIN, n)));
 
 export interface WidthCtx {
   labels: Map<string, string>;
+  labelNames: boolean;
   projects: Map<string, string>;
   priority: (p: number) => string;
   locale: string;
@@ -65,7 +66,11 @@ export function autoWidth(c: ListColumn, tasks: readonly TaskView[], x: WidthCtx
               ? textWidth(x.priority(t.priority)) + 22
               : 16
             : c === 'labels'
-              ? t.labelIds.reduce((s, id) => s + textWidth(x.labels.get(id) ?? '', 12) + 24, 0)
+              ? // LabelsValue: a 14px tag icon, with names — a 12px icon and the name
+                t.labelIds.reduce(
+                  (s, id) => s + (x.labelNames ? textWidth(x.labels.get(id) ?? '', 12) + 18 : 18),
+                  0,
+                )
               : textWidth(x.projects.get(t.projectId) ?? '');
     if (v > w) w = v;
   }

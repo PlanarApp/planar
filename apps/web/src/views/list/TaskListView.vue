@@ -130,6 +130,7 @@ const projectNames = useProjectNames();
 // columns: auto-size by content
 const { widths } = useColumnWidths(columns, all, () => ({
   labels: new Map((labels.value ?? []).map((l) => [l.id, l.name])),
+  labelNames: density.value.showLabelNames,
   projects: projectNames.value,
   priority: (p) => t(`tasks.priority.${p}`),
   locale: locale.value,

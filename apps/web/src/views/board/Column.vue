@@ -288,7 +288,8 @@ function submit() {
           :data-task-id="x.id"
           tabindex="0"
           :class="[
-            'relative mb-2 flex cursor-grab flex-col gap-1 rounded-lg border bg-surface p-2 text-sm focus-visible:ring-2 ring-focus',
+            // inset ring: the column scrolls, an outer ring of the top card is cut off under the header
+            'relative mb-2 flex cursor-grab flex-col gap-1 rounded-lg border bg-surface p-2 text-sm ring-inset focus-visible:ring-2 ring-focus',
             sel.selected.value.has(x.id) ? 'border-accent bg-accent-subtle' : 'border-border',
             sel.active.value && 'pr-8',
             focusedId === x.id && 'ring-2',

@@ -270,6 +270,19 @@ describe('list:groups', () => {
     expect(empties()).toBe(0);
     expect(row('PLN-1').get('[data-testid=card-fields]').find('svg').exists()).toBe(true);
   });
+  it('карточка Списка: поле «Статус» выключено в «Виде» — статуса нет', async () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener() {} }) as never;
+    resetBreakpoint();
+    await db.table('tasks').put(task(1));
+    await show({ fields: ['status', 'priority'] });
+    await poll(async () => w.find('[data-task=PLN-1] p[role=gridcell]').exists());
+    const statusCells = () => row('PLN-1').findAll('div[role=gridcell]');
+    expect(statusCells()).toHaveLength(1);
+    w.unmount();
+    await show({ fields: ['priority'] });
+    await poll(async () => w.find('[data-task=PLN-1] p[role=gridcell]').exists());
+    expect(statusCells()).toHaveLength(0);
+  });
   it('list:groups подзадачи скрыты, пока showSubtasks=false', async () => {
     const p = task(1);
     await db.table('tasks').bulkPut([p, task(2, { parentId: p.id })]);
