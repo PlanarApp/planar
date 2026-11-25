@@ -101,8 +101,44 @@ const ops: ExtOp[] = [
     },
   },
   {
+    tool: 'set_space_members_mode',
+    description:
+      'Режим состава пространства: inherit — как в Воркспейсе (корневом пространстве); custom — свой состав members [{userId, role}] (непустой, есть admin). Корневое пространство — источник, режим не меняется',
+    method: 'put',
+    path: '/api/v1/spaces/{id}/members',
+    shape: {
+      id,
+      mode: z.enum(['inherit', 'custom']),
+      members: z.array(z.object({ userId: id, role })).optional(),
+    },
+    write: true,
+    run: async (d, u, i, t) => {
+      const a = i as { id: string; mode: string; members?: { userId: string; role: string }[] };
+      await visibleSpace(d, u, a.id);
+      await d.run(
+        u,
+        [
+          {
+            name: 'space.setMembersMode',
+            args: {
+              spaceId: a.id,
+              mode: a.mode,
+              members: a.members?.map((m) => ({ ...m, id: uuidv7() })),
+            },
+          },
+        ],
+        t,
+      );
+      return {
+        membersMode: (await spaceRow(d, a.id)).membersMode,
+        members: await spaceMembers(d, a.id),
+      };
+    },
+  },
+  {
     tool: 'add_space_member',
-    description: 'Добавить пользователя в пространство с ролью (admin/member/guest)',
+    description:
+      'Добавить пользователя в пространство с ролью (admin/member/guest); состав должен быть свой (custom)',
     method: 'post',
     path: '/api/v1/spaces/{id}/members',
     shape: { id, userId: id, role },

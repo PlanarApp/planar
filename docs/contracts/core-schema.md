@@ -43,6 +43,7 @@ scope: space · write: admin · bootstrap: yes · indexes: —
 | `color` | text? | |
 | `icon` | text? | |
 | `leadId` | uuid? | v18: the space lead (PLANARAPP-3); replica rows before v18 have no such field (treated as null) |
+| `membersMode` | enum(inherit,custom) | v32: `inherit` — the members of the space mirror the members of the root space (Workspace) with their roles; `custom` — the space's own list. Default `custom` (existing spaces keep their lists); replica rows before v32 have no such field (treated as `custom`). The root space is always `custom` (it is the source) |
 | `rank` | rank | |
 | `createdBy` | uuid | |
 | `createdAt` | ts | |

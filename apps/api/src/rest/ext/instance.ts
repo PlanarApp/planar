@@ -108,7 +108,8 @@ const ops: ExtOp[] = [
           }),
         }),
       );
-      if (p.role !== undefined || p.deactivated === false) await ensureRootSpace(d.db);
+      if (p.role !== undefined || p.deactivated === false)
+        await ensureRootSpace(d.db, p.role !== undefined ? tid : undefined);
       if (p.deactivated) await deleteUserSessions(d.db, tid);
       if (p.reset2fa) {
         await d.db.delete(userSecurity).where(eq(userSecurity.userId, tid));

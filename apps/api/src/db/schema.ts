@@ -59,20 +59,26 @@ export const users = pgTable(
   ],
 );
 
-export const spaces = pgTable('spaces', {
-  id: id(),
-  name: text().notNull(),
-  description: text(),
-  color: text(),
-  icon: text(),
-  leadId: uuid().references(() => users.id),
-  rank: rank().notNull(),
-  createdBy: uuid()
-    .notNull()
-    .references(() => users.id),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
+export const spaces = pgTable(
+  'spaces',
+  {
+    id: id(),
+    name: text().notNull(),
+    description: text(),
+    color: text(),
+    icon: text(),
+    leadId: uuid().references(() => users.id),
+    rank: rank().notNull(),
+    /** members: mirror of the root space (inherit) or own list (custom); existing spaces keep theirs */
+    membersMode: text().notNull().default('custom'),
+    createdBy: uuid()
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [check('spaces_members_mode_check', inList(t.membersMode, ['inherit', 'custom']))],
+);
 
 const spaceId = () =>
   uuid()

@@ -666,6 +666,13 @@
       "when": 1797312000000,
       "tag": "0094_gitlab_servers",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1797398400000,
+      "tag": "0095_space_members_mode",
+      "breakpoints": true
     }
   ]
 }

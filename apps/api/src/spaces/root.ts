@@ -12,9 +12,11 @@ export const ROOT_SPACE = 'root_space';
 /**
  * Root space: created on first start; all active users except guests are
  * members (instance owners and admins are space admins). Idempotent: call on start
- * and after a user is created or a role changes.
+ * and after a user is created or a role changes. `changed` — a user whose instance role was just changed:
+ * their Workspace role is set to the one their instance role gives (admin / member / guest), so a demoted
+ * admin does not stay an admin of the Workspace; instance admins are always promoted to admin.
  */
-export async function ensureRootSpace(db: Db): Promise<string> {
+export async function ensureRootSpace(db: Db, changed?: string): Promise<string> {
   const sys = await ensureSystemUser(db);
   const [row] = await db.select().from(settings).where(eq(settings.id, ROOT_SPACE));
   let id = typeof row?.value === 'string' ? row.value : undefined;
@@ -59,6 +61,7 @@ export async function ensureRootSpace(db: Db): Promise<string> {
         .where(eq(spaceMembers.spaceId, id))
     ).map((m) => m.userId),
   );
+  await syncRoles(db, sys, id, changed);
   const add = people.filter((p) => !have.has(p.id));
   if (add.length)
     await executeMutations(
@@ -78,4 +81,39 @@ export async function ensureRootSpace(db: Db): Promise<string> {
       { system: true },
     );
   return id;
+}
+
+const canonical = (role: string) =>
+  role === 'owner' || role === 'admin' ? 'admin' : role === 'guest' ? 'guest' : 'member';
+
+/** Existing Workspace members: instance admins → admin; the `changed` user → exactly their instance role. */
+async function syncRoles(db: Db, sys: string, root: string, changed?: string) {
+  const rows = await db
+    .select({
+      id: spaceMembers.id,
+      userId: spaceMembers.userId,
+      role: spaceMembers.role,
+      u: users.role,
+    })
+    .from(spaceMembers)
+    .innerJoin(users, eq(users.id, spaceMembers.userId))
+    .where(and(eq(spaceMembers.spaceId, root), isNull(users.deactivatedAt)));
+  const upd = rows
+    .map((r) => ({
+      id: r.id,
+      role: r.userId === changed ? canonical(r.u) : canonical(r.u) === 'admin' ? 'admin' : r.role,
+      was: r.role,
+    }))
+    .filter((r) => r.role !== r.was)
+    // promotions first: the last admin stays one while the others are demoted
+    .sort((a, b) => Number(b.role === 'admin') - Number(a.role === 'admin'));
+  if (upd.length)
+    await executeMutations(
+      db,
+      sys,
+      upd.map((r) => ({ name: 'member.update', args: { id: r.id, role: r.role } })),
+      undefined,
+      undefined,
+      { system: true },
+    );
 }

@@ -1,0 +1,2 @@
+ALTER TABLE "spaces" ADD COLUMN "members_mode" text DEFAULT 'custom' NOT NULL;--> statement-breakpoint
+ALTER TABLE "spaces" ADD CONSTRAINT "spaces_members_mode_check" CHECK ("spaces"."members_mode" in ('inherit', 'custom'));

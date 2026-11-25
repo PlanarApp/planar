@@ -4,6 +4,7 @@ import { CheckCircle2, ChevronRight, Circle } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
 import { useAuth } from '../auth/useAuth';
+import { useAdminSpaces } from '../screens/settings/shared';
 import { docText } from '../command/search';
 import { mutate } from '../sync';
 import { useUsers } from './queries';
@@ -19,9 +20,12 @@ const open = computed(() => props.comments.filter((c) => !c.resolvedAt));
 const resolved = computed(() => props.comments.filter((c) => !!c.resolvedAt));
 // PLNRAPP-562: «Resolve» right in the tab — the same mutation and rights as the feed (CommentItem):
 // the assignee, the author or an admin; the list, the accordion and the counter follow the replica at once
-const { user, isAdmin } = useAuth();
+const { user } = useAuth();
+// comment.resolve: the assignee, the author or an admin of the comment's space (the mutator's rule)
+const isSpaceAdmin = useAdminSpaces();
 const canResolve = (c: Row<'comments'>) =>
-  !!user.value && (c.assigneeId === user.value.id || c.authorId === user.value.id || isAdmin.value);
+  !!user.value &&
+  (c.assigneeId === user.value.id || c.authorId === user.value.id || isSpaceAdmin(c.spaceId));
 const resolve = (c: Row<'comments'>) =>
   mutate('comment.resolve', { id: c.id, resolved: !c.resolvedAt });
 // collapsed on every opening of the card, as the subtasks' "Closed N" (PLNRAPP-542)

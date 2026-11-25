@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { MutatorError, defineMutator, type Tx } from '../contract/index.js';
-import { bad, delWhere, doc, need, uuid } from './util.js';
+import { bad, delWhere, doc, need, roleInProject, uuid } from './util.js';
 import { extractMentions } from './text.js';
 
 const roleIn = async (tx: Tx, spaceId: string, userId: string) =>
@@ -131,7 +131,9 @@ export const commentMutators = [
     async run(tx, a, ctx) {
       // any comment of a thread, replies too (PLNRAPP-135)
       const c = await need(tx, 'comments', a.id);
-      const r = await roleIn(tx, c.spaceId, ctx.userId);
+      // the role in the task's project (PJ-11): a guest of a `custom` project is a guest here too
+      const projectId = (await tx.get('tasks', c.taskId))?.projectId ?? null;
+      const r = await roleInProject(tx, c.spaceId, projectId, ctx.userId);
       if (!r || r === 'guest') throw new MutatorError('forbidden', 'нужна роль member');
       if (a.assigneeId) await checkAssignee(tx, c.spaceId, a.assigneeId);
       // new assignment — reopened

@@ -770,6 +770,7 @@ export default {
     projectMembersDesc:
       'Who works in the project. «Same as space» takes members and roles from the space; «Own members» sets them in the project, removed members see none of its data.',
     membersInherit: 'Same as space',
+    spaceMembersInherit: 'Same as Workspace',
     membersCustom: 'Own members',
     removeMember: 'Remove member?',
     impersonate: 'Sign in',
