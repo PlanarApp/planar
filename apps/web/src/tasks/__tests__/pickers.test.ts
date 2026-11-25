@@ -199,6 +199,23 @@ describe('tasks:pickers', () => {
       expect(w.emitted('update:dueTime')?.[0]).toEqual(['09:00']);
       w.unmount();
     });
+    it('«Напомнить за» — только при времени срока, по умолчанию 10 минут', async () => {
+      const w = mount(TaskDatesPicker, { ...opts, props: { start: null, due: '2026-11-20' } });
+      await open(w);
+      expect(document.body.querySelector('[data-testid=task-due-remind]')).toBeNull();
+      w.unmount();
+      const w2 = mount(TaskDatesPicker, {
+        ...opts,
+        props: { start: null, due: '2026-11-20', dueTime: '14:30' },
+      });
+      await open(w2);
+      const sel = document.body.querySelector<HTMLSelectElement>('[data-testid=task-due-remind]')!;
+      expect(sel.value).toBe('10');
+      sel.value = '60';
+      sel.dispatchEvent(new Event('change'));
+      expect(w2.emitted('update:dueRemindMin')?.[0]).toEqual([60]);
+      w2.unmount();
+    });
   });
 });
 

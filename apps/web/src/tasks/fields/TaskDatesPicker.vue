@@ -18,6 +18,9 @@ const due = defineModel<string | null>('due', { default: null });
 // optional time of day 'HH:MM' for each date (only with the date)
 const startTime = defineModel<string | null>('startTime', { default: null });
 const dueTime = defineModel<string | null>('dueTime', { default: null });
+// remind before the due time, minutes (0 — only at the due time); empty — the default 10
+const dueRemindMin = defineModel<number | null>('dueRemindMin', { default: null });
+const REMIND = [0, 5, 10, 15, 30, 60, 1440];
 const { t } = useI18n();
 const open = defineModel<boolean>('open', { default: false });
 const clear = () => {
@@ -83,6 +86,17 @@ const clear = () => {
         data-testid="task-due-time"
         @update:model-value="(v: string) => (dueTime = v || null)"
       />
+      <label v-if="due && dueTime" class="flex flex-col gap-1 text-sm text-fg-muted">
+        {{ t('task.remindBefore') }}
+        <select
+          :value="dueRemindMin ?? 10"
+          class="h-8 rounded-md border border-border bg-bg px-2 text-sm text-fg outline-none focus-visible:ring-2 ring-focus"
+          data-testid="task-due-remind"
+          @change="dueRemindMin = Number(($event.target as HTMLSelectElement).value)"
+        >
+          <option v-for="m in REMIND" :key="m" :value="m">{{ t(`task.remind.${m}`) }}</option>
+        </select>
+      </label>
       <Button v-if="start || due" size="sm" variant="ghost" @click="clear">{{
         t('tasks.clear')
       }}</Button>

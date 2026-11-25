@@ -7,6 +7,12 @@ const time = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
   .describe('время суток HH:MM, только вместе с датой');
+const remindMin = z
+  .number()
+  .int()
+  .min(0)
+  .max(10080)
+  .describe('напомнить за N минут до срока (0 — только в срок; пусто — 10), только с dueTime');
 const priority = z.number().int().min(0).max(4);
 
 export const listQuery = z.object({
@@ -42,6 +48,7 @@ export const createTaskBody = z.object({
   priority: priority.optional(),
   dueDate: date.nullable().optional(),
   dueTime: time.nullable().optional(),
+  dueRemindMin: remindMin.nullable().optional(),
   assigneeIds: z.array(uuid).optional(),
   labelIds: z.array(uuid).optional(),
   parentId: uuid.nullable().optional(),
@@ -53,6 +60,7 @@ export const patchTaskBody = z.object({
   dueDate: date.nullable().optional(),
   startDate: date.nullable().optional(),
   dueTime: time.nullable().optional(),
+  dueRemindMin: remindMin.nullable().optional(),
   startTime: time.nullable().optional(),
   description: z.string().nullable().optional(),
   assigneeIds: z.array(uuid).optional(),

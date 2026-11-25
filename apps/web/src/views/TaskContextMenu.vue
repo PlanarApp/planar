@@ -109,10 +109,12 @@ function pick(e: MouseEvent) {
       :due="field.task.dueDate"
       :start-time="field.task.startTime"
       :due-time="field.task.dueTime"
+      :due-remind-min="field.task.dueRemindMin"
       @update:start="(v: string | null) => updateTask(field!.task.id, { startDate: v })"
       @update:due="(v: string | null) => updateTask(field!.task.id, { dueDate: v })"
       @update:start-time="(v: string | null) => updateTask(field!.task.id, { startTime: v })"
       @update:due-time="(v: string | null) => updateTask(field!.task.id, { dueTime: v })"
+      @update:due-remind-min="(v: number | null) => updateTask(field!.task.id, { dueRemindMin: v })"
     />
   </div>
 </template>
