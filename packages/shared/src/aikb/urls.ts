@@ -44,9 +44,9 @@ export function appPath(t: AppTarget): string {
         case 'cycles':
           return `/p/${e(t.projectId)}/reports?r=sprints:sprint`;
         case 'settings':
-          return t.projectId ? `/p/${e(t.projectId)}/settings` : '/w/settings';
+          return t.projectId ? `/p/${e(t.projectId)}/settings` : '/settings';
         case 'aiTasks':
-          return '/w/settings?s=ai:workspace&tab=tasks';
+          return '/settings/ai:workspace?tab=tasks';
       }
   }
 }

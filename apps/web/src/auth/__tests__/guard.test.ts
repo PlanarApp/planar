@@ -65,8 +65,19 @@ describe('router: the former «AI tasks» section', () => {
     mockFetch((m, p) => (p === '/api/auth/me' ? json(200, { user: mkUser() }) : undefined));
     useAuth().user.value = mkUser();
     await router.push('/w/settings?s=ai:tasks');
-    expect(router.currentRoute.value.path).toBe('/w/settings');
-    expect(router.currentRoute.value.query).toEqual({ s: 'ai:workspace', tab: 'tasks' });
+    expect(router.currentRoute.value.path).toBe('/settings/ai:workspace');
+    expect(router.currentRoute.value.query).toEqual({ tab: 'tasks' });
+  });
+
+  it('/w/settings?s=ai:space, /settings/ai:project и /settings/ai -> глобальный ИИ; /w/settings -> /settings', async () => {
+    mockFetch((m, p) => (p === '/api/auth/me' ? json(200, { user: mkUser() }) : undefined));
+    useAuth().user.value = mkUser();
+    for (const from of ['/w/settings?s=ai:space', '/settings/ai:project', '/settings/ai']) {
+      await router.push(from);
+      expect(router.currentRoute.value.path).toBe('/settings/ai:workspace');
+    }
+    await router.push('/w/settings?s=members');
+    expect(router.currentRoute.value.fullPath).toBe('/settings/members');
   });
 });
 

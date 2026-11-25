@@ -6,7 +6,6 @@ import {
   BarChart3,
   Briefcase,
   FolderKanban,
-  LayoutGrid,
   FileText,
   ListTodo,
   MessagesSquare,
@@ -107,7 +106,6 @@ watch(
 );
 const icons = {
   work: Briefcase,
-  spaces: LayoutGrid,
   projects: FolderKanban,
   tasks: ListTodo,
   docs: FileText,
@@ -150,9 +148,8 @@ const icons = {
       <SettingsScreen v-else-if="name && scope && tab === 'settings'" :scope="scope" />
       <MyWork v-else-if="name && scope && tab === 'work'" :scope="scope" />
       <GroupList
-        v-else-if="name && scope && (tab === 'spaces' || tab === 'projects') && level !== 'project'"
+        v-else-if="name && scope && tab === 'projects' && level === 'space'"
         :scope="scope"
-        :kind="tab"
       />
       <div v-else-if="name && scope && part" class="flex h-full min-h-0 flex-col">
         <div v-if="parts.length > 1" class="shrink-0 border-b border-border px-2 py-1">
