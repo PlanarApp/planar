@@ -54,3 +54,29 @@ export function formatPeriod(
     .formatRange(a, b)
     .replace(/\s?г\./g, '');
 }
+
+/** Kind of a due date relative to local today (PLNRAPP-872): before — overdue, today, later — future. */
+export type DueKind = 'overdue' | 'today' | 'future';
+
+const ymd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+export function dueKind(d: string, now: Date = new Date()): DueKind {
+  const today = ymd(now);
+  return d < today ? 'overdue' : d === today ? 'today' : 'future';
+}
+
+/**
+ * The text color of a due date — the same theme tokens everywhere (List, My day, task card, mobile cards):
+ * overdue — red, today — accent orange, future — neutral (tokens.css, --color-due-*).
+ */
+export const DUE_TONE: Record<DueKind, string> = {
+  overdue: 'text-due-overdue',
+  today: 'text-due-today',
+  future: 'text-due-future',
+};
+
+/** 'YYYY-MM-DD' | null → the due date's color class ('' without a date). */
+export function dueTone(d: string | null | undefined, now: Date = new Date()): string {
+  return d ? DUE_TONE[dueKind(d, now)] : '';
+}

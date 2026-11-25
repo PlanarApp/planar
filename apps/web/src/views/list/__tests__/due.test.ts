@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDue, formatPeriod } from '../due';
+import { dueKind, dueTone, formatDue, formatPeriod } from '../due';
 
 const now = new Date(2026, 9, 24);
 describe('formatDue', () => {
@@ -33,5 +33,17 @@ describe('formatPeriod', () => {
     expect(formatPeriod(null, '2026-11-20', 'ru', now)).toBe('20 нояб.');
     expect(formatPeriod(null, null, 'ru', now)).toBe('');
     expect(formatPeriod('2026-11-20', '2026-11-12', 'ru', now)).toBe('20 нояб. – 12 нояб.');
+  });
+});
+
+describe('dueKind / dueTone (PLNRAPP-872)', () => {
+  it('просрочено — красный, сегодня — акцентный, будущее — нейтральный', () => {
+    expect(dueKind('2026-10-23', now)).toBe('overdue');
+    expect(dueKind('2026-10-24', now)).toBe('today');
+    expect(dueKind('2026-10-25', now)).toBe('future');
+    expect(dueTone('2026-10-23', now)).toBe('text-due-overdue');
+    expect(dueTone('2026-10-24', now)).toBe('text-due-today');
+    expect(dueTone('2026-10-25', now)).toBe('text-due-future');
+    expect(dueTone(null, now)).toBe('');
   });
 });
