@@ -67,6 +67,18 @@ describe('tasks:pickers', () => {
     expect(w.emitted('update:modelValue')?.[0]).toEqual([[ids.ann]]);
     w.unmount();
   });
+  it('AssigneePicker: на кнопке — «аватар имя» на каждого исполнителя', async () => {
+    const w = mount(AssigneePicker, {
+      ...opts,
+      props: { spaceId: ids.space, modelValue: [ids.ann] },
+    });
+    await vi.waitFor(() => expect(w.find('[data-testid=assignee-names]').exists()).toBe(true));
+    const pairs = w.findAll('[data-testid=assignee-names] > span');
+    expect(pairs).toHaveLength(1);
+    expect(pairs[0]!.text()).toContain('Ann');
+    expect(pairs[0]!.element.children).toHaveLength(2); // the avatar, then the name
+    w.unmount();
+  });
   it('PriorityPicker: Popover монтируется лениво; фокус с клавиатуры сохраняется, клик открывает', async () => {
     const w = mount(PriorityPicker, { ...opts, props: { modelValue: 0 } });
     expect(document.body.querySelector('[aria-expanded]')).toBeNull(); // a light button without reka-ui
@@ -132,24 +144,32 @@ describe('tasks:pickers', () => {
       const res = {
         text: v.exists() ? v.text() : '',
         alarm: w.find('[data-testid=task-dates-due]').exists(),
-        danger: w.get('[data-testid=task-dates]').classes().includes('text-danger'),
+        // the color of each date: start, due (the separator is not a date)
+        tones: v.exists()
+          ? v
+              .findAll(':scope > span:not(.text-fg-muted)')
+              .map((x) => x.classes().find((c) => c.startsWith('text-')))
+          : [],
       };
       w.unmount();
       return res;
     };
     const y = new Date().getFullYear();
     it('без дат — только иконка', () => {
-      expect(value(null, null)).toEqual({ text: '', alarm: false, danger: false });
+      expect(value(null, null)).toEqual({ text: '', alarm: false, tones: [] });
     });
     it('период, только начало, только срок', () => {
-      expect(value(`${y}-11-12`, `${y}-11-19`).text).toBe('12–19 нояб.');
-      expect(value(`${y}-11-12`, null).text).toBe('с 12 нояб.');
-      expect(value(null, `${y + 1}-11-20`)).toMatchObject({ alarm: true, danger: false });
+      expect(value(`${y + 1}-11-12`, `${y + 1}-11-19`).text).toBe(
+        `12 нояб. ${y + 1} – 19 нояб. ${y + 1}`,
+      );
+      expect(value(`${y + 1}-11-12`, null).text).toBe(`с 12 нояб. ${y + 1}`);
+      expect(value(null, `${y + 1}-11-20`)).toMatchObject({ alarm: true, tones: ['text-fg'] });
     });
-    it('просроченный срок — danger', () => {
-      expect(value(null, localToday(-1))).toMatchObject({ alarm: true, danger: true });
-      expect(value(localToday(-5), localToday(-1)).danger).toBe(true);
-      expect(value(localToday(-5), localToday()).danger).toBe(false);
+    it('каждая дата своим цветом: прошлое — красным, сегодня — зелёным, будущее — цветом текста', () => {
+      expect(value(null, localToday(-1)).tones).toEqual(['text-danger']);
+      expect(value(localToday(-5), localToday()).tones).toEqual(['text-danger', 'text-success']);
+      expect(value(localToday(), localToday(3)).tones).toEqual(['text-success', 'text-fg']);
+      expect(value(localToday(2), null).tones).toEqual(['text-fg']);
     });
     it('диалог: начало и срок, очистка обеих', async () => {
       const w = mount(TaskDatesPicker, { ...opts, props: { start: null, due: '2026-11-20' } });

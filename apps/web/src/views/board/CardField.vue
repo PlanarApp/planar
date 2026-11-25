@@ -5,18 +5,18 @@ import { CalendarDays, Flag, FolderKanban, Tag, UserRound } from 'lucide-vue-nex
 import type { Row } from '@planar/shared';
 import {
   AssigneePicker,
-  DueDatePicker,
   LabelPicker,
   PriorityIcon,
   PriorityPicker,
   setAssignees,
   setLabels,
+  TaskDatesPicker,
   updateTask,
   type TaskView,
 } from '../../tasks';
 import { AvatarStack, Badge } from '../../ui';
-import { formatDue } from '../list/due';
-import { localToday } from '../filter';
+import { dateTone, formatDue } from '../list/due';
+import DatesValue from '../../tasks/fields/DatesValue.vue';
 
 export type CardCol = 'project' | 'priority' | 'dueDate' | 'assignee' | 'labels';
 // card field: at rest — the value; while the card is under the cursor — a picker with the same content (click — choose)
@@ -53,11 +53,17 @@ const box = computed(() =>
     props.dense ? 'h-6 px-0.5' : 'h-7 px-1.5',
   ].join(' '),
 );
-const due = computed(() => (props.task.dueDate ? formatDue(props.task.dueDate, locale.value) : ''));
-// overdue — danger (an icon without text must show this)
-const dueTone = computed(() =>
-  props.task.dueDate && props.task.dueDate < localToday() ? 'text-danger' : 'text-fg-muted',
+const due = computed(() =>
+  [props.task.startDate, props.task.dueDate]
+    .filter((d): d is string => !!d)
+    .map((d) => formatDue(d, locale.value))
+    .join(' – '),
 );
+// the icon without text shows the due date's color (only a start — the start's)
+const dueTone = computed(() => {
+  const d = props.task.dueDate ?? props.task.startDate;
+  return d ? dateTone(d) : '';
+});
 const empty = 'text-fg-subtle opacity-60';
 // mobile: a tag icon in the tag's color per tag, unless the names are asked for
 // the List card (tagIcon): tag icons too, names with the "Show tag names" option
@@ -81,16 +87,18 @@ const tagChip = 'inline-flex h-5 items-center gap-0.5 text-xs font-medium text-f
           <PriorityIcon v-if="task.priority" :priority="task.priority" />
           <Flag v-else :size="14" :class="empty" /></template
       ></PriorityPicker>
-      <DueDatePicker
+      <TaskDatesPicker
         v-else-if="col === 'dueDate'"
         :task-id="task.id"
-        :model-value="task.dueDate"
-        @update:model-value="updateTask(task.id, { dueDate: $event })"
+        :start="task.startDate"
+        :due="task.dueDate"
+        @update:start="(v: string | null) => updateTask(task.id, { startDate: v })"
+        @update:due="(v: string | null) => updateTask(task.id, { dueDate: v })"
         ><template #value>
-          <CalendarDays v-if="task.dueDate && iconOnly" :size="14" :class="dueTone" />
-          <span v-else-if="task.dueDate" :class="dueTone">{{ due }}</span>
+          <CalendarDays v-if="due && iconOnly" :size="14" :class="dueTone" />
+          <DatesValue v-else-if="due" :start="task.startDate" :due="task.dueDate" />
           <CalendarDays v-else :size="14" :class="empty" /></template
-      ></DueDatePicker>
+      ></TaskDatesPicker>
       <AssigneePicker
         v-else-if="col === 'assignee'"
         :space-id="spaceId"
@@ -151,8 +159,8 @@ const tagChip = 'inline-flex h-5 items-center gap-0.5 text-xs font-medium text-f
         <Flag v-else :size="14" :class="empty" />
       </template>
       <template v-else-if="col === 'dueDate'">
-        <CalendarDays v-if="task.dueDate && iconOnly" :size="14" :class="dueTone" />
-        <span v-else-if="task.dueDate" :class="dueTone">{{ due }}</span>
+        <CalendarDays v-if="due && iconOnly" :size="14" :class="dueTone" />
+        <DatesValue v-else-if="due" :start="task.startDate" :due="task.dueDate" />
         <CalendarDays v-else :size="14" :class="empty" />
       </template>
       <template v-else-if="col === 'assignee'">

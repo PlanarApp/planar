@@ -811,7 +811,7 @@ describe('list:row', () => {
     d.setDate(d.getDate() + n);
     return ymd(d);
   };
-  it('list:row срок: вчера — danger, сегодня — warning, через 3 дня — muted', async () => {
+  it('list:row срок: вчера — красным, сегодня — зелёным, через 3 дня — цветом текста', async () => {
     await db
       .table('tasks')
       .bulkPut([
@@ -822,8 +822,18 @@ describe('list:row', () => {
     await show();
     const tone = (k: string) => row(k).findAll('[data-col=dueDate] span').at(-1)!.classes();
     expect(tone('PLN-1')).toContain('text-danger');
-    expect(tone('PLN-2')).toContain('text-warning');
-    expect(tone('PLN-3')).toContain('text-fg-muted');
+    expect(tone('PLN-2')).toContain('text-success');
+    expect(tone('PLN-3')).toContain('text-fg');
+  });
+  it('list:row начало и срок — оба в ячейке, каждый своим цветом', async () => {
+    await db.table('tasks').put(task(1, { startDate: day(-2), dueDate: day(0) }));
+    await show();
+    const spans = row('PLN-1').findAll('[data-testid=task-dates-value] > span');
+    expect(spans.map((x) => x.classes())).toEqual([
+      expect.arrayContaining(['text-danger']),
+      expect.arrayContaining(['text-fg-muted']),
+      expect.arrayContaining(['text-success']),
+    ]);
   });
   it('list:row без меток, срока и исполнителей лишнего нет; пикеры не ловят клики', async () => {
     await db.table('tasks').put(task(1));

@@ -51,8 +51,14 @@ export function autoWidth(c: ListColumn, tasks: readonly TaskView[], x: WidthCtx
           ? 20 + 16 * (Math.min(t.assigneeIds.length, 3) - 1) + (t.assigneeIds.length > 3 ? 16 : 0)
           : 16
         : c === 'dueDate'
-          ? t.dueDate
-            ? textWidth(formatDue(t.dueDate, x.locale))
+          ? t.dueDate || t.startDate
+            ? // DatesValue: «12 Nov – 19 Nov»; only a start — «from 12 Nov» (+16 for «from»)
+              textWidth(
+                [t.startDate, t.dueDate]
+                  .filter((d): d is string => !!d)
+                  .map((d) => formatDue(d, x.locale))
+                  .join(' – '),
+              ) + (t.startDate && !t.dueDate ? 16 : 0)
             : 16
           : c === 'priority'
             ? t.priority

@@ -5,20 +5,20 @@ import type { Row as DbRow } from '@planar/shared';
 import { AvatarStack, Badge } from '../../ui';
 import { PriorityIcon } from '../../tasks';
 import type { ListColumn } from './columns';
-import { formatDue } from './due';
+import DatesValue from '../../tasks/fields/DatesValue.vue';
 
 // List cell value — the same at rest and inside the picker button (nothing changes on hover)
 defineProps<{
   col: ListColumn;
   people: { name: string }[];
+  startDate: string | null;
   dueDate: string | null;
-  dueTone: string;
   priority: number;
   labels: DbRow<'labels'>[];
   /** the task's project name (the "Project" field) */
   project?: string;
 }>();
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const empty = 'text-fg-subtle opacity-50';
 </script>
 
@@ -32,7 +32,7 @@ const empty = 'text-fg-subtle opacity-50';
     <UserRound v-else :size="16" :class="empty" :aria-label="t('tasks.noAssignee')" />
   </template>
   <template v-else-if="col === 'dueDate'">
-    <span v-if="dueDate" :class="['text-sm', dueTone]">{{ formatDue(dueDate, locale) }}</span>
+    <DatesValue v-if="startDate || dueDate" class="text-sm" :start="startDate" :due="dueDate" />
     <CalendarDays v-else :size="16" :class="empty" aria-hidden="true" />
   </template>
   <template v-else-if="col === 'priority'">

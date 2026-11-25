@@ -3,10 +3,10 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   AssigneePicker,
-  DueDatePicker,
   PriorityPicker,
   LabelPicker,
   StatusPicker,
+  TaskDatesPicker,
   setAssignees,
   setLabels,
   updateTask,
@@ -22,7 +22,6 @@ import AiCell from './AiCell.vue';
 import TaskProgress from '../TaskProgress.vue';
 import { BlockedIcon } from '../../links';
 import { isAiField, type TaskField } from '../options';
-import { localToday } from '../filter';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import { toast } from '../../ui/toast';
 
@@ -138,7 +137,7 @@ const cardCols = computed(() =>
     (c) => props.fields.includes(c) && (props.showEmpty || filled(c)),
   ),
 );
-// value frame = the picker button's frame (OptionPicker, DueDatePicker): the change on hover is not visible
+// value frame = the picker button's frame (OptionPicker, TaskDatesPicker): the change on hover is not visible
 const box = 'inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 text-sm text-fg';
 const labelsSet = computed(() =>
   props.task.labelIds.flatMap((id) => props.labels.find((l) => l.id === id) ?? []),
@@ -148,7 +147,7 @@ const filled = (c: 'project' | 'priority' | 'dueDate' | 'labels' | 'assignee') =
   (c === 'priority'
     ? !!props.task.priority
     : c === 'dueDate'
-      ? !!props.task.dueDate
+      ? !!(props.task.dueDate || props.task.startDate)
       : c === 'assignee'
         ? props.task.assigneeIds.length > 0
         : labelsSet.value.length > 0);
@@ -157,16 +156,6 @@ const people = computed(() =>
     name: props.members.find((u) => u.id === id)?.name ?? '?',
   })),
 );
-// overdue (before local today) — danger, today and tomorrow — warning
-const dueTone = computed(() => {
-  const d = props.task.dueDate;
-  if (!d) return '';
-  const today = localToday();
-  const next = new Date();
-  next.setDate(next.getDate() + 1);
-  const tomorrow = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`;
-  return d < today ? 'text-danger' : d <= tomorrow ? 'text-warning' : 'text-fg-muted';
-});
 
 // «…» (PLNRAPP-139): the view's context menu (TaskContextMenu), opened at the button;
 // a plain button, not IconButton — no tooltip per virtualized row
@@ -438,27 +427,29 @@ function save() {
               ><CellValue
                 :col="c"
                 :people="people"
+                :start-date="task.startDate"
                 :due-date="task.dueDate"
-                :due-tone="dueTone"
                 :priority="task.priority"
                 :labels="labelsSet"
                 :project="projectName" /></template
           ></AssigneePicker>
-          <DueDatePicker
+          <TaskDatesPicker
             v-else-if="c === 'dueDate'"
             :task-id="task.id"
-            :model-value="task.dueDate"
-            @update:model-value="updateTask(task.id, { dueDate: $event })"
+            :start="task.startDate"
+            :due="task.dueDate"
+            @update:start="(v: string | null) => updateTask(task.id, { startDate: v })"
+            @update:due="(v: string | null) => updateTask(task.id, { dueDate: v })"
             ><template #value
               ><CellValue
                 :col="c"
                 :people="people"
+                :start-date="task.startDate"
                 :due-date="task.dueDate"
-                :due-tone="dueTone"
                 :priority="task.priority"
                 :labels="labelsSet"
                 :project="projectName" /></template
-          ></DueDatePicker>
+          ></TaskDatesPicker>
           <PriorityPicker
             v-else-if="c === 'priority'"
             :model-value="task.priority"
@@ -467,8 +458,8 @@ function save() {
               ><CellValue
                 :col="c"
                 :people="people"
+                :start-date="task.startDate"
                 :due-date="task.dueDate"
-                :due-tone="dueTone"
                 :priority="task.priority"
                 :labels="labelsSet"
                 :project="projectName" /></template
@@ -483,8 +474,8 @@ function save() {
               ><CellValue
                 :col="c"
                 :people="people"
+                :start-date="task.startDate"
                 :due-date="task.dueDate"
-                :due-tone="dueTone"
                 :priority="task.priority"
                 :labels="labelsSet"
                 :project="projectName" /></template
@@ -494,8 +485,8 @@ function save() {
           <CellValue
             :col="c"
             :people="people"
+            :start-date="task.startDate"
             :due-date="task.dueDate"
-            :due-tone="dueTone"
             :priority="task.priority"
             :labels="labelsSet"
             :project="projectName"
