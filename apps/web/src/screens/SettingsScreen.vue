@@ -28,8 +28,8 @@ const SECTIONS = {
   users: { c: UsersSettings, admin: true, level: 'workspace' },
   // without projectId — the shared modules of the instance
   instanceModules: { c: lazy('Modules'), admin: true, level: 'workspace' },
-  // the import module's page and the cloud data export/import (PLNRAPP-86); in the space settings
-  data: { c: lazy('Data'), level: 'space' },
+  // the import module's page and the cloud data export/import (PLNRAPP-86); only in the global settings
+  data: { c: lazy('Data'), level: 'workspace' },
   // cloud-link: only on an instance hosted in the cloud
   cloud: { c: lazy('Cloud'), admin: true, cloud: true, level: 'workspace' },
   about: { c: lazy('About'), level: 'workspace' },
@@ -39,10 +39,20 @@ const SECTIONS = {
 >;
 type Id = keyof typeof SECTIONS;
 
-// scope — the group's "Settings" tab: sections of its level, the section — in ?s; without scope — the global /settings screen (workspace level)
+// scope — the group's "Settings" tab: sections of its level, the section — in ?s; without scope — the global /settings:
+// everything but the project level and GLOBAL_HIDDEN (they live in the space / project settings)
 const props = defineProps<{ scope?: GroupScope }>();
-const level = computed<Level>(() => props.scope?.level ?? 'workspace');
-const atLevel = (l: Level | 'any' | undefined) => l === 'any' || (l ?? 'workspace') === level.value;
+const level = computed<Level | undefined>(() => props.scope?.level);
+const atLevel = (l: Level | 'any' | undefined) =>
+  !level.value || l === 'any' || (l ?? 'workspace') === level.value;
+const GLOBAL_HIDDEN = [
+  'projects',
+  'ai:space',
+  'ai:project',
+  'automations:rules',
+  'templates:templates',
+];
+const shown = (key: string) => !!props.scope || !GLOBAL_HIDDEN.includes(key);
 
 const { t, te, locale } = useI18n();
 const route = useRoute();
@@ -64,7 +74,8 @@ const builtin = computed(() =>
       (s !== 'data' || hasData.value) &&
       (isAdmin.value || !('admin' in SECTIONS[s])) &&
       (!!lastSetupInfo.value?.cloud || !('cloud' in SECTIONS[s])) &&
-      (atLevel(SECTIONS[s].level) || (!props.scope && s === 'members')),
+      shown(s) &&
+      (props.scope ? atLevel(SECTIONS[s].level) : SECTIONS[s].level !== 'project'),
   ),
 );
 // C-schema v16: a data module's page shows if the module is on in the project / in a project of the space / anywhere (Workspace)
@@ -78,6 +89,7 @@ const pages = computed(() =>
   modPages.value.filter(
     (p) =>
       p.key !== IMPORT_PAGE &&
+      shown(p.key) &&
       (isAdmin.value || !p.adminOnly) &&
       atLevel(p.level) &&
       enabledForProject(p.moduleId, scopeProjects(p.level)),
