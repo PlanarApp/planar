@@ -210,8 +210,13 @@ onMounted(() => load().catch((e) => (err.value = (e as Error).message)));
     <p v-if="err" role="alert" class="text-sm text-danger" data-testid="ai-error">{{ err }}</p>
     <Tabs v-if="tabs.length" v-model="tab" :label="tr('title')" :items="tabs" />
     <div v-show="tab === 'connection'" class="flex flex-col gap-4">
-      <p class="text-sm text-fg-muted">{{ tr('intro') }}</p>
-      <p v-if="!own && effective" class="text-sm" data-testid="ai-effective">
+      <p class="text-sm text-fg-muted">{{ tr(level === 'workspace' ? 'intro' : 'introLevel') }}</p>
+      <!-- the workspace is the root: nothing to inherit from -->
+      <p
+        v-if="level !== 'workspace' && !own && effective"
+        class="text-sm"
+        data-testid="ai-effective"
+      >
         {{ tr('inherited') }} {{ tr(effective.scope) }}: {{ effective.provider }},
         {{ effective.model }}
       </p>

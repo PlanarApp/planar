@@ -4,8 +4,12 @@ import { i18n } from '@planar/web/modules';
 const dict = {
   title: { ru: 'ИИ', en: 'AI' },
   intro: {
-    ru: 'Подключения к ИИ-провайдеру. Воркспейс держит список (первое — по умолчанию); пространство и проект наследуют, выбирают подключение родителя или задают своё. Действует ближайший заданный уровень.',
-    en: 'AI provider connections. The workspace keeps a list (the first is the default); a space or a project inherits, picks a parent connection or sets its own. The nearest set level applies.',
+    ru: 'Подключения к ИИ-провайдеру для всего воркспейса; первое — по умолчанию. Пространства и проекты берут его или выбирают другое из этого списка.',
+    en: 'AI provider connections for the whole workspace; the first is the default. Spaces and projects use it or pick another one from this list.',
+  },
+  introLevel: {
+    ru: 'Подключение этого уровня: наследовать, выбрать подключение родителя или задать своё. Действует ближайший заданный уровень.',
+    en: 'The connection of this level: inherit, pick a parent connection or set an own one. The nearest set level applies.',
   },
   own: { ru: 'Подключение этого уровня', en: 'Connection of this level' },
   connections: { ru: 'Подключения', en: 'Connections' },

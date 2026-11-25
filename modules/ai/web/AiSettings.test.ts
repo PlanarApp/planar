@@ -77,6 +77,10 @@ describe('AiSettings: workspace tabs', () => {
     await flushPromises();
     expect(replace).toHaveBeenLastCalledWith({ query: { s: 'ai:workspace' } });
     expect(w.find('[data-testid="ai-form"]').isVisible()).toBe(true);
+    // the root level: no «inherit / own» choice and no «in force: level …»
+    expect(w.find('[data-testid="ai-source"]').exists()).toBe(false);
+    expect(w.find('[data-testid="ai-effective"]').exists()).toBe(false);
+    expect(w.text()).not.toContain('Наследовать');
   });
 
   it('the project connection tab has no autopilot or retro', async () => {
