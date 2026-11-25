@@ -1,6 +1,7 @@
 import type { Row } from '@planar/shared';
 import { db, useQuery } from '../sync';
 import { views as taskViews } from '../tasks/queries';
+import { useShared } from '../tasks/dictionaries';
 
 const byStr =
   <T>(f: (x: T) => string) =>
@@ -11,7 +12,12 @@ const byStr =
 const byTask = <R>(table: string, taskId: string) =>
   db.table<R>(table).where('taskId').equals(taskId).toArray();
 
-export const useUsers = () => useQuery(() => db.table<Row<'users'>>('users').toArray());
+export const useUsers = () =>
+  useShared(
+    'us',
+    () => '',
+    () => db.table<Row<'users'>>('users').toArray(),
+  );
 
 export const useChecklist = (taskId: string) =>
   useQuery(async () =>

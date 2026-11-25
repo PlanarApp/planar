@@ -67,7 +67,7 @@ const props = withDefaults(
     /** PLNRAPP-372: pasted and dropped files (images too) are the comment's files — emitted as attach */
     files?: boolean;
     editable?: boolean;
-    /** Collaborative editing (P3-ydoc): document name `docs:<id>` | `task:<id>`; modelValue is not used then. */
+    /** Collaborative editing (P3-ydoc): document name `docs:<id>` | `task:<id>`; modelValue is only the static preview until the ydoc is ready. */
     collab?: { name: string };
     /** @@ — link to a task, @@@ — to a document (chat) */
     refs?: boolean;
@@ -351,17 +351,22 @@ if (props.collab) {
     });
     session = c;
     readOnly = c.readOnly;
-    editor.value = new Editor(options(c.extensions, true));
     const sync = () => editor.value?.setEditable(props.editable && !readOnly());
     c.onAuthenticated(sync);
     c.onDenied(() => (unsynced.value = true));
     c.onAuthenticated(() => (unsynced.value = false));
-    sync();
+    // the static text (modelValue — the replica's description) stays until the ydoc has the text
+    void c.ready(!!props.modelValue).then(() => {
+      if (gone || typeof window === 'undefined') return; // unmounted, or the page is torn down
+      editor.value = new Editor(options(c.extensions, true));
+      sync();
+    });
   });
 } else if (!(props.lazy && !props.editable)) editor.value = new Editor(options());
 
 // lazy: static HTML until the pointer comes (hover, touch) — then the real editor, same DOM shape and styles
 const html = computed(() => (editor.value ? '' : staticHtml(props.modelValue)));
+const preview = computed(() => !editor.value && !!html.value && (props.lazy || !!props.collab));
 function activate() {
   if (!editor.value && !props.collab) editor.value = new Editor(options());
 }
@@ -389,11 +394,12 @@ const expanded = ref(false);
 let ro: ResizeObserver | undefined;
 // re-observed when the lazy static content gives way to the editor
 watch(
-  [box, editor],
+  [box, editor, preview],
   ([el]) => {
     ro?.disconnect();
     if (!el || !props.collapsible || typeof ResizeObserver === 'undefined') return;
     const content = el.firstElementChild!;
+    tall.value = content.scrollHeight > CLAMP * 1.25;
     ro = new ResizeObserver(() => (tall.value = content.scrollHeight > CLAMP * 1.25));
     ro.observe(content);
   },
@@ -468,7 +474,7 @@ const sugStyle = (r: DOMRect | null, n: number) => {
       @pointerenter="lazy && activate()"
     >
       <!-- eslint-disable-next-line vue/no-v-html -- serialized by the ProseMirror schema, as the editor itself renders it -->
-      <div v-if="lazy && !editor && html">
+      <div v-if="preview">
         <div
           class="tiptap ProseMirror"
           role="textbox"

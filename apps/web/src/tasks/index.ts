@@ -10,6 +10,7 @@ export {
   useScopeTasks,
   prefetchProject,
   useTask,
+  primeTask,
   useArchivedProjectIds,
   notArchived,
 } from './queries';

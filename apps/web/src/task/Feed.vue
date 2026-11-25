@@ -427,7 +427,7 @@ defineExpose({ focusComposer: () => composer.value?.focus() });
       data-testid="feed"
     >
       <div
-        v-if="details === 'loading' && show !== 'history'"
+        v-if="details === 'loading' && show !== 'history' && !feed.length"
         role="status"
         :aria-label="t('task.detailsLoading')"
         class="flex flex-col gap-3"

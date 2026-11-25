@@ -130,6 +130,15 @@ describe('детали задачи (PLNRAPP-487)', () => {
     expect(await db._held.get(t.id)).toBeTruthy();
   });
 
+  it('детали ещё грузятся, но комментарии уже в реплике — без скелета', async () => {
+    const release = await server([comment()]);
+    await db.table('comments').put(comment({ id: crypto.randomUUID() }));
+    w = await open();
+    await until(() => w!.find('[data-testid="feed"]').text().includes('с сервера'));
+    expect(w.find('[data-testid="feed-skeleton"]').exists()).toBe(false);
+    release();
+  });
+
   it('офлайн без деталей — «недоступно без сети»', async () => {
     await server('offline');
     w = await open();

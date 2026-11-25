@@ -449,7 +449,9 @@ describe('task:feed', () => {
 
 describe('task:attachments', () => {
   // jsdom doesn't compute coordinates — call the editor's drop handler directly
-  const dropOnEditor = (...files: File[]) => {
+  const dropOnEditor = async (...files: File[]) => {
+    // the editor appears once the ydoc is ready (the static text before it)
+    await until(() => w.findAllComponents(Editor)[0]?.vm.editor);
     const view = w.findAllComponents(Editor)[0].vm.editor!.view;
     const ev = { dataTransfer: { files }, preventDefault() {} } as unknown as DragEvent;
     view.someProp('handleDrop', (f) => f(view, ev, null as never, false));
@@ -482,7 +484,7 @@ describe('task:attachments', () => {
   it('drop картинки в редактор: узел image, один uploadFile, без вложения', async () => {
     const f = stubFetch(upload);
     w = await open();
-    dropOnEditor(new File(['a'], 'c.png', { type: 'image/png' }));
+    await dropOnEditor(new File(['a'], 'c.png', { type: 'image/png' }));
     await eventually(async () =>
       JSON.stringify(w.findAllComponents(Editor)[0].vm.editor!.getJSON()).includes(up.sha256),
     );
@@ -492,14 +494,14 @@ describe('task:attachments', () => {
   it('drop не-картинки в редактор: вложение задачи', async () => {
     stubFetch(upload);
     w = await open();
-    dropOnEditor(new File(['a'], 'c.txt', { type: 'text/plain' }));
+    await dropOnEditor(new File(['a'], 'c.txt', { type: 'text/plain' }));
     await eventually(async () => (await db.table('attachments').toArray()).length === 1);
     expect((await db.table('attachments').toArray())[0]).toMatchObject({ name: 'c.txt' });
   });
   it('drop картинки и файла вместе: и image, и вложение', async () => {
     stubFetch(upload);
     w = await open();
-    dropOnEditor(
+    await dropOnEditor(
       new File(['a'], 'c.png', { type: 'image/png' }),
       new File(['a'], 'c.txt', { type: 'text/plain' }),
     );

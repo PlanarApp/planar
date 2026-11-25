@@ -10,6 +10,7 @@ import en from '../../i18n/en';
 import ru from '../../i18n/ru';
 import { db, registerMutators, startSync, stopSync } from '../../sync';
 import { ids, reset, task, until } from '../../tasks/__tests__/data';
+import { resetProjections } from '../../tasks/projection';
 import TaskPanel from '../TaskPanel.vue';
 
 export { ids, task, until, db, flushPromises };
@@ -43,6 +44,7 @@ export async function setup(over: Record<string, unknown> = {}) {
     fetch: (() => Promise.reject(new TypeError('offline'))) as never,
   });
   await db._queue.clear();
+  resetProjections(); // reads of the previous test could land in the cache after reset()
   const t = task(1, over);
   await db.table('tasks').put(t);
   const { user } = useAuth();
