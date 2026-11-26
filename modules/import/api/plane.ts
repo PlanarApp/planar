@@ -120,15 +120,18 @@ function pinnedSocket(u: URL, fp: string): Promise<TLSSocket> {
   return new Promise((ok, fail) => {
     const s = connect(tlsOpts(u), () => {
       const cert = s.getPeerCertificate();
-      const err =
-        cert.fingerprint256 !== fp
-          ? new ParseError(
-              `Plane: сертификат ${u.origin} изменился (отпечаток ${cert.fingerprint256}) — подтвердите его заново`,
-            )
-          : checkServerIdentity(u.hostname, cert);
+      if (cert.fingerprint256 !== fp) {
+        s.destroy();
+        return fail(
+          new ParseError(
+            `Plane: сертификат ${u.origin} изменился (отпечаток ${cert.fingerprint256}) — подтвердите его заново`,
+          ),
+        );
+      }
+      const err = checkServerIdentity(u.hostname, cert);
       if (!err) return ok(s);
       s.destroy();
-      fail(err instanceof ParseError ? err : new ParseError(`Plane: ${err.message}`));
+      fail(new ParseError(`Plane: ${err.message}`));
     });
     s.once('error', (e) => fail(unreachable(e)));
     s.once('timeout', () => s.destroy(new Error('таймаут')));
