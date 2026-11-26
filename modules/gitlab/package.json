@@ -29,12 +29,12 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@nestjs/common": "^11.2.7",
+    "@nestjs/common": "^11.2.11",
     "@planar/server-kit": "workspace:*",
     "@planar/shared": "workspace:*",
     "@planar/web": "workspace:*",
     "drizzle-orm": "^0.45.4",
-    "vue": "~3.5.44",
+    "vue": "~3.5.45",
     "zod": "^4.6.7"
   }
 }
