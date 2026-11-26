@@ -19,7 +19,7 @@ import {
 } from '../../../tasks';
 import OptionPicker from '../../../tasks/fields/OptionPicker.vue';
 import { ids, id, reset, task, until } from '../../../tasks/__tests__/data';
-import { resetBreakpoint } from '../../../ui';
+import { Menu, resetBreakpoint } from '../../../ui';
 import { toasts } from '../../../ui/toast';
 import { commitImeOnEnter } from '../../../ui/imeEnter';
 import { registerModules } from '../../../modules/registry';
@@ -638,6 +638,41 @@ describe('list:bulk', () => {
     await nextTick();
     expect(dp.props('due')).toBe('2026-12-01');
     await poll(async () => (await db.table('tasks').get(ts[1].id)).dueDate === '2026-12-01');
+  });
+  it('list:bulk перенос в проект: подзадача — вместе с выделенным родителем, статус по имени', async () => {
+    useAuth().user.value = (await db.table('users').get(ids.ann)) as never;
+    const [two, twoTodo] = [id(), id()];
+    await db.table('projects').put({
+      ...(await db.table('projects').get(ids.project)),
+      id: two,
+      name: 'Two',
+      key: 'TWO',
+      rank: 'a2',
+    });
+    await db.table('statuses').put({
+      ...(await db.table('statuses').get(ids.todo)),
+      id: twoTodo,
+      projectId: two,
+    });
+    const parent = task(1);
+    const ts = [task(2, { parentId: parent.id }), parent, task(3)];
+    await db.table('tasks').bulkPut(ts);
+    await show();
+    useSelection().set(ts.map((x) => x.id));
+    await until(() => w.find('[data-testid=bulk-move]').exists());
+    type Item = { label: string; children?: Item[]; onSelect?: () => void };
+    const menu = w
+      .get('[data-testid=bulk-bar]')
+      .findAllComponents(Menu)
+      .find((m) => m.find('[data-testid=bulk-move]').exists())!;
+    const items = menu.props('items') as Item[];
+    items.flatMap((s) => s.children ?? []).find((p) => p.label === 'Two')!.onSelect!();
+    await poll(async () =>
+      (await db.table('tasks').bulkGet(ts.map((x) => x.id))).every((x) => x.projectId === two),
+    );
+    const kid = await db.table('tasks').get(ts[0]!.id);
+    expect([kid.parentId, kid.statusId]).toEqual([parent.id, twoTodo]);
+    expect(useSelection().selected.value.size).toBe(0);
   });
   it('list:bulk архив — участник, без «Удалить» (PLNRAPP-155)', async () => {
     useAuth().user.value = (await db.table('users').get(ids.ann)) as never;

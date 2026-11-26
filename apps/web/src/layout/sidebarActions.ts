@@ -1,8 +1,10 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { generateKeyBetween, generateNKeysBetween } from 'fractional-indexing';
 import {
   Archive,
+  ArrowRightLeft,
   Copy,
   FolderPlus,
   Link,
@@ -58,6 +60,25 @@ export function projectKey(name: string, taken: Set<string>): string {
     const k = `${head.slice(0, 9 - String(i).length)}${i}`;
     if (!taken.has(k)) return k;
   }
+}
+
+/**
+ * New ranks after dragging item `from` to `to` in a list sorted by rank: only the moved one, unless its
+ * neighbours share a rank (old data) — then the whole list is ranked anew.
+ */
+export function reorder<T extends { rank: string }>(
+  list: T[],
+  from: number,
+  to: number,
+): [T, string][] {
+  const next = [...list];
+  const [it] = next.splice(from, 1);
+  next.splice(to, 0, it!);
+  const lo = next[to - 1]?.rank ?? null;
+  const hi = next[to + 1]?.rank ?? null;
+  if (lo === null || hi === null || lo < hi) return [[it!, generateKeyBetween(lo, hi)]];
+  const keys = generateNKeysBetween(null, null, next.length);
+  return next.flatMap((x, i) => (x.rank === keys[i] ? [] : [[x, keys[i]!] as [T, string]]));
 }
 
 /** Sidebar actions: "…" menu / right click, inline creation and renaming. */
@@ -195,10 +216,23 @@ export function useSidebarActions() {
       : []),
   ];
 
-  const projectItems = (p: NavSpace['projects'][number]): MenuItem[] => {
+  // to the end of the target space's list; people who are not members there lose assignments (project.move)
+  const moveProject = async (p: NavSpace['projects'][number], to: NavSpace) => {
+    const rank = generateKeyBetween(to.projects.at(-1)?.rank ?? null, null);
+    await mutate('project.move', { id: p.id, spaceId: to.id, rank });
+    toast(t('sidebar.movedToSpace', { name: p.name, to: to.name }), 3000);
+  };
+
+  /** `spaces` — the sidebar spaces (without the root one) to move to, `from` — the project's own */
+  const projectItems = (
+    p: NavSpace['projects'][number],
+    from?: NavSpace,
+    spaces: NavSpace[] = [],
+  ): MenuItem[] => {
     const fav = favorites.has('project', p.id);
     // rename, archive, delete — admin of the project (project.update/delete); settings — not for a guest
     const admin = isProjectAdmin('', p.id);
+    const targets = admin ? spaces.filter((s) => s.id !== from?.id && notGuest(s.id)) : [];
     return [
       ...(admin
         ? [
@@ -234,6 +268,20 @@ export function useSidebarActions() {
         icon: Copy,
         onSelect: () => void window.open(`/p/${p.id}`, '_blank'),
       },
+      ...(targets.length
+        ? [
+            {
+              id: 'moveSpace',
+              label: t('sidebar.moveToSpace'),
+              icon: ArrowRightLeft,
+              children: targets.map((s) => ({
+                id: s.id,
+                label: s.name,
+                onSelect: () => void moveProject(p, s),
+              })),
+            },
+          ]
+        : []),
       ...(notGuest(p.id)
         ? [
             {
@@ -271,5 +319,17 @@ export function useSidebarActions() {
     ];
   };
 
-  return { editing, draft, start, cancel, blurNew, commit, spaceItems, projectItems };
+  return {
+    editing,
+    draft,
+    start,
+    cancel,
+    blurNew,
+    commit,
+    spaceItems,
+    projectItems,
+    // dragging in the sidebar changes the shared order: a space — its admin, a project — its admin
+    canMoveSpace: isSpaceAdmin,
+    canMoveProject: (id: string) => isProjectAdmin('', id),
+  };
 }

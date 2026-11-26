@@ -101,9 +101,11 @@ export interface NavSpace {
   name: string;
   color: string | null;
   icon: string | null;
+  rank: string;
   projects: {
     id: string;
     name: string;
+    rank: string;
     prefix: string;
     color: string | null;
     icon: string | null;
@@ -233,9 +235,11 @@ export function useNavData(): {
       name: s.name,
       color: s.color,
       icon: s.icon,
+      rank: s.rank,
       projects: s.projects.map((p) => ({
         id: p.id,
         name: p.name,
+        rank: p.rank,
         prefix: p.key,
         color: p.color,
         icon: p.icon,

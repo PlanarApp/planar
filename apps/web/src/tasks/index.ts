@@ -30,6 +30,7 @@ export {
   restoreTask,
 } from './ops';
 export { canAdmin, useProjectAdmin, useRoleIn } from './admin';
+export { moveMenu, useMoveSpaces } from './moveTargets';
 export { default as StatusPicker } from './fields/StatusPicker.vue';
 export { default as StatusesPicker } from './fields/StatusesPicker.vue';
 export { default as AssigneePicker } from './fields/AssigneePicker.vue';

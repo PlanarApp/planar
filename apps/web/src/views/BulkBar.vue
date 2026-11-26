@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { CalendarDays } from 'lucide-vue-next';
+import { ArrowRightLeft, CalendarDays } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
-import { Button, Dialog } from '../ui';
+import { Button, Dialog, Menu } from '../ui';
 import BulkMerge from './BulkMerge.vue';
 import {
   BulkAssigneePicker,
@@ -13,6 +13,8 @@ import {
   deleteTask,
   setAssignees,
   updateTask,
+  moveMenu,
+  useMoveSpaces,
   useProjectAdmin,
   useStatuses,
   type TaskView,
@@ -59,6 +61,25 @@ watch(
   () =>
     (dates.value = { start: null, due: null, startTime: null, dueTime: null, dueRemindMin: null }),
 );
+// bulk move to a project of any space: the status of the same name/category, subtasks go along (task.update)
+const moveSpaces = useMoveSpaces();
+const moveItems = computed(
+  () =>
+    moveMenu(moveSpaces.value, { spaceId: '', projectId: null }, (spaceId, projectId) => {
+      const s = moveSpaces.value.find((x) => x.id === spaceId);
+      const p = s?.projects.find((x) => x.id === projectId);
+      if (s && p) void moveSelected(p.id, `${s.name} / ${p.name}`);
+    }).items,
+);
+async function moveSelected(projectId: string, to: string) {
+  const list = chosen.value.filter((x) => x.projectId !== projectId);
+  // a selected subtask goes with its selected parent: moved on its own first, it would be cut off
+  const ids = new Set(list.map((x) => x.id));
+  const roots = list.filter((x) => !x.parentId || !ids.has(x.parentId));
+  await Promise.all(roots.map((x) => updateTask(x.id, { projectId })));
+  toast(t('moveTask.bulkDone', { n: list.length, to }), 3000);
+  sel.clear();
+}
 const confirmDelete = ref(false);
 // PLNRAPP-155: archive — any member; delete — an admin of every selected task's project
 const admin = useProjectAdmin();
@@ -122,6 +143,14 @@ async function removeSelected() {
         <span>{{ t('tasks.dueDate') }}</span>
       </template>
     </TaskDatesPicker>
+    <DueDatePicker @update:model-value="each((x) => updateTask(x.id, { dueDate: $event }))" />
+    <Menu v-if="moveItems.length" :items="moveItems">
+      <template #trigger>
+        <Button size="sm" data-testid="bulk-move"
+          ><ArrowRightLeft :size="14" aria-hidden="true" />{{ t('moveTask.bulk') }}</Button
+        >
+      </template>
+    </Menu>
     <Button size="sm" data-testid="bulk-archive" @click="archiveSelected">{{
       t('archive.toArchive')
     }}</Button>

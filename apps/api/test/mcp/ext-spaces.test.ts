@@ -23,6 +23,7 @@ const PARITY_SPACES: Record<string, string> = {
   'DELETE /api/v1/spaces/{id}/members/{userId}': 'remove_space_member',
   'POST /api/v1/projects': 'create_project',
   'DELETE /api/v1/projects/{id}': 'delete_project',
+  'POST /api/v1/projects/{id}/move': 'move_project',
   'POST /api/v1/projects/{id}/copy-dictionaries': 'copy_project_dictionaries',
   'GET /api/v1/projects/{id}/members': 'list_project_members',
   'PUT /api/v1/projects/{id}/members': 'set_project_members_mode',
@@ -266,6 +267,28 @@ describe('пространства и проекты (ext/spaces)', () => {
     ).toBe('not_found');
     const [, back] = await call('set_project_members_mode', { id: p1.id, mode: 'inherit' });
     expect(back.membersMode).toBe('inherit');
+
+    // tasks of p2 go to p1 in a batch, then p1 goes to another space with them
+    const tasks: string[] = [];
+    for (const title of ['a', 'b']) {
+      const [et, tk] = await call('create_task', { projectId: p2.id, title });
+      expect(et, JSON.stringify(tk)).toBe(false);
+      tasks.push(tk.id);
+    }
+    const [eb, batch] = await call('batch_update_tasks', {
+      taskIds: tasks,
+      patch: { projectId: p1.id },
+    });
+    expect(eb, JSON.stringify(batch)).toBe(false);
+    expect([batch.changed, batch.errors]).toEqual([2, []]);
+    const [es, sp] = await call('create_space', { name: 'Куда' });
+    expect(es, JSON.stringify(sp)).toBe(false);
+    const [em, mv] = await call('move_project', { id: p1.id, spaceId: sp.id });
+    expect(em, JSON.stringify(mv)).toBe(false);
+    expect(mv.spaceId).toBe(sp.id);
+    const [, moved] = await call('get_task', { task: tasks[0] });
+    expect([moved.projectId, moved.key.startsWith('ONE-')]).toEqual([p1.id, true]);
+    for (const id of tasks) await call('delete_task', { task: id });
 
     expect((await call('delete_project', { id: p1.id }))[0]).toBe(false);
     expect((await call('delete_project', { id: p1.id }))[1].code).toBe('not_found');

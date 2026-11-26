@@ -67,6 +67,11 @@ export const patchTaskBody = z.object({
   labelIds: z.array(uuid).optional(),
   parentId: uuid.nullable().optional(),
   fields: z.record(uuid, z.unknown()).optional(),
+  projectId: uuid
+    .optional()
+    .describe(
+      'перенести в проект (любого пространства) вместе с подзадачами; статус — statusId или того же имени/категории',
+    ),
 });
 export const linkBody = z.object({
   target: z.string().min(1).describe('id или ключ целевой задачи'),

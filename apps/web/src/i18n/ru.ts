@@ -48,6 +48,8 @@ export default {
     subtasks: 'Перенести и подзадачи ({n})',
     action: 'Перенести',
     done: '{key} перенесена в {to}',
+    bulk: 'Перенести в проект',
+    bulkDone: 'Перенесено задач: {n} — в {to}',
   },
   merge: {
     title: 'Слить {key} в другую задачу',
@@ -101,6 +103,8 @@ export default {
     projectSettings: 'Настройки проектов',
     spaceSettings: 'Настройки пространств',
     archive: 'В архив',
+    moveToSpace: 'Перенести в пространство',
+    movedToSpace: '{name} перенесён в {to}',
     delete: 'Удалить',
     expand: 'Развернуть',
     deleteProject: 'Удалить проект «{name}»?',
