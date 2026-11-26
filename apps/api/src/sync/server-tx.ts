@@ -278,6 +278,8 @@ export class ServerTx implements Tx {
       this.projectOf.set(`${entity}:${id}`, (next.projectId as string) ?? null);
     }
     if (entity === 'attachments' && !old) await this.checkFile(next);
+    if (['spaces', 'projects', 'settings', 'templatesTemplates'].includes(entity))
+      await this.checkIcon(entity, old, next);
     if (entity === 'settings' && next.id === 'enabled_modules')
       await this.checkAvailable(old?.value, next.value);
     if (entity === 'projects') await this.checkProjectModules(old, next);
@@ -804,5 +806,33 @@ export class ServerTx implements Tx {
         .limit(1),
     );
     if (!a) throw new MutatorError('forbidden', 'файл не загружен этим пользователем');
+  }
+
+  /**
+   * An icon `file:<sha>` opens the file to everyone who sees the space/project (files.controller): only a file the user
+   * uploaded, or one already used as an icon in this space (a project copy, a template).
+   */
+  private async checkIcon(entity: EntityName, old: Wire | undefined, next: Wire): Promise<void> {
+    const iconOf = (r: Wire | undefined): unknown =>
+      entity === 'settings'
+        ? (r?.value as { icon?: unknown } | undefined)?.icon
+        : (entity as string) === 'templatesTemplates'
+          ? (r?.data as { project?: { icon?: unknown } } | undefined)?.project?.icon
+          : r?.icon;
+    const icon = iconOf(next);
+    if (this.opts.system || typeof icon !== 'string' || !icon.startsWith('file:')) return;
+    if (icon === iconOf(old)) return;
+    const spaceId =
+      entity === 'settings' ? null : ((entity === 'spaces' ? next.id : next.spaceId) as string);
+    const { rows } = await this.exec(() =>
+      this.q
+        .execute(sql`select 1 from file_uploads where sha256 = ${icon.slice(5)} and user_id = ${this.ctx.userId}
+        union all select 1 from projects where space_id = ${spaceId} and icon = ${icon}
+        union all select 1 from spaces where id = ${spaceId} and icon = ${icon}
+        union all select 1 from templates_templates where space_id = ${spaceId} and data->'project'->>'icon' = ${icon}
+        limit 1`),
+    );
+    if (!rows.length)
+      throw new MutatorError('forbidden', 'файл иконки не загружен этим пользователем');
   }
 }
