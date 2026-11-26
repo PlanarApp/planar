@@ -155,6 +155,16 @@ describe('интеграции (ext/integrations)', () => {
     const [e2, r2] = await call('list_automation_runs', { id: ruleId });
     expect([e2, r2.code]).toEqual([true, 'module_disabled']);
     await db.execute(sql`update projects set modules = '{automations}' where id = ${w.projectId}`);
+
+    // a custom project without the member: the rule does not exist for them (PJ-11)
+    await w.admin.ok('project.setMembersMode', {
+      projectId: w.projectId,
+      mode: 'custom',
+      members: [{ id: uuidv7(), userId: w.admin.userId, role: 'admin' }],
+    });
+    const [e3, r3] = await call('list_automation_runs', { id: ruleId });
+    expect([e3, r3.code]).toEqual([true, 'not_found']);
+    await w.admin.ok('project.setMembersMode', { projectId: w.projectId, mode: 'inherit' });
   });
 
   it('вебхуки: создать → список → изменить → ping → доставки → повтор → удалить, секрет не отдаётся', async () => {

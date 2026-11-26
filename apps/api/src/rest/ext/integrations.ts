@@ -67,7 +67,8 @@ const ops: ExtOp[] = [
         (await d.db.execute(s)).rows as Record<string, unknown>[];
       const visible = await q(
         sql`select r.project_id as "projectId" from automations_rules r
-            where r.id = ${a.id} and can_see_space(${u}::uuid, r.space_id)`,
+            where r.id = ${a.id} and can_see_space(${u}::uuid, r.space_id)
+              and (r.project_id is null or project_role(${u}::uuid, r.project_id) is not null)`,
       );
       if (!visible.length) throw gone;
       const on = await q(
