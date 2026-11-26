@@ -124,7 +124,15 @@ describe('WebPushSender', () => {
           title: 't',
         } as never,
       );
-      const agent = (spy.mock.calls[0]![2] as { agent: { options: { lookup: Function } } }).agent;
+      const agent = (
+        spy.mock.calls[0]![2] as {
+          agent: {
+            options: {
+              lookup: (h: string, o: object, cb: (e: unknown, a: unknown) => void) => void;
+            };
+          };
+        }
+      ).agent;
       const got = await new Promise((r) =>
         agent.options.lookup('evil.example', {}, (_e: unknown, a: unknown) => r(a)),
       );
