@@ -92,9 +92,12 @@ describe('settings:projects', () => {
     );
     const p = (await rows('projects')).find((x) => x.key === 'NEW');
     expect(await db.table('statuses').where('projectId').equals(p.id).count()).toBe(5);
-    const i = (await w.findAll('[data-testid=project-row]')).findIndex((r) =>
-      r.text().includes('NEW'),
-    );
+    // the screen catches up with the replica asynchronously: wait for the row, not only the write
+    const i = await vi.waitFor(() => {
+      const n = w.findAll('[data-testid=project-row]').findIndex((r) => r.text().includes('NEW'));
+      expect(n).toBeGreaterThanOrEqual(0);
+      return n;
+    });
     await menuAct(
       w.findAll('[data-testid=project-row] [data-testid=row-menu]')[i].element,
       'В архив',
