@@ -4,11 +4,60 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-26
+
+**Upgrade note.** Migration `0094_gitlab_servers` drops `gitlab_connections.base_url` and `token_enc` (moved to GitLab servers). If the upgrade fails, the automatic rollback to 0.14.0 runs on the new schema and its GitLab integration stops working: restore the backup made by `upgrade.sh` instead (see «Restore» in the deploy guide).
+
 ### Added
 
+- Two-factor authentication (TOTP, backup codes, passkeys) and the app lock — «on every open» and «on idle» (with a 10 s countdown); «Lock» in the user menu; the locked app shows only the unlock form.
+- Task dates: an optional time for the start and due date (REST/MCP, date picker, bulk actions), «remind N minutes before» (10 by default) with `due_soon` / `due_now` notifications.
+- Import from Plane over its API: tasks and comments with formatting, attachments and images in text, Plane pages into the «Docs» module; trust of a self-signed certificate by its fingerprint.
+- GitLab connections by level: several workspace connections, a space and a project inherit, pick the parent's or their own; repository links and GitLab calls go through the connection.
+- AI connections: a list of connections in the workspace; a space and a project inherit, pick the parent's or their own.
+- Space members: inherited from the Workspace or an own list (REST/MCP `set_space_members_mode`); «Sign in as» and «Remove» in the member row menu.
+- Automations: export and import of rules as portable JSON (natural keys instead of ids, unbound fields empty, an imported rule starts disabled, import preview).
+- Task time: the estimate next to the tracked time, coloured as it nears and exceeds the estimate.
+- Task merge is recorded in the history of both tasks.
+- One selection menu in editors: formatting, slash-command blocks and «to task / subtask».
+- «About»: the app and version at the bottom of the sidebar, links to the site, GitLab and GitHub, the data size on the device, collapsed version history.
+- Replica storage is requested as persistent after sign-in; out of space — the status «Low storage on device» instead of an error, the edit queue is still sent.
 - Sidebar: spaces and the projects of a space are dragged to change their order — the order is shared by everyone; a space is moved by its admin, a project by its admin.
 - Moving a project to another space — the project menu «Move to space» in the sidebar, REST `POST /api/v1/projects/:id/move` and MCP `move_project`. Statuses, labels, fields, tasks with comments, files and time, module rows go along; task keys stay. People who are not members of the new space lose their project role, assignments and watching; a subtask in another project of the old space is cut off.
 - Bulk move of tasks to a project of any space — «Move to project» in the bulk action bar; the status of the same name (else the same category) is kept, subtasks go along. REST/MCP: `projectId` in `PATCH /api/v1/tasks/:task` (`update_task`) and in the `patch` of `batch_update_tasks`.
+
+### Changed
+
+- Faster start: a warm PWA start shows the screen at once for a known user (not with the app lock or required 2FA), a lean first sync without task descriptions (loaded in a second phase, resumable), pull in pages, WebSocket pokes only to the affected users, the task form opens in one frame, a loading screen with the logo before Vue mounts.
+- Fewer network requests: debounced task history, the AI indicator only for the open task.
+- Workspace settings: the «Settings» tab of «All» (`/settings` leads there, admins only); automations, forms and templates are set up in project and space settings; the «Projects» tab of a space is gone (projects are managed in space settings).
+- «My day», the «Subtasks» tab and the List share one list with «View» settings; «My day» has «Today / Tomorrow / Later» sections and «All to tomorrow».
+- Dates: past in red, today in green, future in the text colour; start and due each in its own colour; «Today» and «Tomorrow» always in the due picker.
+- List without column headers; Board: sorting, key, label names and fields in the «View» menu; labels as an icon, with names on demand.
+- Task context menu and the «…» menu are the same: fields open the form pickers, archive with «Undo», delete with a confirmation.
+- Roles: the instance role caps the workspace role (a guest stays a guest), only the owner creates and assigns admins, leaving the Workspace removes from spaces and projects with own members; an instance admin sees and manages all spaces; project update/archive/delete need a project admin; the UI does not offer what is not allowed.
+- Dependencies: NestJS 12, AI SDK 7, nodemailer 10, web-push 4, `@lucide/vue` instead of the deprecated `lucide-vue-next`, updates within major versions (fastify, vite, vue, tiptap, hocuspocus, dexie, pg-boss).
+
+### Fixed
+
+- Due reminders fire once per trigger: a deleted notification no longer comes back every 15 minutes (every minute with push).
+- Signing in as another user on a device clears the previous replica before any screen is shown; their unsent edits are kept only after a dialog. Clearing the replica in one tab stops sync in the others.
+- A hidden tab is not reloaded for an update while text is typed; the fallback cache reset no longer runs offline (the app opened offline again).
+- A subtask can no longer be created or moved under an archived task (the nightly archive purge deleted it with the parent).
+- Moving a task or page between projects of one space when one is custom no longer leaves a «ghost» for people who cannot see the new project.
+- Deleting a space with members' personal views no longer fails with forbidden.
+- The digest skips archived tasks and tasks of projects the assignee cannot access.
+- A parallel push of the same client no longer applies mutations twice.
+- REST/MCP import with the import module off returns `module_disabled`.
+
+### Security
+
+- Handoff accepts only a one-time handoff token: an MFA/setup/locked session can no longer become a full one bypassing 2FA; the handoff token is not accepted as a cookie.
+- Sign-in, 2FA and passkey attempts are counted before the secret is checked, so parallel requests cannot bypass 10 attempts a minute; a TOTP step or backup code is spent by a conditional update — of two parallel requests with one code only one passes.
+- An icon `file:<sha>` of a space, project, template or workspace may be only one's own upload or one already used in that space (it could open another user's private file).
+- A saved AI key is sent only to the same provider and address; the agent's AI proxy uses the connection's model, not the one sent by the agent.
+- Push connects to the endpoint address checked by `safeAddress`, without a second DNS lookup.
+- A custom project hidden from the caller gives no access (not the space role); the automation run log of a custom project is visible only to its members; other users' email is hidden from an instance guest.
 
 ## [0.14.0] - 2026-11-24
 
@@ -202,7 +251,8 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 - Issuing ACME certificates for a public domain has not been tested; see `docs/guides/deploy.md`.
 
-[Unreleased]: https://gitlab.com/planarhq/planar/-/compare/v0.14.0...main
+[Unreleased]: https://gitlab.com/planarhq/planar/-/compare/v0.15.0...main
+[0.15.0]: https://gitlab.com/planarhq/planar/-/compare/v0.14.0...v0.15.0
 [0.14.0]: https://gitlab.com/planarhq/planar/-/compare/v0.13.0...v0.14.0
 [0.13.0]: https://gitlab.com/planarhq/planar/-/compare/v0.12.0...v0.13.0
 [0.12.0]: https://gitlab.com/planarhq/planar/-/compare/v0.11.0...v0.12.0
