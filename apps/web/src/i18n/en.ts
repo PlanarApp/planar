@@ -392,6 +392,9 @@ export default {
     source: 'Source code',
     version: 'Version {v}',
     history: 'Version history',
+    site: 'Product site',
+    thanks:
+      'Thanks to Claude (Anthropic) for finally making it possible to build what was planned.',
   },
   cloud: {
     desc: 'Hosting in Planar Cloud: address, custom domain, subscription.',

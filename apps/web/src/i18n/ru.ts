@@ -392,6 +392,8 @@ export default {
     source: 'Исходный код',
     version: 'Версия {v}',
     history: 'История версий',
+    site: 'Сайт продукта',
+    thanks: 'Спасибо Claude (Anthropic) — за то, что задуманное наконец удалось воплотить.',
   },
   cloud: {
     desc: 'Размещение в Planar Cloud: адрес, свой домен, подписка.',

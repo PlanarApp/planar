@@ -22,6 +22,11 @@ const COMPONENTS = [
   ['Zod', 'https://zod.dev'],
 ] as const;
 const REPO = 'https://gitlab.com/planarhq/planar';
+const LINKS = [
+  ['about.site', 'https://planarhq.com'],
+  ['GitLab', REPO],
+  ['GitHub', 'https://github.com/PlanarApp/planar'],
+] as const;
 </script>
 
 <template>
@@ -36,7 +41,19 @@ const REPO = 'https://gitlab.com/planarhq/planar';
         </p>
       </div>
     </header>
+    <nav class="flex flex-wrap gap-x-4 gap-y-1 text-sm" data-testid="about-links">
+      <a
+        v-for="[label, url] in LINKS"
+        :key="url"
+        :href="url"
+        target="_blank"
+        rel="noopener"
+        class="text-accent hover:underline"
+        >{{ label.startsWith('about.') ? t(label) : label }}</a
+      >
+    </nav>
     <p class="text-sm">{{ t('about.promo') }}</p>
+    <p class="text-sm" data-testid="about-thanks">{{ t('about.thanks') }}</p>
     <AppSection />
     <section class="flex flex-col gap-2" :aria-label="t('about.components')">
       <h2 class="text-lg font-semibold">{{ t('about.components') }}</h2>
@@ -50,14 +67,8 @@ const REPO = 'https://gitlab.com/planarhq/planar';
     </section>
     <section v-if="releases.length" class="flex flex-col gap-2" :aria-label="t('about.history')">
       <h2 class="text-lg font-semibold">{{ t('about.history') }}</h2>
-      <!-- the newest release is open; texts — CHANGELOG.md as is (English) -->
-      <details
-        v-for="(r, i) in releases"
-        :key="r.version"
-        :open="i === 0"
-        class="text-sm"
-        data-testid="about-release"
-      >
+      <!-- all collapsed; texts — CHANGELOG.md as is (English) -->
+      <details v-for="r in releases" :key="r.version" class="text-sm" data-testid="about-release">
         <summary class="cursor-pointer font-medium">{{ r.version }} · {{ r.date }}</summary>
         <div v-for="s in r.sections" :key="s.title" class="mt-2 pl-4">
           <h3 class="font-medium text-fg-muted">{{ s.title }}</h3>
