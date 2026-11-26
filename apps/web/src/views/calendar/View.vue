@@ -1,13 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import {
-  CalendarDays,
-  CalendarRange,
-  ChevronLeft,
-  ChevronRight,
-  PanelRight,
-} from '@lucide/vue';
+import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight, PanelRight } from '@lucide/vue';
 import { updateTask, useScopeTasks, useStatuses, useProject } from '../../tasks';
 import type { TaskView } from '../../tasks';
 import { Button, IconButton, useBreakpoint } from '../../ui';

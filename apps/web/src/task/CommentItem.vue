@@ -1,13 +1,6 @@
 <script setup lang="ts">
 import { computed, inject, shallowRef, ref } from 'vue';
-import {
-  CheckCircle2,
-  Circle,
-  MessageSquareReply,
-  Pencil,
-  Trash2,
-  UserPlus,
-} from '@lucide/vue';
+import { CheckCircle2, Circle, MessageSquareReply, Pencil, Trash2, UserPlus } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import type { JSONContent } from '@tiptap/vue-3';
 import type { Row } from '@planar/shared';
