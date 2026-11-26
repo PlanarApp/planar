@@ -15,6 +15,7 @@ import { prefetchIdle, prefetchProject, useRootSpaceId, useWorkspace } from '../
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import { VueDraggable } from 'vue-draggable-plus';
+import { NO_CALLOUT, SIDEBAR_DRAG } from './touchDrag';
 import {
   favorites as favStore,
   sidebarCollapse as sc,
@@ -196,8 +197,8 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
     <template v-if="favorites.length">
       <VueDraggable
         :model-value="favorites"
-        :animation="150"
-        class="flex flex-col items-center gap-1"
+        v-bind="SIDEBAR_DRAG"
+        :class="['flex flex-col items-center gap-1', NO_CALLOUT]"
         data-testid="nav-favorites-rail"
         @update="moveFav"
       >
@@ -332,8 +333,8 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
         <VueDraggable
           v-if="!sc.is('favorites')"
           :model-value="favorites"
-          :animation="150"
-          class="flex flex-col"
+          v-bind="SIDEBAR_DRAG"
+          :class="['flex flex-col', NO_CALLOUT]"
           data-testid="nav-favorites"
           @update="moveFav"
         >
@@ -398,9 +399,10 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
           <!-- spaces and the projects of a space are dragged to change the shared order (by their admins) -->
           <VueDraggable
             :model-value="spaces"
-            :animation="150"
+            v-bind="SIDEBAR_DRAG"
             draggable="[data-drag]"
             handle="[data-testid=nav-space]"
+            :class="NO_CALLOUT"
             data-testid="nav-spaces"
             @update="moveSpace"
           >
@@ -439,9 +441,9 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
               <template v-if="!sc.is('space:' + s.id) || act.editing.value === 'new:' + s.id">
                 <VueDraggable
                   :model-value="s.projects"
-                  :animation="150"
+                  v-bind="SIDEBAR_DRAG"
                   draggable="[data-drag]"
-                  class="flex flex-col"
+                  :class="['flex flex-col', NO_CALLOUT]"
                   @update="moveProject(s, $event)"
                 >
                   <template v-for="p in s.projects" :key="p.id">
