@@ -150,6 +150,19 @@ describe('мутаторы через push: данные', () => {
   it('space.delete целиком (создатель теряет членство до пространства, но права сохраняются)', async () => {
     const w = await world(db);
     await w.admin.ok('project.delete', { id: w.projectId });
+    // a member's personal view goes with the space; the member cannot delete another's view
+    const view = {
+      id: uuidv7(),
+      spaceId: w.spaceId,
+      personal: true,
+      name: 'v',
+      layout: 'list',
+      filter: {},
+      config: {},
+      rank: 'a',
+    };
+    await w.member.ok('view.create', view);
+    expect(await w.guest.push('view.delete', { id: view.id })).toMatchObject({ ok: false });
     // members member/guest are deleted by the same mutator
     await w.admin.ok('space.delete', { id: w.spaceId });
     const b = await w.admin.bootstrap();

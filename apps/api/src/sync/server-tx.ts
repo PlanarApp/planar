@@ -769,7 +769,13 @@ export class ServerTx implements Tx {
         this.created.add(spaceId);
         continue;
       }
-      if (w === 'member|self' && r.userId != null && r.userId !== this.ctx.userId)
+      // another user's personal view: only a space admin deletes it (space.delete takes all views of the space)
+      if (
+        w === 'member|self' &&
+        r.userId != null &&
+        r.userId !== this.ctx.userId &&
+        (next || !(await this.isSpaceOrInstanceAdmin(spaceId)))
+      )
         throw forbidden('личный вид другого пользователя');
       // project.create writes the new project's statuses (write: admin) on behalf of a member (projects.md §PJ-1)
       if (entity === 'statuses' && this.createdProjects.has(r.projectId as string)) continue;
