@@ -104,6 +104,20 @@ const COMMENTS: Record<string, unknown[]> = {
     },
   ],
 };
+// PLNRAPP-876: pages — a root with a subpage (an image and a mention), a private one; off unless a test turns them on
+const PG1 = '0000a001-0000-4000-8000-000000000001';
+const PG2 = '0000a001-0000-4000-8000-000000000002';
+const PG3 = '0000a001-0000-4000-8000-000000000003';
+const PAGES: Record<string, { name: string; parent: string | null; html: string }> = {
+  [PG1]: {
+    name: 'Архитектура',
+    parent: null,
+    html: `<h2 class="editor-heading-block">Обзор</h2><p>Автор <mention-component entity_identifier="${ALICE}" entity_name="user_mention"></mention-component></p><image-component src="${IMG}"></image-component>`,
+  },
+  [PG2]: { name: 'API', parent: PG1, html: '<p class="editor-paragraph-block">Версия 1</p>' },
+  [PG3]: { name: 'Личное', parent: null, html: '' },
+};
+let withPages = false;
 let rateLimited = false;
 let calls: string[] = [];
 const storageKeys: (string | undefined)[] = [];
@@ -156,6 +170,25 @@ function handle(req: IncomingMessage, res: ServerResponse) {
     if (p === `/projects/${P1}/issues/`) {
       expect(u.searchParams.get('expand')).toBe('state');
       return page(ISSUES);
+    }
+    if (p === `/projects/${P1}/pages/`) {
+      const parent = u.searchParams.get('parent');
+      return page(
+        withPages
+          ? Object.entries(PAGES)
+              .filter(([, v]) => v.parent === parent)
+              .map(([id, v]) => ({ id, name: v.name, parent: v.parent, archived_at: null }))
+          : [],
+      );
+    }
+    const pg = /^\/projects\/[^/]+\/pages\/([^/]+)\/$/.exec(p);
+    if (pg) {
+      if (pg[1] === PG3) return send(403, { detail: 'private' });
+      return send(200, {
+        id: pg[1],
+        name: PAGES[pg[1]!]!.name,
+        description_html: PAGES[pg[1]!]!.html,
+      });
     }
     const att = /^\/projects\/[^/]+\/issues\/([^/]+)\/issue-attachments\/(?:([^/]+)\/)?$/.exec(p);
     if (att && att[2]) {
@@ -504,6 +537,78 @@ describe('импорт из API Plane', () => {
       (await post('/api/import/jobs', memberCookie, { ...conn(), projectId: pid, mapping: '{}' }))
         .statusCode,
     ).toBe(403);
+  });
+
+  it('PLNRAPP-876: страницы — с иерархией в «Документы» проекта задач; приватная и картинка — предупреждения; повтор обновляет; модуль выключен — страницы не создаются', async () => {
+    withPages = true;
+    const pid = uuidv7();
+    await w.admin.ok('project.create', {
+      id: pid,
+      spaceId: w.spaceId,
+      name: 'Docs',
+      key: key(),
+      rank: 'a0',
+    });
+    const run = async () => {
+      const r = await post('/api/import/jobs', adminCookie, {
+        ...conn(),
+        spaceId: w.spaceId,
+        mapping: JSON.stringify({ projectMap: { Engineering: pid } }),
+      });
+      expect(r.statusCode, r.body).toBe(202);
+      await worker.handler({ jobId: r.json().data.id }, jobApi);
+      return (await db.$client.query('select * from import_jobs where id = $1', [r.json().data.id]))
+        .rows[0];
+    };
+    const pages = async () =>
+      (
+        await db.$client.query(
+          'select id, parent_id, project_id, title, body from docs_pages where project_id = $1 order by title',
+          [pid],
+        )
+      ).rows;
+    try {
+      const job = await run();
+      expect([job.status, job.error, job.created], JSON.stringify(job)).toEqual(['done', null, 4]);
+      const [api, arch] = await pages();
+      expect([arch.title, api.title]).toEqual(['Архитектура', 'API']);
+      expect([arch.parent_id, api.parent_id]).toEqual([null, arch.id]);
+      const body = JSON.stringify(arch.body);
+      expect(body).toContain('"type":"heading"');
+      expect(body).toContain(`"type":"mention","attrs":{"id":"${w.admin.userId}"`);
+      expect(body).toContain('[изображение]');
+      const msgs = job.warnings.map((x: { message: string }) => x.message);
+      expect(msgs).toContainEqual(
+        expect.stringMatching(/^страница «Личное» пропущена: Plane: нет доступа/),
+      );
+      expect(msgs).toContain('страница «Архитектура»: картинки заменены подписью');
+
+      // a repeat: the same pages updated, an edit in Plane comes through
+      PAGES[PG2]!.html = '<p>Версия 2</p>';
+      const again = await run();
+      expect([again.status, again.created, again.updated]).toEqual(['done', 0, 4]);
+      const after = await pages();
+      expect(after.map((x) => x.id)).toEqual([api.id, arch.id]);
+      expect(JSON.stringify(after[0].body)).toContain('Версия 2');
+
+      // «Документы» off in the project: tasks are imported, pages are not, a warning says so
+      await db.$client.query(
+        `update projects set modules = array_remove(modules, 'docs') where id = $1`,
+        [pid],
+      );
+      await db.$client.query('delete from docs_pages where project_id = $1', [pid]);
+      const off = await run();
+      expect([off.status, off.created, off.updated]).toEqual(['done', 0, 2]);
+      expect(await pages()).toEqual([]);
+      expect(off.warnings).toContainEqual({
+        row: 0,
+        message:
+          'страницы проекта «Engineering» (3) не импортированы: модуль «Документы» выключен в проекте',
+      });
+    } finally {
+      withPages = false;
+      PAGES[PG2]!.html = '<p class="editor-paragraph-block">Версия 1</p>';
+    }
   });
 
   it('PLNRAPP-877: недоверенный сертификат — предпросмотр отдаёт его; с его отпечатком импорт идёт, с чужим — отказ, токен не уходит', async () => {
