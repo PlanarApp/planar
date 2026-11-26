@@ -32,7 +32,9 @@ type View = {
 const views = () =>
   q<View>(`select id, name, layout, node, user_id from saved_views order by name, layout`);
 const resets = () =>
-  q<{ id: string }>(`select id from changes where entity = '_reset' order by seq`);
+  q<{ id: string }>(
+    `select id from changes where entity = '_reset' and id like 'plnrapp-707%' order by seq`,
+  );
 
 // before the migration:
 // named views — «Mine» (personal, cards), «Shared» (shared, cards), «Board» (board);

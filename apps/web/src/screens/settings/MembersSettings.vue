@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
 import { useAuth } from '../../auth/useAuth';
@@ -56,6 +56,12 @@ const roles = computed(() =>
 );
 const userId = ref<string | null>(null);
 const role = ref('member');
+// an instance guest is at most a guest in a space (roles audit 2026-11-26)
+const rolesOf = (u?: Row<'users'>) => (u?.role === 'guest' ? roles.value.slice(2) : roles.value);
+const picked = computed(() => free.value.find((u) => u.id === userId.value));
+watch(picked, (u) => {
+  if (u?.role === 'guest') role.value = 'guest';
+});
 
 const add = () =>
   userId.value &&
@@ -123,7 +129,7 @@ const menu = (r: { m: Row<'spaceMembers'>; u?: Row<'users'> }): MenuItem[] => [
           field
           @pick="userId = $event"
         />
-        <Select v-model="role" :label="t('auth.role')" :options="roles" />
+        <Select v-model="role" :label="t('auth.role')" :options="rolesOf(picked)" />
         <Button type="submit" variant="primary" size="sm" data-testid="member-add">{{
           t('settings.add')
         }}</Button>
@@ -162,7 +168,7 @@ const menu = (r: { m: Row<'spaceMembers'>; u?: Row<'users'> }): MenuItem[] => [
         <Select
           :model-value="r.m.role"
           :label="t('auth.role')"
-          :options="roles"
+          :options="rolesOf(r.u)"
           :disabled="!canEdit || inherit"
           @update:model-value="(v) => setRole(r.m.id, v)"
         />

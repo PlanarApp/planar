@@ -117,3 +117,59 @@ async function syncRoles(db: Db, sys: string, root: string, changed?: string) {
       { system: true },
     );
 }
+
+/**
+ * An instance guest is at most a guest in every space (and, through setRole, in its projects): their roles in the spaces with
+ * their own members are lowered; `inherit` spaces follow the Workspace (member.update of the root row mirrors them).
+ */
+export async function capSpaceRoles(db: Db, userId: string): Promise<void> {
+  const sys = await ensureSystemUser(db);
+  const [row] = await db.select().from(settings).where(eq(settings.id, ROOT_SPACE));
+  const root = typeof row?.value === 'string' ? row.value : undefined;
+  const rows = await db
+    .select({ id: spaceMembers.id, spaceId: spaceMembers.spaceId, mode: spaces.membersMode })
+    .from(spaceMembers)
+    .innerJoin(spaces, eq(spaces.id, spaceMembers.spaceId))
+    .where(and(eq(spaceMembers.userId, userId), ne(spaceMembers.role, 'guest')));
+  const todo = rows
+    .filter((r) => r.spaceId === root || r.mode === 'custom')
+    .sort((a, b) => Number(b.spaceId === root) - Number(a.spaceId === root));
+  if (todo.length)
+    await executeMutations(
+      db,
+      sys,
+      todo.map((r) => ({ name: 'member.update', args: { id: r.id, role: 'guest' } })),
+      undefined,
+      undefined,
+      { system: true },
+    );
+}
+
+/**
+ * A deactivated user leaves the Workspace and with it every space with its own members and every project with its own
+ * members (member.remove of the root row cascades; the rest — spaces the user was in without the Workspace, e.g. a guest).
+ */
+export async function leaveAllSpaces(db: Db, userId: string): Promise<void> {
+  const sys = await ensureSystemUser(db);
+  const [row] = await db.select().from(settings).where(eq(settings.id, ROOT_SPACE));
+  const root = typeof row?.value === 'string' ? row.value : undefined;
+  const mine = () =>
+    db
+      .select({ id: spaceMembers.id, spaceId: spaceMembers.spaceId, mode: spaces.membersMode })
+      .from(spaceMembers)
+      .innerJoin(spaces, eq(spaces.id, spaceMembers.spaceId))
+      .where(eq(spaceMembers.userId, userId));
+  const run = (ids: string[]) =>
+    ids.length
+      ? executeMutations(
+          db,
+          sys,
+          ids.map((id) => ({ name: 'member.remove', args: { id } })),
+          undefined,
+          undefined,
+          { system: true },
+        )
+      : undefined;
+  await run((await mine()).filter((r) => r.spaceId === root).map((r) => r.id));
+  await run((await mine()).filter((r) => r.mode === 'custom').map((r) => r.id));
+}
