@@ -34,6 +34,7 @@ import {
   planeItems,
   planePreview,
   PlaneForbidden,
+  PLANE_ANY_ISSUE,
   type PlaneConn,
   type PlaneData,
 } from './plane.js';
@@ -443,8 +444,9 @@ async function runImport(jobId: string, api: JobApi) {
       return login ? { id: id!, label: login } : name;
     };
     // Plane files: stored on behalf of the importer; an error or the size limit — a row warning, the import goes on
+    type FileOf = { project: string; issue: string };
     const fetchFile = async (
-      it: Item,
+      loc: FileOf,
       asset: string,
       name: string,
       mime: string,
@@ -452,7 +454,7 @@ async function runImport(jobId: string, api: JobApi) {
     ) => {
       try {
         if (!api.files) throw new Error('хранилище файлов недоступно');
-        const f = await plane!.file(it.plane!.project, it.plane!.issue, asset, api.files.maxBytes);
+        const f = await plane!.file(loc.project, loc.issue, asset, api.files.maxBytes);
         return await api.files.store(f.buf, job!.userId, mime || f.mime || undefined);
       } catch (e) {
         notes.push(`файл «${name}» не импортирован: ${msg(e)}`);
@@ -460,12 +462,12 @@ async function runImport(jobId: string, api: JobApi) {
       }
     };
     /** images of the HTML (asset id → /files/<sha>) */
-    const storeImages = async (it: Item, htmls: string[], notes: string[]) => {
+    const storeImages = async (loc: FileOf | undefined, htmls: string[], notes: string[]) => {
       const out = new Map<string, string>();
-      if (!it.plane) return out;
+      if (!loc) return out;
       for (const src of new Set(htmls.flatMap(imageSrcs)))
         if (UUID.test(src)) {
-          const f = await fetchFile(it, src, 'изображение', '', notes);
+          const f = await fetchFile(loc, src, 'изображение', '', notes);
           if (f) out.set(src, `/files/${f.sha256}`);
         }
       return out;
@@ -484,7 +486,7 @@ async function runImport(jobId: string, api: JobApi) {
       );
       const muts: Mut[] = [];
       for (const a of it.plane.attachments) {
-        const f = await fetchFile(it, a.id, a.name, a.mime, notes);
+        const f = await fetchFile(it.plane, a.id, a.name, a.mime, notes);
         if (!f || had.has(f.sha256)) continue;
         had.add(f.sha256);
         muts.push({
@@ -660,7 +662,7 @@ async function runImport(jobId: string, api: JobApi) {
       }
       // comments are imported only into a new task: their images too
       const images = await storeImages(
-        it,
+        it.plane,
         [
           it.descriptionHtml ?? '',
           ...(isUpdate ? [] : (it.comments ?? []).map((c) => c.html ?? '')),
@@ -908,7 +910,7 @@ async function runImport(jobId: string, api: JobApi) {
       for (const pg of [...pages].sort((a, b) => depth(a) - depth(b))) {
         const pid = projectMap[pg.project] || main!;
         const title = (pg.name || 'Без названия').slice(0, 200);
-        const body = htmlToDoc(pg.html, mentionOf) ?? { type: 'doc', content: [] };
+
         const known = pageOf.get(pg.id);
         const fail = (e: unknown) =>
           warnings.push({ row: 0, message: `страница «${title}» не импортирована: ${msg(e)}` });
@@ -916,9 +918,18 @@ async function runImport(jobId: string, api: JobApi) {
           warnings.push({ row: 0, message: `страница «${title}» в архиве: не обновлена` });
           continue;
         }
-        if (/<image-component/.test(pg.html))
-          // shortcut: Plane gives page images no download path by the API token — a caption instead
-          warnings.push({ row: 0, message: `страница «${title}»: картинки заменены подписью` });
+        // page images: the issue-attachments endpoint checks only the project, any issue id goes (PLANE_ANY_ISSUE)
+        const notes: string[] = [];
+        const images = await storeImages(
+          { project: pg.projectId, issue: PLANE_ANY_ISSUE },
+          [pg.html],
+          notes,
+        );
+        for (const n of notes) warnings.push({ row: 0, message: `страница «${title}»: ${n}` });
+        const body = htmlToDoc(pg.html, mentionOf, (src) => images.get(src) ?? null) ?? {
+          type: 'doc',
+          content: [],
+        };
         try {
           if (known) {
             await api.execute(

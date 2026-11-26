@@ -75,6 +75,7 @@ type PageRef = { id: string; name?: string; parent?: string | null; archived_at?
 export interface PlanePage {
   /** Plane project name: the page goes to the project of its issues */
   project: string;
+  projectId: string;
   id: string;
   /** Plane id of the parent page; null — a root page */
   parent: string | null;
@@ -316,6 +317,12 @@ export function planeClient(c: PlaneConn) {
   return { get, all, file };
 }
 
+/**
+ * An issue id for files that belong to no issue (page images): Plane's issue-attachments endpoint looks the
+ * asset up by workspace and project only — checked on Plane 2026-11 (an asset of another project — 404).
+ */
+export const PLANE_ANY_ISSUE = '00000000-0000-4000-8000-000000000000';
+
 /** No access to a Plane object (a project the token's user is not in): skipped with a warning. */
 export class PlaneForbidden extends Error {
   constructor(path: string) {
@@ -506,6 +513,7 @@ export async function planeItems(
           );
           pages.push({
             project: p.name,
+            projectId: p.id,
             id: r.id,
             parent: r.parent,
             name: (d.name ?? r.name ?? '').trim(),
