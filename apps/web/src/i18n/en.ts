@@ -515,7 +515,7 @@ export default {
     storageUsed: 'Data on this device: {mb} MB',
     storagePersisted: 'kept persistently',
     storageBestEffort:
-      'the browser may remove it when space runs low — no worries: the data will load from the server again',
+      'the browser may remove it when space runs low — synced data will load from the server again, unsent changes would be lost',
   },
   views: {
     emptyBoard: 'Add a task in any column',
