@@ -184,6 +184,29 @@ export const projectMutators = [
     },
   }),
   defineMutator({
+    // the project with all its rows goes to another space (server tx relocate); people who
+    // are not members there lose their project role, assignments and watching, as on a task move
+    name: 'project.move',
+    args: z.object({ id: uuid, spaceId: uuid, rank }),
+    async run(tx, a, ctx) {
+      const p = await need(tx, 'projects', a.id);
+      await need(tx, 'spaces', a.spaceId);
+      await needProjectAdmin(tx, p.spaceId, p.id, ctx.userId);
+      if (p.spaceId !== a.spaceId) {
+        if ((await tx.get('settings', 'root_space'))?.value === a.spaceId)
+          throw new MutatorError('invalid_args', 'в корневом пространстве нельзя создать проект');
+        const members = await spaceRoles(tx, a.spaceId);
+        for (const m of await tx.scan('projectMembers', { index: 'projectId', eq: p.id }))
+          if (!members.has(m.userId)) await tx.del('projectMembers', m.id);
+        for (const t of await tx.scan('tasks', { index: 'projectId', eq: p.id }))
+          for (const e of ['taskAssignees', 'taskWatchers'] as const)
+            for (const x of await tx.scan(e, { index: 'taskId', eq: t.id }))
+              if (!members.has(x.userId)) await tx.del(e, x.id);
+      }
+      await tx.patch('projects', p.id, { spaceId: a.spaceId, rank: a.rank, updatedAt: ctx.now });
+    },
+  }),
+  defineMutator({
     // rights (admin of the space / instance admin) and `unavailable` are checked by the server tx
     name: 'project.setModule',
     args: z.object({ projectId: uuid, moduleId: z.string(), enabled: z.boolean() }),

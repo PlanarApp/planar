@@ -7,7 +7,7 @@ export const batchDefs = (rest: RestService): ToolDef[] => [
   {
     name: 'batch_update_tasks',
     description:
-      'Пачечное изменение до 100 задач (taskIds или filter): patch {statusId, labelIds{add,remove}, assigneeIds{add,remove}, fields, archived}. dryRun:true — только список задач без изменений; в чате без dryRun нужно подтверждение',
+      'Пачечное изменение до 100 задач (taskIds или filter): patch {statusId, projectId, labelIds{add,remove}, assigneeIds{add,remove}, fields, archived}. dryRun:true — только список задач без изменений; в чате без dryRun нужно подтверждение',
     shape: batchBody.shape,
     write: true,
     danger: 'bulk',

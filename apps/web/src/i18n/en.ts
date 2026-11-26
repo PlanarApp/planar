@@ -48,6 +48,8 @@ export default {
     subtasks: 'Move subtasks too ({n})',
     action: 'Move',
     done: '{key} moved to {to}',
+    bulk: 'Move to project',
+    bulkDone: 'Tasks moved: {n} — to {to}',
   },
   merge: {
     title: 'Merge {key} into another task',
@@ -101,6 +103,8 @@ export default {
     projectSettings: 'Project settings',
     spaceSettings: 'Space settings',
     archive: 'Archive',
+    moveToSpace: 'Move to space',
+    movedToSpace: '{name} moved to {to}',
     delete: 'Delete',
     expand: 'Expand',
     deleteProject: 'Delete project “{name}”?',

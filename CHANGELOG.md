@@ -4,6 +4,12 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- Sidebar: spaces and the projects of a space are dragged to change their order — the order is shared by everyone; a space is moved by its admin, a project by its admin.
+- Moving a project to another space — the project menu «Move to space» in the sidebar, REST `POST /api/v1/projects/:id/move` and MCP `move_project`. Statuses, labels, fields, tasks with comments, files and time, module rows go along; task keys stay. People who are not members of the new space lose their project role, assignments and watching; a subtask in another project of the old space is cut off.
+- Bulk move of tasks to a project of any space — «Move to project» in the bulk action bar; the status of the same name (else the same category) is kept, subtasks go along. REST/MCP: `projectId` in `PATCH /api/v1/tasks/:task` (`update_task`) and in the `patch` of `batch_update_tasks`.
+
 ## [0.14.0] - 2026-11-24
 
 ### Added

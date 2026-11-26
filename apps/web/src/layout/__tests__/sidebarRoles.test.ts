@@ -22,8 +22,8 @@ function menus() {
     }),
     { global: { plugins: [i18n] } },
   );
-  const space = { id: ids.space, name: 'S', color: null, icon: null, projects: [] };
-  const project = { id: ids.project, name: 'P', prefix: 'P', color: null, icon: null };
+  const space = { id: ids.space, name: 'S', rank: 'a0', color: null, icon: null, projects: [] };
+  const project = { id: ids.project, name: 'P', rank: 'a0', prefix: 'P', color: null, icon: null };
   return {
     space: () => labels(act.spaceItems(space)),
     project: () => labels(act.projectItems(project)),
