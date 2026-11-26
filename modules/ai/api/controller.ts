@@ -1082,10 +1082,10 @@ export class AiController {
     if (!b.apiKey) {
       if (!secretKey()) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');
       // a new workspace connection (no id): the default one's key, if the host is the same
-      had = await (b.scope === 'workspace' && !b.id
-        ? levelConnection(this.core.db, 'workspace', WORKSPACE_SCOPE_ID)
-        : this.savedOf(b));
-      had ??= undefined;
+      had =
+        (await (b.scope === 'workspace' && !b.id
+          ? levelConnection(this.core.db, 'workspace', WORKSPACE_SCOPE_ID)
+          : this.savedOf(b))) ?? undefined;
     }
     const apiKey = apiKeyOf(b.apiKey, had, b);
     return {
