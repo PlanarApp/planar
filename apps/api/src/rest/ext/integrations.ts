@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { distinctValues, suggestMapping, TRELLO_MAPPING } from '@planar/module-import/api';
 import { importJobs } from '@planar/module-import/api/schema';
-import { FORMATS, mappingSchema, MAX_BYTES, PRESETS } from '@planar/module-import/shared';
+import { FILE_FORMATS, mappingSchema, MAX_BYTES, PRESETS } from '@planar/module-import/shared';
 import { uuidv7 } from '@planar/shared';
 import { HttpError } from '../../auth/errors.js';
 import type { ExtArea, ExtOp } from './types.js';
@@ -39,7 +39,7 @@ const events = z.array(z.string().min(1).max(100)).min(1).max(20);
 const description = z.string().max(500).nullish();
 
 const importFile = {
-  format: z.enum(FORMATS),
+  format: z.enum(FILE_FORMATS),
   preset: z.enum(PRESETS),
   content: z
     .string()

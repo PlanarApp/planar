@@ -48,28 +48,36 @@ async function call<T>(method: string, path: string, body?: FormData): Promise<T
   if (!res.ok) throw new Error((data as { message?: string }).message || res.statusText);
   return data as T;
 }
-const form = (file: File, fields: Record<string, string>) => {
+/** Plane API connection (format plane-api) — instead of a file */
+export type PlaneConn = { url: string; workspace: string; token: string; fingerprint?: string };
+const form = (src: File | PlaneConn, fields: Record<string, string>) => {
   const f = new FormData();
   for (const [k, v] of Object.entries(fields)) f.append(k, v);
-  f.append('file', file);
+  if (src instanceof File) f.append('file', src);
+  else for (const [k, v] of Object.entries(src)) if (v) f.append(k, v);
   return f;
 };
 
-export const previewFile = (file: File, format: string, preset: string, mapping?: Mapping) =>
+export const previewFile = (
+  src: File | PlaneConn,
+  format: string,
+  preset: string,
+  mapping?: Mapping,
+) =>
   call<Preview>(
     'POST',
     '/api/import/preview',
-    form(file, { format, preset, ...(mapping && { mapping: JSON.stringify(mapping) }) }),
+    form(src, { format, preset, ...(mapping && { mapping: JSON.stringify(mapping) }) }),
   );
 export const startJob = async (
-  file: File,
+  src: File | PlaneConn,
   a: { spaceId: string; projectId: string; format: string; preset: string; mapping: Mapping },
 ) =>
   (
     await call<{ data: ImportJob }>(
       'POST',
       '/api/import/jobs',
-      form(file, { ...a, mapping: JSON.stringify(a.mapping) }),
+      form(src, { ...a, mapping: JSON.stringify(a.mapping) }),
     )
   ).data;
 export const getJob = async (id: string) =>
@@ -78,6 +86,28 @@ export const getJob = async (id: string) =>
 const dict = {
   title: { ru: 'Импорт задач', en: 'Import tasks' },
   file: { ru: 'Файл', en: 'File' },
+  planeUrl: { ru: 'Адрес Plane', en: 'Plane address' },
+  planeWorkspace: { ru: 'Воркспейс (slug из адреса)', en: 'Workspace (slug from the address)' },
+  planeToken: { ru: 'API-токен Plane', en: 'Plane API token' },
+  certUntrusted: {
+    ru: 'Сертификат Plane не доверен серверу Planar',
+    en: 'The Plane certificate is not trusted by the Planar server',
+  },
+  certSubject: { ru: 'Выдан для', en: 'Issued to' },
+  certIssuer: { ru: 'Кем выдан', en: 'Issued by' },
+  certValidTo: { ru: 'Действует до', en: 'Valid until' },
+  certHint: {
+    ru: 'Сверьте отпечаток с администратором Plane. Импорт примет только сертификат с этим отпечатком; если он сменится — подтвердите заново.',
+    en: 'Check the fingerprint with the Plane admin. The import accepts only a certificate with this fingerprint; if it changes, confirm again.',
+  },
+  certTrust: {
+    ru: 'Доверять этому сертификату для импорта',
+    en: 'Trust this certificate for the import',
+  },
+  planeHint: {
+    ru: 'Задачи, описания и комментарии с форматированием читаются из API Plane сервером Planar. Токен хранится только пока идёт импорт.',
+    en: 'Issues, descriptions and comments with formatting are read from the Plane API by the Planar server. The token is kept only while the import runs.',
+  },
   format: { ru: 'Формат', en: 'Format' },
   preset: { ru: 'Источник', en: 'Source' },
   project: { ru: 'Проект', en: 'Project' },

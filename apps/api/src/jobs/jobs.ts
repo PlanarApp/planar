@@ -6,6 +6,7 @@ import type { JobApi, JobDef, JobOpts } from '../modules/hooks.js';
 import { enabledModules } from '../modules/enabled.js';
 import { installed } from '../modules/installed.js';
 import type { PushOpts, PushQueue } from '../push/push.js';
+import { filesOptsOf, storeBuffer } from '../files/store.js';
 import { executeMutations } from '../sync/mutate.js';
 import type { Q } from '../sync/server-tx.js';
 import { DB } from '../tokens.js';
@@ -109,12 +110,20 @@ export class JobsService implements OnApplicationShutdown {
   }
 
   async api(): Promise<JobApi> {
+    const db = this.db;
     return {
       db: this.db,
       systemUserId: await this.systemUserId(),
       execute: (userId, muts, o) =>
         executeMutations(this.db, userId, muts, this.push, undefined, o),
       enqueue: (queue, data, o) => this.enqueue(queue, data, o),
+      // file settings are registered by FilesController: read when used
+      files: {
+        store: (buf, uid, mime) => storeBuffer(db, filesOptsOf(db), buf, uid, mime),
+        get maxBytes() {
+          return filesOptsOf(db).maxUploadMb * 1024 * 1024;
+        },
+      },
       // dynamic import: static ones make an import cycle and Nest DI gets undefined metadata
       tools: async (origin) => {
         const [{ toolDefs }, { RestService }] = await Promise.all([

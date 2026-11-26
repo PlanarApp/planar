@@ -43,7 +43,7 @@ export const importJobs = pgTable(
   },
   (t) => [
     index('import_jobs_user_id_idx').on(t.userId),
-    check('import_jobs_format_check', sql`${t.format} in ('csv', 'trello')`),
+    check('import_jobs_format_check', sql`${t.format} in ('csv', 'trello', 'plane-api')`),
     check('import_jobs_status_check', sql`${t.status} in ('pending', 'running', 'done', 'failed')`),
   ],
 );
@@ -54,6 +54,7 @@ export const importItems = pgTable(
     projectId: uuid().notNull(),
     preset: text().notNull(),
     externalId: text().notNull(),
+    /** preset plane-page: the id of a docs page (a Plane page imported into «Документы») */
     taskId: uuid().notNull(),
     updatedAt: ts().notNull().defaultNow(),
   },

@@ -1,6 +1,7 @@
 import {
   NEW,
   guessCategory,
+  type ImportFormat,
   type ImportPreset,
   type Mapping,
   type StatusCategory,
@@ -31,8 +32,12 @@ export const VALUE_FIELDS: readonly string[] = [
 ];
 
 /** Allowed sources for the format. */
-export const presetsFor = (format: 'csv' | 'trello'): ImportPreset[] =>
-  format === 'trello' ? ['trello'] : ['clickup', 'jira', 'linear', 'plane', 'custom'];
+export const presetsFor = (format: ImportFormat): ImportPreset[] =>
+  format === 'trello'
+    ? ['trello']
+    : format === 'plane-api'
+      ? ['plane']
+      : ['clickup', 'jira', 'linear', 'plane', 'custom'];
 
 const pick = (r: Record<string, string>) =>
   Object.fromEntries(Object.entries(r).filter(([, v]) => v));
@@ -90,16 +95,18 @@ export function guessProject(
 }
 
 /**
- * Person of the file → a user with the same name, login or email; otherwise `new` (canCreate — instance admin)
- * or not matched ('').
+ * Person of the file → a user with the same name, login or email (or the person's e-mail from the source);
+ * otherwise `new` (canCreate — instance admin) or not matched ('').
  */
 export function guessUser(
   name: string,
   users: { id: string; name: string; login: string; email?: string | null }[],
   canCreate = false,
+  email?: string,
 ): string {
   return (
-    users.find((u) => eq(u.name, name) || eq(u.login, name) || eq(u.email, name))?.id ??
-    (canCreate ? NEW : '')
+    users.find(
+      (u) => eq(u.name, name) || eq(u.login, name) || eq(u.email, name) || eq(u.email, email),
+    )?.id ?? (canCreate ? NEW : '')
   );
 }

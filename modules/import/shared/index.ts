@@ -3,9 +3,12 @@ import type { SharedModuleManifest } from '@planar/shared';
 
 export const shared: SharedModuleManifest = { id: 'import', mutators: [], entities: {} };
 
-export const FORMATS = ['csv', 'trello'] as const;
+/** formats with a file; plane-api reads the Plane API (PLNRAPP-874) */
+export const FILE_FORMATS = ['csv', 'trello'] as const;
+export const FORMATS = [...FILE_FORMATS, 'plane-api'] as const;
 export const PRESETS = ['clickup', 'jira', 'linear', 'plane', 'custom', 'trello'] as const;
 export type ImportFormat = (typeof FORMATS)[number];
+export type FileFormat = (typeof FILE_FORMATS)[number];
 export type ImportPreset = (typeof PRESETS)[number];
 
 export const MAX_BYTES = 50 * 1024 * 1024;
@@ -76,6 +79,15 @@ export interface ImportJob {
   updatedAt: string;
 }
 
+/** A server certificate not trusted by Planar (Plane API, PLNRAPP-877) */
+export interface PlaneCert {
+  subject: string;
+  issuer: string;
+  validTo: string;
+  /** SHA-256, `AB:CD:…` as Node gives it */
+  fingerprint256: string;
+}
+
 export interface Preview {
   columns: string[];
   rows: string[][];
@@ -87,5 +99,9 @@ export interface Preview {
     project: { name: string; key: string | null }[];
     /** assignees and comment authors */
     people: string[];
+    /** person → e-mail, when the source knows it (Plane API): a hint for matching */
+    emails?: Record<string, string>;
   };
+  /** Plane API: the certificate is not trusted — nothing was read; trust it by fingerprint and repeat */
+  certificate?: PlaneCert;
 }

@@ -1,4 +1,4 @@
-import type { ImportPreset, Mapping, Preview } from '../shared/index.js';
+import type { FileFormat, ImportPreset, Mapping, Preview } from '../shared/index.js';
 import { parseCsv } from './csv.js';
 
 /** Normalized import row; undefined — field not mapped (leave alone), null — mapped but empty. */
@@ -8,6 +8,8 @@ export interface Item {
   externalId?: string;
   title: string;
   description?: string | null;
+  /** description as HTML (Plane API): takes precedence over description */
+  descriptionHtml?: string;
   status?: string;
   assignees?: string[];
   labels?: string[];
@@ -18,8 +20,15 @@ export interface Item {
   /** value of the project column (mapped and non-empty) */
   project?: string;
   projectKey?: string;
-  comments?: { text: string; author: string; at: string }[];
+  /** html — the comment as HTML (Plane API) instead of text */
+  comments?: { text: string; html?: string; author: string; at: string }[];
   checklist?: { text: string; done: boolean }[];
+  /** Plane API: ids of the issue for its files, its attachments */
+  plane?: {
+    project: string;
+    issue: string;
+    attachments: { id: string; name: string; mime: string }[];
+  };
   notes: string[];
   /** reason the row cannot be imported */
   skip?: string;
@@ -385,7 +394,7 @@ export function distinctValues(items: Item[]): Preview['values'] {
 
 export function parseSource(
   text: string,
-  format: 'csv' | 'trello',
+  format: FileFormat,
   mapping: Mapping | null,
   preset: ImportPreset,
 ): Parsed {
