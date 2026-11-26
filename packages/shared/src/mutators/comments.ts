@@ -3,13 +3,14 @@ import { MutatorError, defineMutator, type Tx } from '../contract/index.js';
 import { bad, delWhere, doc, need, roleInProject, uuid } from './util.js';
 import { extractMentions } from './text.js';
 
-const roleIn = async (tx: Tx, spaceId: string, userId: string) =>
-  (await tx.scan('spaceMembers', { index: 'spaceId', eq: spaceId })).find(
-    (m) => m.userId === userId,
-  )?.role;
-/** can be assigned to a space member, not a guest (comments, checklist items) */
-export async function checkAssignee(tx: Tx, spaceId: string, userId: string) {
-  const r = await roleIn(tx, spaceId, userId);
+/** can be assigned to a member of the task's project (PJ-11), not a guest (comments, checklist items) */
+export async function checkAssignee(
+  tx: Tx,
+  spaceId: string,
+  projectId: string | null,
+  userId: string,
+) {
+  const r = await roleInProject(tx, spaceId, projectId, userId);
   if (!r || r === 'guest') throw bad('исполнитель — не участник пространства');
 }
 
@@ -62,7 +63,7 @@ export const commentMutators = [
         // any depth (PLANARAPP-45): a reply to any comment of this task
         if (p.taskId !== t.id) throw bad('ответ — только на комментарий этой задачи');
       }
-      if (a.assigneeId) await checkAssignee(tx, t.spaceId, a.assigneeId);
+      if (a.assigneeId) await checkAssignee(tx, t.spaceId, t.projectId, a.assigneeId);
       await tx.put('comments', {
         id: a.id,
         spaceId: t.spaceId,
@@ -135,7 +136,7 @@ export const commentMutators = [
       const projectId = (await tx.get('tasks', c.taskId))?.projectId ?? null;
       const r = await roleInProject(tx, c.spaceId, projectId, ctx.userId);
       if (!r || r === 'guest') throw new MutatorError('forbidden', 'нужна роль member');
-      if (a.assigneeId) await checkAssignee(tx, c.spaceId, a.assigneeId);
+      if (a.assigneeId) await checkAssignee(tx, c.spaceId, projectId, a.assigneeId);
       // new assignment — reopened
       await tx.patch('comments', a.id, {
         assigneeId: a.assigneeId,
@@ -154,7 +155,7 @@ export const commentMutators = [
       const may =
         ctx.userId === c.assigneeId ||
         ctx.userId === c.authorId ||
-        (await roleIn(tx, c.spaceId, ctx.userId)) === 'admin';
+        (await roleInProject(tx, c.spaceId, null, ctx.userId)) === 'admin';
       if (!may) throw new MutatorError('forbidden', 'завершает исполнитель, автор или admin');
       await tx.patch('comments', a.id, {
         resolvedAt: a.resolved ? ctx.now : null,

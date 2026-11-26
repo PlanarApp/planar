@@ -5,6 +5,7 @@ import {
   isProjectAdmin,
   MutatorError,
   needProjectAdmin,
+  roleInProject,
   type SharedModuleManifest,
   type Tx,
 } from '@planar/shared';
@@ -416,13 +417,9 @@ async function comment(tx: Tx, id: string): Promise<Comment> {
   return c;
 }
 
-const roleIn = async (tx: Tx, spaceId: string, userId: string) =>
-  (await tx.scan('spaceMembers', { index: 'spaceId', eq: spaceId })).find((m) => m.userId === userId)
-    ?.role;
-
-/** assigned — to a space member, not a guest (as task comments) */
-async function checkAssignee(tx: Tx, spaceId: string, userId: string) {
-  const r = await roleIn(tx, spaceId, userId);
+/** assigned — to a member of the page's project (PJ-11), not a guest (as task comments) */
+async function checkAssignee(tx: Tx, spaceId: string, projectId: string | null, userId: string) {
+  const r = await roleInProject(tx, spaceId, projectId, userId);
   if (!r || r === 'guest') throw new MutatorError('invalid_args', 'исполнитель — не участник пространства');
 }
 
@@ -441,7 +438,7 @@ const commentCreate = defineMutator({
     // any depth: a reply to any comment of this page
     if (a.parentId && (await comment(tx, a.parentId)).pageId !== p.id)
       throw new MutatorError('invalid_args', 'ответ — только на комментарий этой страницы');
-    if (a.assigneeId) await checkAssignee(tx, p.spaceId, a.assigneeId);
+    if (a.assigneeId) await checkAssignee(tx, p.spaceId, p.projectId ?? null, a.assigneeId);
     commentBody(a.body);
     const row: Comment = {
       id: a.id,
@@ -499,7 +496,8 @@ const commentAssign = defineMutator({
   args: z.object({ id: z.uuid(), assigneeId: z.uuid().nullable() }),
   async run(tx, a, ctx) {
     const c = await comment(tx, a.id);
-    if (a.assigneeId) await checkAssignee(tx, c.spaceId, a.assigneeId);
+    if (a.assigneeId)
+      await checkAssignee(tx, c.spaceId, (await page(tx, c.pageId)).projectId ?? null, a.assigneeId);
     await dtx(tx).patch('docsComments', a.id, {
       assigneeId: a.assigneeId,
       resolvedAt: null,

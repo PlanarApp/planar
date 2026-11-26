@@ -5,6 +5,7 @@ import {
   isProjectAdmin,
   MutatorError,
   needProjectAdmin,
+  roleInProject,
   type SharedModuleManifest,
   type Tx,
 } from '@planar/shared';
@@ -153,10 +154,9 @@ const createChannel = defineMutator({
   async run(tx, a, ctx) {
     if (a.projectId && (await tx.get('projects', a.projectId))?.spaceId !== a.spaceId)
       throw new MutatorError('invalid_args', 'проект другого пространства');
-    const me = (await tx.scan('spaceMembers', { index: 'spaceId', eq: a.spaceId })).find(
-      (m) => m.userId === ctx.userId,
-    );
-    if (!me || me.role === 'guest') throw new MutatorError('forbidden', 'нужна роль member');
+    // the role in the channel's project (PJ-11), without a project — in the space
+    const me = await roleInProject(tx, a.spaceId, a.projectId ?? null, ctx.userId);
+    if (!me || me === 'guest') throw new MutatorError('forbidden', 'нужна роль member');
     const name = a.name.trim();
     if (name.length < 1 || name.length > 80) throw new MutatorError('invalid_args', 'name 1–80');
     const row: Channel = {
@@ -189,10 +189,10 @@ const updateChannel = defineMutator({
   async run(tx, a, ctx) {
     const c = await channel(tx, a.id);
     if (c.kind !== 'channel') throw new MutatorError('invalid_args', 'не канал');
-    const me = (await tx.scan('spaceMembers', { index: 'spaceId', eq: c.spaceId })).find(
-      (m) => m.userId === ctx.userId,
-    );
-    if (c.createdBy !== ctx.userId && me?.role !== 'admin')
+    if (
+      c.createdBy !== ctx.userId &&
+      !(await isProjectAdmin(tx, c.spaceId!, c.projectId, ctx.userId))
+    )
       throw new MutatorError('forbidden', 'только создатель или admin');
     const patch: Partial<Channel> = { updatedAt: ctx.now };
     if (a.name !== undefined) {

@@ -18,6 +18,7 @@ import { toast } from '../ui/toast';
 import { db, mutate, newId, rankBetween } from '../sync';
 import { defaultModules } from '../api/defaultModules';
 import { useAdminSpaces } from '../screens/settings/shared';
+import { useProjectAdmin, useRoleIn } from '../tasks/admin';
 import { favorites, type NavSpace } from './nav';
 
 const STATUSES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'] as const;
@@ -64,6 +65,10 @@ export function useSidebarActions() {
   const { t } = useI18n();
   const router = useRouter();
   const isSpaceAdmin = useAdminSpaces();
+  const isProjectAdmin = useProjectAdmin();
+  const roleIn = useRoleIn();
+  // a guest creates nothing and has no settings to change
+  const notGuest = (id: string) => ['admin', 'member'].includes(roleIn(id) ?? '');
   /** id of the entity being renamed now, or "new:<spaceId>" / "new-space" for creation */
   const editing = ref<string | null>(null);
   const draft = ref('');
@@ -135,12 +140,16 @@ export function useSidebarActions() {
 
   // renaming and deleting a space — its admin only (spaces.write: admin): the server refuses the rest
   const spaceItems = (s: NavSpace): MenuItem[] => [
-    {
-      id: 'new',
-      label: t('sidebar.newProject'),
-      icon: FolderPlus,
-      onSelect: () => start(`new:${s.id}`),
-    },
+    ...(notGuest(s.id)
+      ? [
+          {
+            id: 'new',
+            label: t('sidebar.newProject'),
+            icon: FolderPlus,
+            onSelect: () => start(`new:${s.id}`),
+          },
+        ]
+      : []),
     {
       id: 'fav',
       label: t(favorites.has('space', s.id) ? 'sidebar.unfavorite' : 'sidebar.favorite'),
@@ -157,12 +166,16 @@ export function useSidebarActions() {
           },
         ]
       : []),
-    {
-      id: 'settings',
-      label: t('sidebar.spaceSettings'),
-      icon: Settings,
-      onSelect: () => void router.push(`/s/${s.id}/settings`),
-    },
+    ...(notGuest(s.id)
+      ? [
+          {
+            id: 'settings',
+            label: t('sidebar.spaceSettings'),
+            icon: Settings,
+            onSelect: () => void router.push(`/s/${s.id}/settings`),
+          },
+        ]
+      : []),
     ...(isSpaceAdmin(s.id)
       ? [
           { separator: true as const },
@@ -184,13 +197,19 @@ export function useSidebarActions() {
 
   const projectItems = (p: NavSpace['projects'][number]): MenuItem[] => {
     const fav = favorites.has('project', p.id);
+    // rename, archive, delete — admin of the project (project.update/delete); settings — not for a guest
+    const admin = isProjectAdmin('', p.id);
     return [
-      {
-        id: 'rename',
-        label: t('sidebar.rename'),
-        icon: Pencil,
-        onSelect: () => start(p.id, p.name),
-      },
+      ...(admin
+        ? [
+            {
+              id: 'rename',
+              label: t('sidebar.rename'),
+              icon: Pencil,
+              onSelect: () => start(p.id, p.name),
+            },
+          ]
+        : []),
       {
         id: 'fav',
         label: t(fav ? 'sidebar.unfavorite' : 'sidebar.favorite'),
@@ -215,32 +234,40 @@ export function useSidebarActions() {
         icon: Copy,
         onSelect: () => void window.open(`/p/${p.id}`, '_blank'),
       },
-      {
-        id: 'settings',
-        label: t('sidebar.projectSettings'),
-        icon: Settings,
-        onSelect: () => void router.push(`/p/${p.id}/settings`),
-      },
-      { separator: true },
-      {
-        id: 'archive',
-        label: t('sidebar.archive'),
-        icon: Archive,
-        onSelect: () =>
-          void mutate('project.update', { id: p.id, archivedAt: new Date().toISOString() }),
-      },
-      {
-        id: 'delete',
-        label: t('sidebar.delete'),
-        icon: Trash2,
-        danger: true,
-        confirm: {
-          title: t('sidebar.deleteProject', { name: p.name }),
-          description: t('sidebar.deleteProjectHint'),
-          confirmLabel: t('sidebar.delete'),
-        },
-        onSelect: () => void mutate('project.delete', { id: p.id }),
-      },
+      ...(notGuest(p.id)
+        ? [
+            {
+              id: 'settings',
+              label: t('sidebar.projectSettings'),
+              icon: Settings,
+              onSelect: () => void router.push(`/p/${p.id}/settings`),
+            },
+          ]
+        : []),
+      ...(admin
+        ? [
+            { separator: true as const },
+            {
+              id: 'archive',
+              label: t('sidebar.archive'),
+              icon: Archive,
+              onSelect: () =>
+                void mutate('project.update', { id: p.id, archivedAt: new Date().toISOString() }),
+            },
+            {
+              id: 'delete',
+              label: t('sidebar.delete'),
+              icon: Trash2,
+              danger: true,
+              confirm: {
+                title: t('sidebar.deleteProject', { name: p.name }),
+                description: t('sidebar.deleteProjectHint'),
+                confirmLabel: t('sidebar.delete'),
+              },
+              onSelect: () => void mutate('project.delete', { id: p.id }),
+            },
+          ]
+        : []),
     ];
   };
 

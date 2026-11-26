@@ -25,16 +25,17 @@ export function useAction() {
   return { error, run };
 }
 
-/** Spaces where the current user is admin. */
+/** Spaces where the current user is admin (an instance owner/admin — all of them). */
 export function useAdminSpaces() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const rows = useQuery(() =>
     db
       .table<Row<'spaceMembers'>>('spaceMembers')
       .filter((m) => m.role === 'admin' && m.userId === user.value?.id)
       .toArray(),
   );
-  return (spaceId: string) => !!rows.value?.some((m) => m.spaceId === spaceId);
+  // an instance admin administers every space, member or not
+  return (spaceId: string) => isAdmin.value || !!rows.value?.some((m) => m.spaceId === spaceId);
 }
 
 export const byName = <T extends { name: string }>(a: T, b: T) => a.name.localeCompare(b.name);
