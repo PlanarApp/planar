@@ -844,6 +844,9 @@ importers:
       '@nestjs/common':
         specifier: ^11.2.7
         version: 11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@planar/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
       '@planar/server-kit':
         specifier: workspace:*
         version: link:../../packages/server-kit
@@ -853,12 +856,21 @@ importers:
       '@planar/web':
         specifier: workspace:*
         version: link:../../apps/web
+      '@tiptap/core':
+        specifier: ^3.32.0
+        version: 3.32.0(@tiptap/pm@3.32.0)
+      '@tiptap/pm':
+        specifier: ^3.32.0
+        version: 3.32.0
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
       fractional-indexing:
         specifier: ^4.0.0
         version: 4.0.0
+      happy-dom:
+        specifier: ^21.0.4
+        version: 21.0.4
       lucide-vue-next:
         specifier: ^1.0.0
         version: 1.0.0(vue@3.5.44(typescript@6.0.3))

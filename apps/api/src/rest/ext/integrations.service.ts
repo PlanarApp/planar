@@ -8,7 +8,7 @@ import { parseSource, ParseError } from '@planar/module-import/api';
 import {
   MAX_BYTES,
   MAX_ROWS,
-  type ImportFormat,
+  type FileFormat,
   type ImportPreset,
   type Mapping,
 } from '@planar/module-import/shared';
@@ -19,7 +19,7 @@ import type { ExtDeps } from './types.js';
 export { D, S };
 
 export interface ImportInput {
-  format: ImportFormat;
+  format: FileFormat;
   preset: ImportPreset;
   content: string;
   mapping?: Mapping;
@@ -28,7 +28,7 @@ export interface ImportInput {
 /** parse as the import controller does: ≤ MAX_BYTES, ≤ MAX_ROWS, a parse error is 400 */
 export function parseImport(
   content: string,
-  format: ImportFormat,
+  format: FileFormat,
   mapping: Mapping | null,
   preset: ImportPreset,
 ): ReturnType<typeof parseSource> {

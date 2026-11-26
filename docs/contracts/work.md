@@ -363,7 +363,7 @@ const ok = header.length === expected.length && timingSafeEqual(Buffer.from(head
 
 ## Module import (WK-6)
 Server tables:
-- `import_jobs`: `id uuid pk`, `user_id uuid`, `project_id uuid?` (the main project; null — by the project column, PLNRAPP-246), `space_id uuid?` (the import space; null — older jobs, the project's space), `format text check (csv,trello)`, `preset text` (`clickup`, `jira`, `linear`, `plane`, `custom`, `trello`), `status text check (pending,running,done,failed)`, `total int`, `processed int`, `created int`, `updated int`, `skipped jsonb` (`{row, reason}[]`), `warnings jsonb` (`{row, message}[]`), `error text?`, `created_at`, `updated_at`.
+- `import_jobs`: `id uuid pk`, `user_id uuid`, `project_id uuid?` (the main project; null — by the project column, PLNRAPP-246), `space_id uuid?` (the import space; null — older jobs, the project's space), `format text check (csv,trello,plane-api)`, `preset text` (`clickup`, `jira`, `linear`, `plane`, `custom`, `trello`), `status text check (pending,running,done,failed)`, `total int`, `processed int`, `created int`, `updated int`, `skipped jsonb` (`{row, reason}[]`), `warnings jsonb` (`{row, message}[]`), `error text?`, `created_at`, `updated_at`.
 - `import_items`: `project_id uuid`, `preset text`, `external_id text`, `task_id uuid`, `updated_at`; pk `(project_id, preset, external_id)`.
 
 | method and path | input → output |
@@ -380,6 +380,7 @@ Server tables:
 - Limits: file ≤ 50 MB (PLNRAPP-244; was 10), ≤ 20 000 rows; larger → 400.
 - References — `e2e/fixtures/import/` (`clickup.csv`, `jira.csv`, `linear.csv`, `plane.csv`, `plane.json`, `trello.json`, `README.md` with the format source for each).
 - Web: route `/m/import/` (wizard: file → format and preset → mapping and preview → progress and report), command `import:open`.
+- PLNRAPP-874: format `plane-api` (preset `plane`, `format check (csv,trello,plane-api)`) — no file: multipart fields `url`, `workspace` (slug), `token` (a Plane API key); instance owner/admin only (403), the server goes to the given address. Preview reads projects, states and members (no issues): `columns: []`, `rows: []`, fixed `mapping`, `values.emails?: {<person>: email}` (a hint for matching). Job creation checks the token (lists projects; a Plane error — 400) and keeps `{url, workspace, token}` in `source` until the job ends (then null, as the file). The job reads the issues of the `projectMap` projects (all — with a main project; drafts skipped; a project without access → a warning) with `expand=state`, labels and comments (cursor pages of 100, waits out 429); a person is matched by `userMap`, then login/email, then their Plane e-mail. `description_html` and `comment_html` → document (`modules/import/api/html.ts`: happy-dom DOMParser, no scripts, + the editor schema; `mention-component` → `mention` of the matched user or `@name`, `image-component`/`attachment-component` → a text placeholder until PLNRAPP-875). An untrusted TLS certificate of Plane → an error asking for `NODE_EXTRA_CA_CERTS`. REST v1/MCP `preview_import`/`start_import` — file formats only.
 
 ## REST and MCP (WK-5), C-modules v5
 Moved to docs/contracts/work-api.md (document size).
