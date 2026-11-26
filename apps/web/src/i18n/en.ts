@@ -514,7 +514,8 @@ export default {
       'Not enough space for the local copy of data: changes are sent to the server, but updates are not saved. Free up space and sync resumes on its own',
     storageUsed: 'Data on this device: {mb} MB',
     storagePersisted: 'kept persistently',
-    storageBestEffort: 'the browser may remove it when space runs low',
+    storageBestEffort:
+      'the browser may remove it when space runs low — no worries: the data will load from the server again',
   },
   views: {
     emptyBoard: 'Add a task in any column',
