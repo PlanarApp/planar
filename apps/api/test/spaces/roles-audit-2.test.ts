@@ -242,3 +242,26 @@ describe('мутаторы читают роль в проекте', () => {
     ).toMatchObject({ code: 'invalid_args' });
   });
 });
+
+describe('скрытый проект', () => {
+  it('view.setNodeDefault: участник пространства вне custom-проекта не меняет его вид по умолчанию', async () => {
+    const w = await world(db);
+    await w.admin.ok('project.setMembersMode', {
+      projectId: w.projectId,
+      mode: 'custom',
+      members: [{ id: uuidv7(), userId: w.admin.userId, role: 'admin' }],
+    });
+    const args = {
+      id: uuidv7(),
+      spaceId: w.spaceId,
+      node: `p:${w.projectId}`,
+      layout: 'list',
+      filter: {},
+      config: {},
+    };
+    expect(await w.member.push('view.setNodeDefault', args)).toMatchObject({
+      ok: false,
+      code: 'forbidden',
+    });
+  });
+});
