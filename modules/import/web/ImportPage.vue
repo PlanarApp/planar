@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { Button, EmptyState, Select, UserPicker } from '@planar/web/modules';
 import {
   NEW,
   STATUS_CATEGORIES,
   type ImportFormat,
   type ImportJob,
+  type PlaneCert,
   type Preview,
 } from '../shared/index.js';
 import {
@@ -36,6 +37,19 @@ const step = ref<1 | 2 | 3>(1);
 const file = ref<File | null>(null);
 const format = ref<ImportFormat>('csv');
 const plane = ref<PlaneConn>({ url: '', workspace: '', token: '' });
+// PLNRAPP-877: Plane's certificate is not trusted by the server — shown to be trusted by its fingerprint
+const cert = ref<PlaneCert | null>(null);
+const trustCert = (on: boolean) => {
+  plane.value.fingerprint = on ? cert.value!.fingerprint256 : undefined;
+};
+// another address — another certificate: trust is not carried over
+watch(
+  () => plane.value.url,
+  () => {
+    cert.value = null;
+    plane.value.fingerprint = undefined;
+  },
+);
 // what the server reads: the file or the Plane API
 const source = () => (format.value === 'plane-api' ? plane.value : file.value!);
 const hasSource = computed(() =>
@@ -152,7 +166,13 @@ async function guard(fn: () => Promise<void>) {
 }
 const toPreview = () =>
   guard(async () => {
-    pv.value = await previewFile(source(), format.value, preset.value);
+    const p = await previewFile(source(), format.value, preset.value);
+    if (p.certificate) {
+      cert.value = p.certificate;
+      plane.value.fingerprint = undefined;
+      return;
+    }
+    pv.value = p;
     map.value = { ...pv.value.mapping } as unknown as Record<string, string>;
     chosen.value = {};
     projMap.value = {};
@@ -228,6 +248,26 @@ onBeforeUnmount(() => clearInterval(timer));
             type="password"
             autocomplete="off"
         /></label>
+        <div
+          v-if="cert"
+          class="import-plane-cert flex flex-col gap-1 rounded border border-border p-2 text-sm"
+        >
+          <p class="font-medium">{{ tr('certUntrusted') }}</p>
+          <p>{{ tr('certSubject') }}: {{ cert.subject }}</p>
+          <p>{{ tr('certIssuer') }}: {{ cert.issuer }}</p>
+          <p>{{ tr('certValidTo') }}: {{ cert.validTo.slice(0, 10) }}</p>
+          <p class="break-all font-mono text-xs">SHA-256: {{ cert.fingerprint256 }}</p>
+          <p class="text-xs text-fg-muted">{{ tr('certHint') }}</p>
+          <label class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              class="import-plane-trust"
+              :checked="plane.fingerprint === cert.fingerprint256"
+              @change="trustCert(($event.target as HTMLInputElement).checked)"
+            />
+            {{ tr('certTrust') }}
+          </label>
+        </div>
       </template>
       <template v-else>
         <EmptyState v-if="!file" :title="tr('file')" />
