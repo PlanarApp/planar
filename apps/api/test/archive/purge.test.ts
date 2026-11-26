@@ -43,6 +43,23 @@ const exists = async (table: string, id: string) =>
 const job = (m: string) => (installed.find((x) => x.api.id === m)!.api.jobs as JobDef[])[0]!;
 
 describe('archive purge', () => {
+  it('под архивной задачей не создать и не перенести подзадачу: очистка архива унесла бы её с родителем', async () => {
+    const parent = taskArgs(w);
+    const other = taskArgs(w);
+    for (const t of [parent, other]) await w.member.ok('task.create', t);
+    await w.member.ok('task.archive', { id: parent.id });
+    expect(await w.member.push('task.create', taskArgs(w, { parentId: parent.id }))).toMatchObject({
+      ok: false,
+      code: 'invalid_args',
+    });
+    expect(await w.member.push('task.update', { id: other.id, parentId: parent.id })).toMatchObject(
+      {
+        ok: false,
+        code: 'invalid_args',
+      },
+    );
+  });
+
   it('удаляет архив старше 30 дней (задача с подзадачей, страница, канал); свежий архив и живые — нет', async () => {
     const old = taskArgs(w);
     const sub = taskArgs(w, { parentId: old.id });

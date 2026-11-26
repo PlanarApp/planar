@@ -19,10 +19,12 @@ import {
 
 const priority = z.number().int().min(0).max(4);
 
-/** Task `parentId` — in the same space, not `taskId` itself and not its descendant. */
+/** Task `parentId` — in the same space, not archived, not `taskId` itself and not its descendant. */
 async function checkParent(tx: Tx, taskId: string, spaceId: string, parentId: string) {
   let p: Row<'tasks'> | undefined = await need(tx, 'tasks', parentId);
   if (p.spaceId !== spaceId) throw bad('parentId другого пространства');
+  // the archive purge deletes an archived root with its subtree: a live child would go with it
+  if (p.archivedAt) throw bad('parentId — задача в архиве');
   const seen = new Set<string>();
   while (p && !seen.has(p.id)) {
     if (p.id === taskId) throw bad('parentId — сама задача или потомок');
@@ -337,7 +339,8 @@ export const taskMutators = [
       }
       if (st) patch.completedAt = completedAt(st.category, t.completedAt, ctx);
       if (a.fields) await checkFields(tx, a.projectId ?? t.projectId, a.fields);
-      if (a.parentId) await checkParent(tx, t.id, t.spaceId, a.parentId);
+      if (a.parentId && a.parentId !== t.parentId)
+        await checkParent(tx, t.id, t.spaceId, a.parentId);
       await tx.patch('tasks', a.id, patch);
       // subtasks follow the task to its new project (unless asked to stay)
       if (moved && !keep)
