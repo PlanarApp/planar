@@ -173,6 +173,11 @@ describe('ai: подключения', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]!.model).toBe('fake-2');
     expect((await put('root', 'space', w.spaceId, { apiKey: undefined })).statusCode).toBe(400);
+    // another host without a key: the saved key is not sent there
+    hits = [];
+    const moved = { id, apiKey: undefined, baseUrl: `${base}/other` };
+    expect((await put('root', 'workspace', undefined, moved)).statusCode).toBe(400);
+    expect(hits).toHaveLength(0);
   });
 
   it('наследование: ближайший уровень — проект, затем пространство, затем воркспейс', async () => {
