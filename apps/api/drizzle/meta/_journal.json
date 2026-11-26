@@ -680,6 +680,13 @@
       "when": 1797484800000,
       "tag": "0096_roles_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1797571200000,
+      "tag": "0097_sessions_handoff",
+      "breakpoints": true
     }
   ]
 }

@@ -10,7 +10,7 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { cloudExpired } from '../cloud/cloud.js';
@@ -107,7 +107,7 @@ export class AuthController {
     const [s] = token
       ? await this.db
           .delete(sessions)
-          .where(eq(sessions.id, hashToken(token)))
+          .where(and(eq(sessions.id, hashToken(token)), eq(sessions.state, 'handoff')))
           .returning()
       : [];
     let to = '/login';

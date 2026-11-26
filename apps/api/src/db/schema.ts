@@ -552,14 +552,17 @@ export const sessions = pgTable(
     expiresAt: ts().notNull(),
     lastSeenAt: ts().notNull().defaultNow(),
     userAgent: text(),
-    /** null — full session; 'mfa' — password accepted, waiting for the second factor; 'setup' — 2FA is required by policy, not set up yet */
+    /** null — full session; 'mfa' — password accepted, waiting for the second factor; 'setup' — 2FA is required by policy, not set up yet; 'handoff' — one-time sign-in token, not a cookie */
     state: text(),
     /** app lock: set — the session is locked until unlock (passkey/TOTP) */
     lockedAt: ts(),
   },
   (t) => [
     index().on(t.userId),
-    check('sessions_state_check', sql`${t.state} is null or ${t.state} in ('mfa', 'setup')`),
+    check(
+      'sessions_state_check',
+      sql`${t.state} is null or ${t.state} in ('mfa', 'setup', 'handoff')`,
+    ),
   ],
 );
 

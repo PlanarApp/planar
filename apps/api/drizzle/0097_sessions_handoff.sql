@@ -1,0 +1,2 @@
+ALTER TABLE "sessions" DROP CONSTRAINT "sessions_state_check";--> statement-breakpoint
+ALTER TABLE "sessions" ADD CONSTRAINT "sessions_state_check" CHECK ("sessions"."state" is null or "sessions"."state" in ('mfa', 'setup', 'handoff'));
