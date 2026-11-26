@@ -7,7 +7,7 @@ import {
   Pencil,
   Trash2,
   UserPlus,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import type { JSONContent } from '@tiptap/vue-3';
 import type { Row } from '@planar/shared';

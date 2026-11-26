@@ -9,7 +9,7 @@ import {
   ListTodo,
   MessagesSquare,
   Settings,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { useProject, useRootSpaceId, useSpaces, useWorkspace } from '../tasks';
 import { tabLabelHidden } from '../ui/taskPanelWidth';
 import { EmptyState, Tabs } from '../ui';

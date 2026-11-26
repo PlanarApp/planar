@@ -19,7 +19,7 @@ import {
   StarOff,
   Trash2,
   UserRound,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import type { MenuItem } from '../ui/Menu.vue';
 import { toast } from '../ui/toast';
 import { openTask } from '../views/open';

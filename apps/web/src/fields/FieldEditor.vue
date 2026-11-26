@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { fieldValueSchema, type Row } from '@planar/shared';
 import { DueDatePicker, useMembers } from '../tasks';
 import { UserPicker } from '../pickers';
-import { X } from 'lucide-vue-next';
+import { X } from '@lucide/vue';
 import { IconButton, Input, Select } from '../ui';
 
 const props = defineProps<{ def: Row<'fieldDefs'>; value?: unknown; spaceId: string }>();

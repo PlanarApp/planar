@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { UserRound } from 'lucide-vue-next';
+import { UserRound } from '@lucide/vue';
 import { Button } from '../../ui';
 import type { MeMode } from './useFilter';
 

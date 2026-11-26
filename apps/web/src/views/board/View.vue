@@ -22,7 +22,7 @@ import {
   useWidenedFilter,
 } from '../scope';
 import { useBlockedIds } from '../../links';
-import { LayoutDashboard } from 'lucide-vue-next';
+import { LayoutDashboard } from '@lucide/vue';
 import { EmptyState, useBreakpoint } from '../../ui';
 import { openTask, useSelection } from '..';
 import { showTask, sideTaskOpen } from '../open';

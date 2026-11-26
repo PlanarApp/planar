@@ -7,7 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   PanelRight,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { updateTask, useScopeTasks, useStatuses, useProject } from '../../tasks';
 import type { TaskView } from '../../tasks';
 import { Button, IconButton, useBreakpoint } from '../../ui';

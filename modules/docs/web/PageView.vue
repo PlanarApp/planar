@@ -11,7 +11,7 @@ import {
   MessageSquare,
   Star,
   StarOff,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import {
   db,

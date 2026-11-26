@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { observeElementRect, useVirtualizer } from '@tanstack/vue-virtual';
 import type { Rect, Virtualizer } from '@tanstack/vue-virtual';
 import { VueDraggable } from 'vue-draggable-plus';
-import { ChevronsLeft, Plus } from 'lucide-vue-next';
+import { ChevronsLeft, Plus } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import type { TaskGroup, TaskView } from '../../tasks';
 import { Input } from '../../ui';

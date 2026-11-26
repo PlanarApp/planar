@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { assignedCommentsOf, type AssignedComments } from '@planar/shared';
 import { computed } from 'vue';
-import { ListChecks, ListTree, MessageSquare } from 'lucide-vue-next';
+import { ListChecks, ListTree, MessageSquare } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import { useAuth } from '../auth/useAuth';
 import { useTaskProgress, type Ratio } from './progress';

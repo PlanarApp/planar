@@ -2,7 +2,7 @@
 import TaskContextMenu from '../TaskContextMenu.vue';
 import BulkMerge from '../BulkMerge.vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
-import { CalendarDays, ChevronRight, MoreHorizontal } from 'lucide-vue-next';
+import { CalendarDays, ChevronRight, MoreHorizontal } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { VueDraggable } from 'vue-draggable-plus';
 import { useI18n } from 'vue-i18n';

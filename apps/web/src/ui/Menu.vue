@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, useSlots, type Component } from 'vue';
-import { Check, ChevronRight, MoreHorizontal } from 'lucide-vue-next';
+import { Check, ChevronRight, MoreHorizontal } from '@lucide/vue';
 import IconButton from './IconButton.vue';
 import {
   ContextMenuContent,

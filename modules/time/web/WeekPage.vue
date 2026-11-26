@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { Button, IconButton, Input, Select, type GroupScope } from '@planar/web/modules';
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight } from '@lucide/vue';
 import { dayKey, entrySec, hm, parseHm, planCell, weekDays } from './lib';
 import TimeExport from './TimeExport.vue';
 import {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ArrowRight, BellOff, Check, Inbox, Trash2 } from 'lucide-vue-next';
+import { ArrowRight, BellOff, Check, Inbox, Trash2 } from '@lucide/vue';
 import { Button, EmptyState, Menu, Tabs, useBreakpoint, type MenuItem } from '../ui';
 import { router } from '../router';
 import { mutate } from '../sync';

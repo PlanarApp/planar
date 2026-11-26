@@ -356,6 +356,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@lucide/vue':
+        specifier: ^1.75.0
+        version: 1.75.0(vue@3.5.45(typescript@6.0.3))
       '@planar/editor':
         specifier: workspace:*
         version: link:../../packages/editor
@@ -398,9 +401,6 @@ importers:
       fractional-indexing:
         specifier: ^4.0.0
         version: 4.0.0
-      lucide-vue-next:
-        specifier: ^1.0.0
-        version: 1.0.0(vue@3.5.45(typescript@6.0.3))
       reka-ui:
         specifier: ^2.11.0
         version: 2.11.0(vue@3.5.45(typescript@6.0.3))
@@ -477,6 +477,9 @@ importers:
       '@ai-sdk/openai':
         specifier: 3.0.134
         version: 3.0.134(zod@4.6.7)
+      '@lucide/vue':
+        specifier: ^1.75.0
+        version: 1.75.0(vue@3.5.45(typescript@6.0.3))
       '@nestjs/common':
         specifier: ^11.2.11
         version: 11.2.11(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -516,9 +519,6 @@ importers:
       fractional-indexing:
         specifier: ^4.0.0
         version: 4.0.0
-      lucide-vue-next:
-        specifier: ^1.0.0
-        version: 1.0.0(vue@3.5.45(typescript@6.0.3))
       vue:
         specifier: ~3.5.45
         version: 3.5.45(typescript@6.0.3)
@@ -535,6 +535,9 @@ importers:
 
   modules/automations:
     dependencies:
+      '@lucide/vue':
+        specifier: ^1.75.0
+        version: 1.75.0(vue@3.5.45(typescript@6.0.3))
       '@nestjs/common':
         specifier: ^11.2.11
         version: 11.2.11(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -559,9 +562,6 @@ importers:
       fractional-indexing:
         specifier: ^4.0.0
         version: 4.0.0
-      lucide-vue-next:
-        specifier: ^1.0.0
-        version: 1.0.0(vue@3.5.45(typescript@6.0.3))
       vue:
         specifier: ~3.5.45
         version: 3.5.45(typescript@6.0.3)
@@ -571,6 +571,9 @@ importers:
 
   modules/chat:
     dependencies:
+      '@lucide/vue':
+        specifier: ^1.75.0
+        version: 1.75.0(vue@3.5.45(typescript@6.0.3))
       '@nestjs/common':
         specifier: ^11.2.11
         version: 11.2.11(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -595,9 +598,6 @@ importers:
       emoji-picker-element-data:
         specifier: 1.8.0
         version: 1.8.0
-      lucide-vue-next:
-        specifier: ^1.0.0
-        version: 1.0.0(vue@3.5.45(typescript@6.0.3))
       vue:
         specifier: ~3.5.45
         version: 3.5.45(typescript@6.0.3)
@@ -641,6 +641,9 @@ importers:
 
   modules/docs:
     dependencies:
+      '@lucide/vue':
+        specifier: ^1.75.0
+        version: 1.75.0(vue@3.5.45(typescript@6.0.3))
       '@nestjs/common':
         specifier: ^11.2.11
         version: 11.2.11(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -695,9 +698,6 @@ importers:
       fractional-indexing:
         specifier: ^4.0.0
         version: 4.0.0
-      lucide-vue-next:
-        specifier: ^1.0.0
-        version: 1.0.0(vue@3.5.45(typescript@6.0.3))
       vue:
         specifier: ~3.5.45
         version: 3.5.45(typescript@6.0.3)
@@ -853,6 +853,9 @@ importers:
 
   modules/import:
     dependencies:
+      '@lucide/vue':
+        specifier: ^1.75.0
+        version: 1.75.0(vue@3.5.45(typescript@6.0.3))
       '@nestjs/common':
         specifier: ^11.2.11
         version: 11.2.11(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -871,9 +874,6 @@ importers:
       fractional-indexing:
         specifier: ^4.0.0
         version: 4.0.0
-      lucide-vue-next:
-        specifier: ^1.0.0
-        version: 1.0.0(vue@3.5.45(typescript@6.0.3))
       vue:
         specifier: ~3.5.45
         version: 3.5.45(typescript@6.0.3)
@@ -914,6 +914,9 @@ importers:
 
   modules/recurring:
     dependencies:
+      '@lucide/vue':
+        specifier: ^1.75.0
+        version: 1.75.0(vue@3.5.45(typescript@6.0.3))
       '@nestjs/common':
         specifier: ^11.2.11
         version: 11.2.11(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -932,9 +935,6 @@ importers:
       fractional-indexing:
         specifier: ^4.0.0
         version: 4.0.0
-      lucide-vue-next:
-        specifier: ^1.0.0
-        version: 1.0.0(vue@3.5.45(typescript@6.0.3))
       vue:
         specifier: ~3.5.45
         version: 3.5.45(typescript@6.0.3)
@@ -944,6 +944,9 @@ importers:
 
   modules/sprints:
     dependencies:
+      '@lucide/vue':
+        specifier: ^1.75.0
+        version: 1.75.0(vue@3.5.45(typescript@6.0.3))
       '@nestjs/common':
         specifier: ^11.2.11
         version: 11.2.11(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -959,9 +962,6 @@ importers:
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
-      lucide-vue-next:
-        specifier: ^1.0.0
-        version: 1.0.0(vue@3.5.45(typescript@6.0.3))
       vue:
         specifier: ~3.5.45
         version: 3.5.45(typescript@6.0.3)
@@ -998,6 +998,9 @@ importers:
 
   modules/time:
     dependencies:
+      '@lucide/vue':
+        specifier: ^1.75.0
+        version: 1.75.0(vue@3.5.45(typescript@6.0.3))
       '@nestjs/common':
         specifier: ^11.2.11
         version: 11.2.11(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -1013,9 +1016,6 @@ importers:
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
-      lucide-vue-next:
-        specifier: ^1.0.0
-        version: 1.0.0(vue@3.5.45(typescript@6.0.3))
       vue:
         specifier: ~3.5.45
         version: 3.5.45(typescript@6.0.3)
@@ -1025,6 +1025,9 @@ importers:
 
   modules/timeline:
     dependencies:
+      '@lucide/vue':
+        specifier: ^1.75.0
+        version: 1.75.0(vue@3.5.45(typescript@6.0.3))
       '@nestjs/common':
         specifier: ^11.2.11
         version: 11.2.11(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -1040,9 +1043,6 @@ importers:
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
-      lucide-vue-next:
-        specifier: ^1.0.0
-        version: 1.0.0(vue@3.5.45(typescript@6.0.3))
       vue:
         specifier: ~3.5.45
         version: 3.5.45(typescript@6.0.3)
@@ -1052,6 +1052,9 @@ importers:
 
   modules/webhooks:
     dependencies:
+      '@lucide/vue':
+        specifier: ^1.75.0
+        version: 1.75.0(vue@3.5.45(typescript@6.0.3))
       '@nestjs/common':
         specifier: ^11.2.11
         version: 11.2.11(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -1067,9 +1070,6 @@ importers:
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
-      lucide-vue-next:
-        specifier: ^1.0.0
-        version: 1.0.0(vue@3.5.45(typescript@6.0.3))
       vue:
         specifier: ~3.5.45
         version: 3.5.45(typescript@6.0.3)
@@ -2558,6 +2558,11 @@ packages:
 
   '@lifeomic/attempt@3.1.0':
     resolution: {integrity: sha512-QZqem4QuAnAyzfz+Gj5/+SLxqwCAw2qmt7732ZXodr6VDWGeYLG6w1i/vYLa55JQM9wRuBKLmXmiZ2P0LtE5rw==}
+
+  '@lucide/vue@1.75.0':
+    resolution: {integrity: sha512-aO44J4WzSE7+xsPa0L0SQ3Db8jYm+8piJdy95Is4UTpqBV4Krd5XKsivCBLPUSHd6pPZsJ+ou5C5V6KNtfxRFQ==}
+    peerDependencies:
+      vue: '>=3.0.1'
 
   '@lukeed/csprng@1.1.0':
     resolution: {integrity: sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA==}
@@ -4838,12 +4843,6 @@ packages:
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
-
-  lucide-vue-next@1.0.0:
-    resolution: {integrity: sha512-V6SPvx1IHTj/UY+FrIYWV5faISsPSb8BnWSFDxAtezWKvWc9ZZ40PDrdu1/Qb5vg4lHWr1hs1BAMGVGm6V1Xdg==}
-    deprecated: Package deprecated. Please use @lucide/vue instead.
-    peerDependencies:
-      vue: '>=3.0.1'
 
   luxon@3.7.2:
     resolution: {integrity: sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==}
@@ -7439,6 +7438,10 @@ snapshots:
 
   '@lifeomic/attempt@3.1.0': {}
 
+  '@lucide/vue@1.75.0(vue@3.5.45(typescript@6.0.3))':
+    dependencies:
+      vue: 3.5.45(typescript@6.0.3)
+
   '@lukeed/csprng@1.1.0': {}
 
   '@modelcontextprotocol/sdk@1.32.2(zod@4.6.7)':
@@ -9787,10 +9790,6 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
-
-  lucide-vue-next@1.0.0(vue@3.5.45(typescript@6.0.3)):
-    dependencies:
-      vue: 3.5.45(typescript@6.0.3)
 
   luxon@3.7.2: {}
 

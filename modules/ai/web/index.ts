@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-vue-next';
+import { Sparkles } from '@lucide/vue';
 import { defineComponent, h } from 'vue';
 import { defineWebModule, type WorkActivity } from '@planar/web/modules';
 import type { AiActivity, AiTaskRunStatus, AiUsage } from '../shared/index.js';

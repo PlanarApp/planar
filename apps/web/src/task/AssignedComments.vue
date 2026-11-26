@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { CheckCircle2, ChevronRight, Circle } from 'lucide-vue-next';
+import { CheckCircle2, ChevronRight, Circle } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
 import { useAuth } from '../auth/useAuth';

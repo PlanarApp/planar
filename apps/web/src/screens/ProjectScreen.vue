@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch, type Compo
 import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { BookmarkPlus, Check, MoreHorizontal, RotateCcw, Users } from 'lucide-vue-next';
+import { BookmarkPlus, Check, MoreHorizontal, RotateCcw, Users } from '@lucide/vue';
 import { useProject } from '../tasks';
 import { Button, IconButton, Menu } from '../ui';
 import { useAuth } from '../auth/useAuth';

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { ChevronRight } from 'lucide-vue-next';
+import { ChevronRight } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import { db, useQuery } from '@planar/web/modules';
 import PageTree from './PageTree.vue';

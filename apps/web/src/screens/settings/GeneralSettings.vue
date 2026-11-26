@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
-import { Smile } from 'lucide-vue-next';
+import { Smile } from '@lucide/vue';
 import { UserPicker } from '../../pickers';
 import { Button, EmojiPicker, Input, Popover, Select } from '../../ui';
 import NodeIcon from '../../ui/NodeIcon.vue';

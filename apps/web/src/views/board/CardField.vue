@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CalendarDays, Flag, FolderKanban, Tag, UserRound } from 'lucide-vue-next';
+import { CalendarDays, Flag, FolderKanban, Tag, UserRound } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import {
   AssigneePicker,

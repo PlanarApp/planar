@@ -1,4 +1,4 @@
-import { Clock } from 'lucide-vue-next';
+import { Clock } from '@lucide/vue';
 import { defineWebModule } from '@planar/web/modules';
 
 export const web = defineWebModule({

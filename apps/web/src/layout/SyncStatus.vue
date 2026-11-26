@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CloudOff, HardDrive, RefreshCw, TriangleAlert, Check } from 'lucide-vue-next';
+import { CloudOff, HardDrive, RefreshCw, TriangleAlert, Check } from '@lucide/vue';
 import { syncState } from '../sync';
 
 // connection and sync status (PWA): offline and how many edits are waiting, sending, error; afterwards — "synced"

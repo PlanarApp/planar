@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Inbox, MoreHorizontal, Plus, Search, Settings, Trash2 } from 'lucide-vue-next';
+import { Inbox, MoreHorizontal, Plus, Search, Settings, Trash2 } from '@lucide/vue';
 import {
   Avatar,
   AvatarStack,

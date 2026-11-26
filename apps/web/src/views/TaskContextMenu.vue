@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CheckSquare, Square } from 'lucide-vue-next';
+import { CheckSquare, Square } from '@lucide/vue';
 import Menu, { type MenuItem } from '../ui/Menu.vue';
 import { useTaskMenu, type TaskMenuField } from '../tasks/taskMenu';
 import {

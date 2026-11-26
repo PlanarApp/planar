@@ -13,7 +13,7 @@ import {
   SelectValue,
   SelectViewport,
 } from 'reka-ui';
-import { ChevronDown } from 'lucide-vue-next';
+import { ChevronDown } from '@lucide/vue';
 
 const props = withDefaults(
   defineProps<{

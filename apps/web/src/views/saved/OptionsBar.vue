@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useHotkey } from '../../command/hotkeys';
 import { useI18n } from 'vue-i18n';
-import { Filter as FilterIcon, Search } from 'lucide-vue-next';
+import { Filter as FilterIcon, Search } from '@lucide/vue';
 import { Button, IconButton, Input, Popover } from '../../ui';
 import type { Filter } from '../filter';
 import type { ViewOptions } from '../options';

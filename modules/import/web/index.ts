@@ -1,4 +1,4 @@
-import { Upload } from 'lucide-vue-next';
+import { Upload } from '@lucide/vue';
 import { defineWebModule, useRouter } from '@planar/web/modules';
 
 export const web = defineWebModule({

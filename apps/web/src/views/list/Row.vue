@@ -13,7 +13,7 @@ import {
   type TaskView,
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
-import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal } from '@lucide/vue';
 import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
 import TaskCard from './TaskCard.vue';

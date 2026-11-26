@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { ArrowRightLeft, CalendarDays } from 'lucide-vue-next';
+import { ArrowRightLeft, CalendarDays } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import { Button, Dialog, Menu } from '../ui';
 import BulkMerge from './BulkMerge.vue';

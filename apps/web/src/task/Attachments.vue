@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Paperclip, X } from 'lucide-vue-next';
+import { Paperclip, X } from '@lucide/vue';
 import { ApiError } from '../api/http';
 import { mutate, newId } from '../sync';
 import { Button } from '../ui';

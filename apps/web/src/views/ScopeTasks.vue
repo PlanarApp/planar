@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, ref, watch, type Component } from 'vue'
 import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Check, RotateCcw, Users } from 'lucide-vue-next';
+import { Check, RotateCcw, Users } from '@lucide/vue';
 import { Button } from '../ui';
 import ProjectFilter from './ProjectFilter.vue';
 import { useExtensions } from '../modules/registry';

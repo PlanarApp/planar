@@ -1,5 +1,5 @@
 import type { Component } from 'vue';
-import { CalendarDays, Columns3, List, Table2 } from 'lucide-vue-next';
+import { CalendarDays, Columns3, List, Table2 } from '@lucide/vue';
 import type { LocalizedText } from '../modules/types';
 import type { Filter } from './filter';
 import type { ViewOptions } from './options';

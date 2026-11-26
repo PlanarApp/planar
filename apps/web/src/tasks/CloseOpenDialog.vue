@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CheckCircle2, Circle } from 'lucide-vue-next';
+import { CheckCircle2, Circle } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import { Button, Dialog } from '../ui';
 import { db, mutate, useQuery } from '../sync';

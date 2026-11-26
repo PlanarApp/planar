@@ -1,5 +1,5 @@
 import { computed, type Ref } from 'vue';
-import { FolderKanban, LayoutGrid } from 'lucide-vue-next';
+import { FolderKanban, LayoutGrid } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import type { SubItem } from '../ui/Menu.vue';
 import NodeGlyph from '../ui/NodeGlyph.vue';

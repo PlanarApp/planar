@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
-import { BadgeDollarSign, MessageSquare } from 'lucide-vue-next';
+import { BadgeDollarSign, MessageSquare } from '@lucide/vue';
 import { Button, Input, Menu } from '@planar/web/modules';
 import type { TimeEntry } from '../shared/index.js';
 import {

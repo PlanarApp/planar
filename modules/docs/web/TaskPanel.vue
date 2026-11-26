@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { FilePlus, FileText, X } from 'lucide-vue-next';
+import { FilePlus, FileText, X } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import { Button, DocPicker, IconButton, db, useQuery, type SearchHit } from '@planar/web/modules';
 import { pagePath, searchPages, type PageRow, type TaskLinkRow } from './model';

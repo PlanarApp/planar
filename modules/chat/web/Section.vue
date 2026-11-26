@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ChevronRight, Hash, Plus, User } from 'lucide-vue-next';
+import { ChevronRight, Hash, Plus, User } from '@lucide/vue';
 import { Badge, Button, IconButton, Input, mutate, newId, UserPicker } from '@planar/web/modules';
 import { useChatData } from './data';
 import { byName, dmTitle, findDm, type Channel } from './model';

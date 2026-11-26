@@ -1,4 +1,4 @@
-import { Repeat } from 'lucide-vue-next';
+import { Repeat } from '@lucide/vue';
 import { db, defineWebModule } from '@planar/web/modules';
 
 export const web = defineWebModule({

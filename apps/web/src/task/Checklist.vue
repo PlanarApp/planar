@@ -9,7 +9,7 @@ import {
   SquarePlus,
   Trash2,
   UserPlus,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { CHECKLIST_MAX_INDENT, type Row } from '@planar/shared';
 import { db, mutate, newId, rankBetween, useQuery } from '../sync';
 import { Avatar, Input, Menu, type MenuItem } from '../ui';

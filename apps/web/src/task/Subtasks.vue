@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { ChevronRight, UserPlus } from 'lucide-vue-next';
+import { ChevronRight, UserPlus } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
 import { AssigneePicker, StatusPicker, createTask, useMembers, type TaskView } from '../tasks';

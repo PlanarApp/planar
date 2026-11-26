@@ -13,7 +13,7 @@ import {
   Star,
   StarOff,
   Trash2,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import type { MenuItem } from '../ui/Menu.vue';
 import { toast } from '../ui/toast';

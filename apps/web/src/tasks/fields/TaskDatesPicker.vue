@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlarmClock, Calendar } from 'lucide-vue-next';
+import { AlarmClock, Calendar } from '@lucide/vue';
 import { computed, defineAsyncComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button, Input } from '../../ui';

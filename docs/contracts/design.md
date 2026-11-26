@@ -17,7 +17,7 @@ Owner - the design coordinator (before phase 3 - the web coordinator). Consumers
 ## C-ui v5
 
 v5 (nav-polish): `FavStar` - favourite toggle (grey / yellow star) for node headers and module entities (chats). Compatible with v4.
-v4 (design, DS-0b): `Menu` without the `trigger` slot renders its own `IconButton` "..." (`MoreHorizontal`) with the `label` caption - modules without the `lucide-vue-next` dependency do not need their own icons; `Input` passes attributes (`required`, `maxlength`, `name`, `autocomplete`, `data-*`) to `<input>`, not to the wrapper. Compatible with v3.
+v4 (design, DS-0b): `Menu` without the `trigger` slot renders its own `IconButton` "..." (`MoreHorizontal`) with the `label` caption - modules without the `@lucide/vue` dependency do not need their own icons; `Input` passes attributes (`required`, `maxlength`, `name`, `autocomplete`, `data-*`) to `<input>`, not to the wrapper. Compatible with v3.
 
 v3 (design, DS-0): visual style "dense and strict, like Linear" (`docs/plan/design.md` §4). Neutral scale, sidebar tokens, shadows, font scale 11-20 px with a 13 px base, contrast check, new components (IconButton, ConfirmDialog, Tabs, Chip, AvatarStack, Kbd, EmptyState, Toolbar), density and destructive-action rules, showcase `/dev/ui`. Compatible with v2: v2 props and events are kept, token values and the look of components change. The `Button` variant `danger` is only for the confirm button in `ConfirmDialog`; DS-4 migrates its other uses.
 v2 (collab, CL-1a): extension point `search` (`EXTENSION_KINDS` += `search`) - `docs/contracts/collab.md` §X-core item 5; Inbox shows notifications without a task by `body` and leads to `url`.
@@ -196,7 +196,7 @@ Built on Reka UI + Tailwind 4, SFC `<script setup lang="ts">`. No user-facing st
 | `FavStar` | `fav: boolean` (required); event `click` | square 28 px; `Star` icon: `fav` -> filled `warning`, otherwise `fg-subtle`; `aria-pressed` = `fav`; `aria-label` and `Tooltip` - add to / remove from favourites |
 
 ### Icons
-Only `lucide-vue-next`, imported one by one (`import { Plus } from 'lucide-vue-next'`); size 16 by default, 20 in mobile navigation. No other sets or SVG icon files (except PWA icons).
+Only `@lucide/vue` (formerly lucide-vue-next), imported one by one (`import { Plus } from '@lucide/vue'`); size 16 by default, 20 in mobile navigation. No other sets or SVG icon files (except PWA icons).
 
 ### i18n
 vue-i18n, locales `ru`, `en`. Keys are nested: `<screen>.<element>` (`sidebar.inbox`). Initial locale - `localStorage['planar.locale']`, otherwise `ru` if `navigator.language` starts with `ru`, otherwise `en`. A key missing in `en` falls back to `ru`, with a warning in tests.

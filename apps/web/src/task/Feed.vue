@@ -25,7 +25,7 @@ import {
   ArrowUpNarrowWide,
   ChevronsDownUp,
   ChevronsUpDown,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { Button, IconButton, Select } from '../ui';
 import { avatarSrc } from '../pickers';
 import CommentThread from './CommentThread.vue';

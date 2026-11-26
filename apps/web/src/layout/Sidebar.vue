@@ -9,7 +9,7 @@ import {
   PanelLeftOpen,
   Plus,
   X,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import { prefetchIdle, prefetchProject, useRootSpaceId, useWorkspace } from '../tasks/queries';
 import { useExtensions } from '../modules/registry';
@@ -27,7 +27,7 @@ import { createSpace, reorder, useSidebarActions } from './sidebarActions';
 import { mutate } from '../sync';
 import { quickCreate } from '../command/hotkeys';
 import { useRoute } from 'vue-router';
-import { CheckSquare, FolderPlus, LayoutGrid } from 'lucide-vue-next';
+import { CheckSquare, FolderPlus, LayoutGrid } from '@lucide/vue';
 import type { MenuItem } from '../ui/Menu.vue';
 import NodeIcon from '../ui/NodeIcon.vue';
 import { useBreakpoint } from '../ui/useBreakpoint';

@@ -25,7 +25,7 @@ import { PluginKey } from '@tiptap/pm/state';
 import { filterSlash, slashItems } from './slash';
 import { insertRefAt, refTrigger, type RefAt } from './refTrigger';
 import { TO_TASK } from '../thread';
-import { ListPlus, ListTree } from 'lucide-vue-next';
+import { ListPlus, ListTree } from '@lucide/vue';
 import { blockItems, linkItem, markItems, selectionGroups, type SelItem } from './selectionMenu';
 import SuggestList from '../../pickers/SuggestList.vue';
 import type { PickUser } from '../../pickers/UserPicker.vue';

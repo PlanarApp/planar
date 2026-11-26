@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Tag } from 'lucide-vue-next';
+import { Tag } from '@lucide/vue';
 import { mutate, newId } from '../../sync';
 import { COLORS } from '../../screens/settings/colors';
 import { notArchived, useArchivedProjectIds, useLabels } from '../queries';

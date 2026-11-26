@@ -2,7 +2,7 @@
 import { useChatLinks } from './links';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { MessageSquare, Pencil, Plus, SmilePlus, Trash2 } from 'lucide-vue-next';
+import { MessageSquare, Pencil, Plus, SmilePlus, Trash2 } from '@lucide/vue';
 import {
   Button,
   ConfirmDialog,

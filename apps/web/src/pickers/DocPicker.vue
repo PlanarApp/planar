@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { FileText } from 'lucide-vue-next';
+import { FileText } from '@lucide/vue';
 import { useExtensions } from '../modules/registry';
 import type { SearchHit } from '../modules/types';
 import PickList from './PickList.vue';

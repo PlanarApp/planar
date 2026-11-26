@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { CalendarClock, Sun } from 'lucide-vue-next';
+import { CalendarClock, Sun } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import { Button } from '../ui';
 import { db, useQuery } from '../sync';

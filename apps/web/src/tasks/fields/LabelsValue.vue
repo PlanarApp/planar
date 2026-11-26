@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Row } from '@planar/shared';
-import { Tag } from 'lucide-vue-next';
+import { Tag } from '@lucide/vue';
 
 // a task's labels: a tag icon in the label's color, with the "Show label names" option — and the name
 defineProps<{ labels: Row<'labels'>[]; names?: boolean }>();
