@@ -18,7 +18,7 @@ import {
 import { and, eq, inArray } from 'drizzle-orm';
 import type { FastifyReply } from 'fastify';
 import type { PgBoss } from 'pg-boss';
-import webpush from 'web-push';
+import { sendNotification } from 'web-push';
 import { z } from 'zod';
 import { pushPayloadSchema, type PushPayload } from '@planar/shared';
 import { BlockedAddress, isDemo, pinnedLookup, safeAddress } from '@planar/server-kit';
@@ -63,7 +63,7 @@ export class WebPushSender implements PushSender {
         statusCode: e instanceof BlockedAddress ? 410 : undefined,
       });
     });
-    await webpush.sendNotification(
+    await sendNotification(
       { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
       JSON.stringify(p),
       // a silent host must not hold the single push worker; the connection — to the verified address

@@ -10,7 +10,7 @@ import { createUser, loginCookie } from './auth.js';
 import { db, req, useApp } from './auth/harness.js';
 
 const sendNotification = vi.hoisted(() => vi.fn(async () => ({})));
-vi.mock('web-push', () => ({ default: { sendNotification } }));
+vi.mock('web-push', () => ({ sendNotification }));
 
 useApp({ appOpts: { demo: true } });
 afterEach(() => setDemo(false));
