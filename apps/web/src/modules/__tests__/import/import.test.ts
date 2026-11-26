@@ -230,6 +230,68 @@ describe('wk6: web импорта', () => {
     w.unmount();
   });
 
+  it('PLNRAPP-877: недоверенный сертификат Plane — показан, галочка доверия отправляет отпечаток, смена адреса сбрасывает', async () => {
+    const certificate = {
+      subject: '*.k3s.example',
+      issuer: 'internal-ca',
+      validTo: '2027-01-10T12:29:03.000Z',
+      fingerprint256: 'AB:CD',
+    };
+    const empty = { status: [], project: [], people: [] };
+    vi.mocked(data.previewFile)
+      .mockResolvedValueOnce({
+        columns: [],
+        rows: [],
+        mapping: { title: 'name' },
+        values: empty,
+        certificate,
+      })
+      .mockResolvedValueOnce({ columns: [], rows: [], mapping: { title: 'name' }, values: empty });
+    const w = mount(ImportPage, { global: { plugins: [i18n] } });
+    w.findAllComponents(Select)[0]!.vm.$emit('update:modelValue', 'plane-api');
+    await w.vm.$nextTick();
+    await w.get('.import-plane-url').setValue('https://plane.k3s.example');
+    await w.get('.import-plane-workspace').setValue('acme');
+    await w.get('.import-plane-token').setValue('t');
+    await w.get('.import-next').trigger('click');
+    await flushPromises();
+    // still step 1: the certificate and the trust box
+    expect(w.find('.import-space').exists()).toBe(false);
+    expect(w.get('.import-plane-cert').text()).toContain('internal-ca');
+    expect(w.get('.import-plane-cert').text()).toContain('AB:CD');
+    await w.get('.import-plane-trust').setValue(true);
+    await w.get('.import-next').trigger('click');
+    await flushPromises();
+    expect(data.previewFile).toHaveBeenLastCalledWith(
+      { url: 'https://plane.k3s.example', workspace: 'acme', token: 't', fingerprint: 'AB:CD' },
+      'plane-api',
+      'plane',
+    );
+    expect(w.find('.import-space').exists()).toBe(true);
+    w.unmount();
+
+    // another address — the trust is dropped
+    vi.mocked(data.previewFile).mockResolvedValueOnce({
+      columns: [],
+      rows: [],
+      mapping: { title: 'name' },
+      values: empty,
+      certificate,
+    });
+    const w2 = mount(ImportPage, { global: { plugins: [i18n] } });
+    w2.findAllComponents(Select)[0]!.vm.$emit('update:modelValue', 'plane-api');
+    await w2.vm.$nextTick();
+    await w2.get('.import-plane-url').setValue('https://a.example');
+    await w2.get('.import-plane-workspace').setValue('acme');
+    await w2.get('.import-plane-token').setValue('t');
+    await w2.get('.import-next').trigger('click');
+    await flushPromises();
+    await w2.get('.import-plane-trust').setValue(true);
+    await w2.get('.import-plane-url').setValue('https://b.example');
+    expect(w2.find('.import-plane-cert').exists()).toBe(false);
+    w2.unmount();
+  });
+
   it('пустое пространство: без проекта по колонке проекта — проекты и люди «создать»', async () => {
     vi.mocked(data.previewFile).mockResolvedValueOnce({
       columns: ['Name', 'Project', 'Assignees'],

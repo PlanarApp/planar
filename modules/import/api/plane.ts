@@ -1,5 +1,8 @@
+import { request } from 'node:https';
+import { isIP } from 'node:net';
+import { checkServerIdentity, connect, type PeerCertificate, type TLSSocket } from 'node:tls';
 import { z } from 'zod';
-import type { Preview } from '../shared/index.js';
+import type { PlaneCert, Preview } from '../shared/index.js';
 import { ParseError, type Item } from './parse.js';
 
 /** Plane connection of a plane-api job; kept in import_jobs.source only while the job runs. */
@@ -14,6 +17,16 @@ export const planeConnSchema = z.object({
     .trim()
     .regex(/^[\w-]{1,100}$/, 'slug воркспейса Plane'),
   token: z.string().trim().min(1).max(500),
+  /** SHA-256 of a certificate the user trusts (PLNRAPP-877): only it is accepted, instead of the CA check */
+  fingerprint: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z
+      .string()
+      .trim()
+      .regex(/^([0-9a-f]{2}:){31}[0-9a-f]{2}$/i, 'отпечаток сертификата: SHA-256')
+      .transform((f) => f.toUpperCase())
+      .optional(),
+  ),
 });
 export type PlaneConn = z.infer<typeof planeConnSchema>;
 
@@ -58,39 +71,141 @@ type Comment = { comment_html?: string | null; actor?: string | null; created_at
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Plane's certificate is not trusted by the server: the wizard shows it to be trusted by its fingerprint. */
+export class PlaneUntrusted extends ParseError {
+  constructor(
+    url: string,
+    readonly certificate: PlaneCert,
+  ) {
+    super(
+      `Plane: сертификат ${url} не доверен серверу Planar — доверьте его по отпечатку в мастере импорта или добавьте корневой сертификат в NODE_EXTRA_CA_CERTS`,
+    );
+  }
+}
+
+const certOf = (c: PeerCertificate): PlaneCert => ({
+  subject: String(c.subject?.CN ?? ''),
+  issuer: String(c.issuer?.CN ?? ''),
+  validTo: new Date(c.valid_to).toISOString(),
+  fingerprint256: c.fingerprint256,
+});
+
+const tlsOpts = (u: URL) => ({
+  host: u.hostname,
+  port: Number(u.port || 443),
+  servername: isIP(u.hostname) ? undefined : u.hostname,
+  rejectUnauthorized: false,
+  timeout: 60_000,
+});
+const unreachable = (e: Error) =>
+  new ParseError(`Plane недоступен: ${(e as NodeJS.ErrnoException).code ?? e.message}`);
+
+/** TLS handshake without verification only to read the certificate; nothing is sent. */
+function peerCert(u: URL): Promise<PlaneCert> {
+  return new Promise((ok, fail) => {
+    const s = connect(tlsOpts(u), () => {
+      ok(certOf(s.getPeerCertificate()));
+      s.destroy();
+    });
+    s.once('error', (e) => fail(unreachable(e)));
+    s.once('timeout', () => s.destroy(new Error('таймаут')));
+  });
+}
+
+/**
+ * A TLS connection accepted only with the trusted certificate and the host name in it — checked before any byte
+ * (the token) is sent; tls options cannot do this: Node checks the host name only after a valid chain.
+ */
+function pinnedSocket(u: URL, fp: string): Promise<TLSSocket> {
+  return new Promise((ok, fail) => {
+    const s = connect(tlsOpts(u), () => {
+      const cert = s.getPeerCertificate();
+      if (cert.fingerprint256 !== fp) {
+        s.destroy();
+        return fail(
+          new ParseError(
+            `Plane: сертификат ${u.origin} изменился (отпечаток ${cert.fingerprint256}) — подтвердите его заново`,
+          ),
+        );
+      }
+      const err = checkServerIdentity(u.hostname, cert);
+      if (!err) return ok(s);
+      s.destroy();
+      fail(new ParseError(`Plane: ${err.message}`));
+    });
+    s.once('error', (e) => fail(unreachable(e)));
+    s.once('timeout', () => s.destroy(new Error('таймаут')));
+  });
+}
+
+type Res = { status: number; header(name: string): string | null; json(): Promise<unknown> };
+
+/** GET over the pinned connection (no agent: a new verified connection per request). */
+async function pinnedGet(url: string, headers: Record<string, string>, fp: string): Promise<Res> {
+  const u = new URL(url);
+  const socket = await pinnedSocket(u, fp);
+  return new Promise((ok, fail) => {
+    const req = request(u, { headers, createConnection: () => socket, timeout: 60_000 }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (c: Buffer) => chunks.push(c));
+      res.on('error', (e) => fail(unreachable(e)));
+      res.on('end', () =>
+        ok({
+          status: res.statusCode ?? 0,
+          header: (n) => (res.headers[n] === undefined ? null : String(res.headers[n])),
+          json: async () => JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown,
+        }),
+      );
+    });
+    req.on('error', (e) => fail(unreachable(e)));
+    req.on('timeout', () => req.destroy(new Error('таймаут')));
+    req.end();
+  });
+}
+
+async function plainGet(url: string, headers: Record<string, string>): Promise<Res> {
+  try {
+    const res = await fetch(url, {
+      headers,
+      redirect: 'error',
+      signal: AbortSignal.timeout(60_000),
+    });
+    return { status: res.status, header: (n) => res.headers.get(n), json: () => res.json() };
+  } catch (e) {
+    const code = (e as { cause?: { code?: string } }).cause?.code ?? '';
+    if (/CERT|SELF_SIGNED|UNABLE_TO_VERIFY|ALTNAME/.test(code)) {
+      const u = new URL(url);
+      throw new PlaneUntrusted(u.origin, await peerCert(u));
+    }
+    throw new ParseError(`Plane недоступен: ${code || (e as Error).message}`);
+  }
+}
+
 /** Plane API v1 client: X-API-Key, cursor pages, waits out the rate limit; errors — in plain words. */
 export function planeClient(c: PlaneConn) {
   const base = `${c.url}/api/v1/workspaces/${c.workspace}`;
   async function get<T>(path: string): Promise<T> {
     for (let attempt = 0; ; attempt++) {
-      let res: Response;
-      try {
-        res = await fetch(base + path, {
-          headers: { 'X-API-Key': c.token, Accept: 'application/json' },
-          redirect: 'error',
-          signal: AbortSignal.timeout(60_000),
-        });
-      } catch (e) {
-        const code = (e as { cause?: { code?: string } }).cause?.code ?? '';
-        if (/CERT|SELF_SIGNED|UNABLE_TO_VERIFY/.test(code))
-          throw new ParseError(
-            `Plane: сертификат ${c.url} не доверен серверу Planar (${code}) — добавьте корневой сертификат в NODE_EXTRA_CA_CERTS`,
-          );
-        throw new ParseError(`Plane недоступен: ${code || (e as Error).message}`);
-      }
+      const headers = { 'X-API-Key': c.token, Accept: 'application/json' };
+      // a trusted fingerprint applies to https only: plain http has no certificate
+      const res =
+        c.fingerprint && c.url.startsWith('https:')
+          ? await pinnedGet(base + path, headers, c.fingerprint)
+          : await plainGet(base + path, headers);
       if (res.status === 429 && attempt < 5) {
         // X-RateLimit-Reset — epoch seconds; Retry-After — seconds
-        const reset = Number(res.headers.get('x-ratelimit-reset')) * 1000 - Date.now();
-        const after = Number(res.headers.get('retry-after')) * 1000;
+        const reset = Number(res.header('x-ratelimit-reset')) * 1000 - Date.now();
+        const after = Number(res.header('retry-after')) * 1000;
         await wait(Math.min(Math.max(reset || after || 1000, 1000), 120_000));
         continue;
       }
       if (res.status === 401) throw new ParseError('Plane: неверный API-токен');
       if (res.status === 403) throw new PlaneForbidden(path);
       if (res.status === 404) throw new ParseError(`Plane: не найдено (${path.split('?')[0]})`);
-      if (!res.ok) throw new ParseError(`Plane: ошибка ${res.status} (${path.split('?')[0]})`);
+      if (res.status < 200 || res.status >= 300)
+        throw new ParseError(`Plane: ошибка ${res.status} (${path.split('?')[0]})`);
       // little quota left: slow down instead of hitting 429
-      if (Number(res.headers.get('x-ratelimit-remaining') ?? 100) < 5) await wait(1000);
+      if (Number(res.header('x-ratelimit-remaining') ?? 100) < 5) await wait(1000);
       return (await res.json()) as T;
     }
   }
@@ -118,8 +233,23 @@ export class PlaneForbidden extends Error {
   }
 }
 
-/** Projects, statuses and people for the wizard: no issues are read. */
+/** Projects, statuses and people for the wizard: no issues are read. An untrusted certificate — returned to be trusted. */
 export async function planePreview(c: PlaneConn): Promise<Preview> {
+  try {
+    return await readPreview(c);
+  } catch (e) {
+    if (!(e instanceof PlaneUntrusted)) throw e;
+    return {
+      columns: [],
+      rows: [],
+      mapping: PLANE_API_MAPPING,
+      values: { status: [], project: [], people: [] },
+      certificate: e.certificate,
+    };
+  }
+}
+
+async function readPreview(c: PlaneConn): Promise<Preview> {
   const api = planeClient(c);
   const [projects, members] = await Promise.all([
     api.all<Project>('/projects/'),

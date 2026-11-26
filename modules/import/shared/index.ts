@@ -79,6 +79,15 @@ export interface ImportJob {
   updatedAt: string;
 }
 
+/** A server certificate not trusted by Planar (Plane API, PLNRAPP-877) */
+export interface PlaneCert {
+  subject: string;
+  issuer: string;
+  validTo: string;
+  /** SHA-256, `AB:CD:…` as Node gives it */
+  fingerprint256: string;
+}
+
 export interface Preview {
   columns: string[];
   rows: string[][];
@@ -93,4 +102,6 @@ export interface Preview {
     /** person → e-mail, when the source knows it (Plane API): a hint for matching */
     emails?: Record<string, string>;
   };
+  /** Plane API: the certificate is not trusted — nothing was read; trust it by fingerprint and repeat */
+  certificate?: PlaneCert;
 }

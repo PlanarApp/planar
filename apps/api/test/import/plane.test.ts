@@ -1,5 +1,6 @@
-import { createServer, type Server } from 'node:http';
-import { mkdtempSync } from 'node:fs';
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { createServer as createTls } from 'node:https';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -85,8 +86,8 @@ const COMMENTS: Record<string, unknown[]> = {
 let rateLimited = false;
 let calls: string[] = [];
 
-function startPlane() {
-  plane = createServer((req, res) => {
+function handle(req: IncomingMessage, res: ServerResponse) {
+  {
     const u = new URL(req.url!, 'http://x');
     calls.push(u.pathname + u.search);
     const send = (code: number, body: unknown, headers: Record<string, string> = {}) => {
@@ -130,13 +131,24 @@ function startPlane() {
     const m = /^\/projects\/[^/]+\/issues\/([^/]+)\/comments\/$/.exec(p);
     if (m) return send(200, { results: COMMENTS[m[1]!] ?? [], next_page_results: false });
     send(404, { detail: 'not found' });
-  });
-  return new Promise<void>((r) =>
-    plane.listen(0, '127.0.0.1', () => {
-      planeUrl = `http://127.0.0.1:${(plane.address() as { port: number }).port}`;
-      r();
-    }),
+  }
+}
+
+// the same Plane over https with a self-signed certificate (PLNRAPP-877)
+const fixture = (n: string) => readFileSync(join(__dirname, 'fixtures', n));
+const CERT_FP =
+  '15:82:E4:06:33:66:6A:93:2E:18:66:6A:E3:CB:18:B3:5D:E1:B3:00:D4:55:99:CB:2D:55:9E:CB:8A:AD:0F:9E';
+let planeTls: Server;
+let planeTlsUrl = '';
+const listen = (srv: Server) =>
+  new Promise<string>((r) =>
+    srv.listen(0, '127.0.0.1', () => r(String((srv.address() as { port: number }).port))),
   );
+async function startPlane() {
+  plane = createServer(handle);
+  planeUrl = `http://127.0.0.1:${await listen(plane)}`;
+  planeTls = createTls({ key: fixture('plane-key.pem'), cert: fixture('plane-cert.pem') }, handle);
+  planeTlsUrl = `https://127.0.0.1:${await listen(planeTls)}`;
 }
 
 beforeAll(async () => {
@@ -162,6 +174,7 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   plane?.close();
+  planeTls?.close();
   await app.close();
   await db.$client.end();
 });
@@ -426,5 +439,77 @@ describe('импорт из API Plane', () => {
       (await post('/api/import/jobs', memberCookie, { ...conn(), projectId: pid, mapping: '{}' }))
         .statusCode,
     ).toBe(403);
+  });
+
+  it('PLNRAPP-877: недоверенный сертификат — предпросмотр отдаёт его; с его отпечатком импорт идёт, с чужим — отказ, токен не уходит', async () => {
+    const tls = { ...conn(), url: planeTlsUrl };
+    calls = [];
+    const r = await post('/api/import/preview', adminCookie, tls);
+    expect(r.statusCode, r.body).toBe(200);
+    expect(r.json().certificate).toEqual({
+      subject: 'localhost',
+      issuer: 'localhost',
+      validTo: expect.stringMatching(/^2126-/),
+      fingerprint256: CERT_FP,
+    });
+    expect(r.json().values.project).toEqual([]);
+    // only the handshake: no request reached Plane
+    expect(calls).toEqual([]);
+
+    const ok = await post('/api/import/preview', adminCookie, {
+      ...tls,
+      fingerprint: CERT_FP.toLowerCase(),
+    });
+    expect(ok.statusCode, ok.body).toBe(200);
+    expect(ok.json().certificate).toBeUndefined();
+    expect(ok.json().values.project).toHaveLength(2);
+
+    calls = [];
+    const wrong = await post('/api/import/preview', adminCookie, {
+      ...tls,
+      fingerprint: CERT_FP.replace(/^15/, '16'),
+    });
+    expect([wrong.statusCode, wrong.json().message]).toEqual([
+      400,
+      expect.stringContaining('сертификат https://127.0.0.1'),
+    ]);
+    expect(wrong.json().message).toContain('изменился');
+    expect(calls).toEqual([]);
+    const garbage = await post('/api/import/preview', adminCookie, { ...tls, fingerprint: 'xx' });
+    expect(garbage.statusCode).toBe(400);
+
+    // without the fingerprint the job is refused; with it — imported, the fingerprint goes away with the token
+    const pid = uuidv7();
+    await w.admin.ok('project.create', {
+      id: pid,
+      spaceId: w.spaceId,
+      name: 'Tls',
+      key: key(),
+      rank: 'a0',
+    });
+    const job = (extra: Record<string, string>) =>
+      post('/api/import/jobs', adminCookie, {
+        ...tls,
+        ...extra,
+        spaceId: w.spaceId,
+        mapping: JSON.stringify({ projectMap: { Engineering: pid } }),
+      });
+    const refused = await job({});
+    expect([refused.statusCode, refused.json().message]).toEqual([
+      400,
+      expect.stringContaining('доверьте его по отпечатку'),
+    ]);
+    const started = await job({ fingerprint: CERT_FP });
+    expect(started.statusCode, started.body).toBe(202);
+    const id = started.json().data.id;
+    expect(
+      JSON.parse(
+        (await db.$client.query('select source from import_jobs where id = $1', [id])).rows[0]
+          .source,
+      ),
+    ).toMatchObject({ fingerprint: CERT_FP });
+    await worker.handler({ jobId: id }, jobApi);
+    const [done] = (await db.$client.query('select * from import_jobs where id = $1', [id])).rows;
+    expect([done.status, done.error, done.created, done.source]).toEqual(['done', null, 2, null]);
   });
 });
