@@ -7,6 +7,7 @@ import { uuidv7 } from '@planar/shared';
 import { HttpError } from '../../auth/errors.js';
 import type { ExtArea, ExtOp } from './types.js';
 import { requireAdmin } from './instance.service.js';
+import { sharedOn } from './mailgit.service.js';
 import {
   D,
   S,
@@ -249,7 +250,8 @@ const ops: ExtOp[] = [
     path: '/api/v1/import/preview',
     shape: importFile,
     write: false,
-    run: async (_d, _u, i) => {
+    run: async (d, _u, i) => {
+      await sharedOn(d, 'import');
       const a = i as ImportInput;
       const mapping = a.format === 'csv' ? (a.mapping ?? null) : null;
       const p = parseImport(a.content, a.format, mapping, a.preset);
@@ -272,6 +274,8 @@ const ops: ExtOp[] = [
     write: true,
     status: 201,
     run: async (d, u, i) => {
+      // a disabled module's jobs do not run: the job would stay pending forever
+      await sharedOn(d, 'import');
       const a = i as ImportInput & { projectId?: string; spaceId?: string };
       const bad = (m: string) => new HttpError(400, 'invalid_request', m);
       const mapping = a.mapping ?? (a.format === 'trello' ? TRELLO_MAPPING : undefined);
@@ -332,6 +336,7 @@ const ops: ExtOp[] = [
     shape: { id },
     write: false,
     run: async (d, u, i) => {
+      await sharedOn(d, 'import');
       const jid = (i as { id: string }).id;
       const [row] = isUuid(jid)
         ? await d.db
