@@ -31,5 +31,9 @@ describe('индикатор синхронизации', () => {
     set({ status: 'error', pending: 1 });
     await nextTick();
     expect(state(w).attributes('data-state')).toBe('error');
+    set({ status: 'full', pending: 0 });
+    await nextTick();
+    expect(state(w).attributes('data-state')).toBe('full');
+    expect(state(w).text()).toContain('Мало места');
   });
 });
