@@ -2,7 +2,7 @@
 // PLNRAPP-372: «attach a photo or file» of a comment composer
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Paperclip } from 'lucide-vue-next';
+import { Paperclip } from '@lucide/vue';
 import { IconButton } from '../ui';
 import type { DraftFiles } from './commentFiles';
 

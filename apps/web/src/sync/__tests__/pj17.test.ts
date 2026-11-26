@@ -123,6 +123,24 @@ describe('PLNRAPP-484: схема реплики v4 — _held, tasks.createdBy',
     expect(schemaVersion(name, EXTRA)).toBe(v + 1);
   });
 
+  it('версия в базе выше объявленной (откат сборки): неотправленная очередь и clientId остаются', async () => {
+    const name = 'versionerr-' + uuidv7();
+    const old = new Dexie(name);
+    old.version(9).stores(buildSchema(EXTRA));
+    await old.table('_queue').add({ name: 'x', args: {}, createdAt: 'a' });
+    await old.table('_meta').bulkPut([
+      { key: 'clientId', value: 'c1' },
+      { key: 'cursor', value: 5 },
+    ]);
+    await old.table('tasks').put({ id: 't1' });
+    old.close();
+    const db = new PlanarDB(name);
+    await db.open();
+    expect(await db._queue.toArray()).toEqual([{ id: 1, name: 'x', args: {}, createdAt: 'a' }]);
+    expect(await db._meta.get('clientId')).toEqual({ key: 'clientId', value: 'c1' });
+    await db.delete();
+  });
+
   it('без модулей реплика v3 обновляется до v4', async () => {
     const name = 'pln484c-' + uuidv7();
     const old = new Dexie(name);

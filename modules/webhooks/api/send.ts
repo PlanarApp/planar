@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import http from 'node:http';
 import https from 'node:https';
-import { isDemo, safeAddress } from '@planar/server-kit';
+import { isDemo, pinnedLookup, safeAddress } from '@planar/server-kit';
 
 /** X-Planar-Signature per the contract: HMAC-SHA256(secret, exactly the bytes sent). */
 export const sign = (secret: string, body: string): string =>
@@ -31,11 +31,7 @@ export async function post(
           headers: { ...headers, 'Content-Length': Buffer.byteLength(body) },
           agent: false,
           signal: ac.signal,
-          // the connection is to the verified address, without re-resolving
-          lookup: (_h, o, cb) =>
-            (o as { all?: boolean }).all
-              ? (cb as (e: null, a: unknown) => void)(null, [{ address, family }])
-              : cb(null, address, family),
+          lookup: pinnedLookup({ address, family }) as never,
         },
         (res) => {
           res.destroy(); // the body is not needed

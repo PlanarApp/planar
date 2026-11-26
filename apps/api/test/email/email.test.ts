@@ -276,6 +276,9 @@ describe('pf4: дайджест', () => {
     await db.delete(D);
     await db.update(tasks).set({ dueDate: '2026-10-20' }).where(eq(tasks.id, taskId));
     await db.execute(
+      sql`insert into space_members (id, space_id, user_id, role) values (${uuidv7()}, ${w.spaceId}, ${rcpt.id}, 'member')`,
+    );
+    await db.execute(
       sql`insert into task_assignees (id, space_id, task_id, user_id) values (${uuidv7()}, ${w.spaceId}, ${taskId}, ${rcpt.id}) on conflict do nothing`,
     );
     expect(await digestTick(db, new Date('2026-10-25T09:00:00Z'))).toBe(1);
@@ -287,7 +290,27 @@ describe('pf4: дайджест', () => {
     await digestTick(db, new Date('2026-10-25T09:00:00Z'));
     expect(stub.mails).toHaveLength(0);
     await db.execute(sql`update projects set archived_at = null where id = ${w.projectId}`);
+    // archived task, then an assignee who left the space — not in the digest either
+    for (const [hide, show] of [
+      [
+        sql`update tasks set archived_at = now() where id = ${taskId}`,
+        sql`update tasks set archived_at = null where id = ${taskId}`,
+      ],
+      [
+        sql`delete from space_members where space_id = ${w.spaceId} and user_id = ${rcpt.id}`,
+        sql`insert into space_members (id, space_id, user_id, role) values (${uuidv7()}, ${w.spaceId}, ${rcpt.id}, 'member')`,
+      ],
+    ]) {
+      await db.delete(D);
+      await db.execute(hide);
+      await digestTick(db, new Date('2026-10-25T09:00:00Z'));
+      expect(stub.mails).toHaveLength(0);
+      await db.execute(show);
+    }
     await db.execute(sql`delete from task_assignees where task_id = ${taskId}`);
+    await db.execute(
+      sql`delete from space_members where space_id = ${w.spaceId} and user_id = ${rcpt.id}`,
+    );
   });
 });
 

@@ -47,6 +47,9 @@ describe('due reminders', () => {
       { user_id: w.member.userId, task_id: start, kind: 'start_today', actor_id: sys },
     ]);
     expect(await remindDue(db, sys, new Date('2026-11-12T04:25:00Z'))).toEqual([]);
+    // the user deleted the reminders: the next run of the hour does not send them again
+    await raw(`delete from notifications where id = any($1)`, [ids]);
+    expect(await remindDue(db, sys, new Date('2026-11-12T04:40:00Z'))).toEqual([]);
   });
 });
 

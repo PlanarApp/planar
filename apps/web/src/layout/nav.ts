@@ -3,7 +3,7 @@ import type { Row } from '@planar/shared';
 import { db, mutate, newId, rankBetween, replicaState, syncState, useQuery } from '../sync';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Languages, Lock, LogOut, Monitor, Moon, Sun, User } from 'lucide-vue-next';
+import { Languages, Lock, LogOut, Monitor, Moon, Sun, User } from '@lucide/vue';
 import type { MenuItem } from '../ui/Menu.vue';
 import { useTheme } from '../ui/useTheme';
 import { setLocale } from '../i18n';

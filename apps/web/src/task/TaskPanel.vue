@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { X } from 'lucide-vue-next';
+import { X } from '@lucide/vue';
 import { useTask } from '../tasks';
 import { Button } from '../ui';
 import TaskDetail from './TaskDetail.vue';

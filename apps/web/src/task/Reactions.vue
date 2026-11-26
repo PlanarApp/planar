@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { SmilePlus } from 'lucide-vue-next';
+import { SmilePlus } from '@lucide/vue';
 import { TooltipProvider } from 'reka-ui';
 import type { Row } from '@planar/shared';
 import { IconButton, Popover, Tooltip } from '../ui';

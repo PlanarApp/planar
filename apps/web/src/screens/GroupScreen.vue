@@ -2,14 +2,7 @@
 import { computed, defineAsyncComponent, watch, type Component } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import {
-  BarChart3,
-  Briefcase,
-  FileText,
-  ListTodo,
-  MessagesSquare,
-  Settings,
-} from 'lucide-vue-next';
+import { BarChart3, Briefcase, FileText, ListTodo, MessagesSquare, Settings } from '@lucide/vue';
 import { useProject, useRootSpaceId, useSpaces, useWorkspace } from '../tasks';
 import { tabLabelHidden } from '../ui/taskPanelWidth';
 import { EmptyState, Tabs } from '../ui';

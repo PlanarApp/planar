@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, nextTick, ref, watch } from 'vue';
-import { Plus } from 'lucide-vue-next';
+import { Plus } from '@lucide/vue';
 import type { JSONContent } from '@tiptap/core';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';

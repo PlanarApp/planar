@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Play, Plus, Square } from 'lucide-vue-next';
+import { Play, Plus, Square } from '@lucide/vue';
 import { IconButton, Popover } from '@planar/web/modules';
 import TimerPanel from './TimerPanel.vue';
 import { mutate, newId, tr, useEstimate, useMyEntries, useNow } from './data';

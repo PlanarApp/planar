@@ -552,14 +552,17 @@ export const sessions = pgTable(
     expiresAt: ts().notNull(),
     lastSeenAt: ts().notNull().defaultNow(),
     userAgent: text(),
-    /** null — full session; 'mfa' — password accepted, waiting for the second factor; 'setup' — 2FA is required by policy, not set up yet */
+    /** null — full session; 'mfa' — password accepted, waiting for the second factor; 'setup' — 2FA is required by policy, not set up yet; 'handoff' — one-time sign-in token, not a cookie */
     state: text(),
     /** app lock: set — the session is locked until unlock (passkey/TOTP) */
     lockedAt: ts(),
   },
   (t) => [
     index().on(t.userId),
-    check('sessions_state_check', sql`${t.state} is null or ${t.state} in ('mfa', 'setup')`),
+    check(
+      'sessions_state_check',
+      sql`${t.state} is null or ${t.state} in ('mfa', 'setup', 'handoff')`,
+    ),
   ],
 );
 
@@ -648,6 +651,22 @@ export const filesDeleted = pgTable('files_deleted', {
   sha256: text().primaryKey(),
   deletedAt: ts().notNull().defaultNow(),
 });
+
+/** Due reminders already sent (jobs/due.ts): deleting the notification does not make it fire again. */
+export const dueReminders = pgTable(
+  'due_reminders',
+  {
+    userId: cascadeUser(),
+    taskId: uuid()
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    kind: text().notNull(),
+    /** the firing: the local day (due_today/start_today) or the moment (due_soon/due_now) */
+    mark: text().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.taskId, t.kind, t.mark] })],
+);
 
 export const loginAttempts = pgTable('login_attempts', {
   key: text().primaryKey(),

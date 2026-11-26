@@ -15,7 +15,7 @@ import {
   SquareCode,
   Strikethrough,
   Underline,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { IconButton, Toolbar } from '@planar/web/modules';
 import { useTexts, type TextKey } from './text';
 

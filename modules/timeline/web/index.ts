@@ -1,7 +1,7 @@
 import { h } from 'vue';
 import { defineWebModule } from '@planar/web/modules';
 
-// a light icon: the module does not pull in lucide-vue-next
+// a light icon: the module does not pull in @lucide/vue
 const Gantt = () =>
   h(
     'svg',

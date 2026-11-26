@@ -86,6 +86,14 @@ describe('двухфакторный вход', () => {
     }
     const sec = (await req('GET', '/api/auth/security', { cookie: full })).json();
     expect([sec.totp, sec.recoveryLeft]).toEqual([true, 9]);
+    // two parallel sign-ins with the same recovery code: only one gets in
+    const pair = await Promise.all([login(u.login), login(u.login)]);
+    const codesOf = await Promise.all(
+      pair.map((p) =>
+        req('POST', '/api/auth/mfa/verify', { cookie: cookieOf(p), body: { code: codes[1]! } }),
+      ),
+    );
+    expect(codesOf.map((v) => v.statusCode).sort()).toEqual([200, 401]);
   });
 
   it('политика «всем»: без фактора — только настройка, затем полная сессия; последний фактор не снять', async () => {

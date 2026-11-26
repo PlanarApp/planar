@@ -1,4 +1,4 @@
-import { FileText } from 'lucide-vue-next';
+import { FileText } from '@lucide/vue';
 import { db } from '@planar/web/modules';
 import { pagePath, searchPages, type PageRow } from './model';
 import { label } from './text';

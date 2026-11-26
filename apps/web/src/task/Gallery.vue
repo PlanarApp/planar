@@ -11,7 +11,7 @@ import {
   DialogRoot,
   DialogTitle,
 } from 'reka-ui';
-import { ChevronLeft, ChevronRight, Download, X, ZoomIn, ZoomOut } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, Download, X, ZoomIn, ZoomOut } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import { downloadUrl, fileUrl } from './commentFiles';
 

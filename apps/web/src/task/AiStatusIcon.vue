@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { RouterLink } from 'vue-router';
-import { AlertCircle } from 'lucide-vue-next';
+import { AlertCircle } from '@lucide/vue';
 import Tooltip from '../ui/Tooltip.vue';
 
 // PLNRAPP-321: a compact AI status icon for a list row and a board card — a ring «ai» while the AI works,

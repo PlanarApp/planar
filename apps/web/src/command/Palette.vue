@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { SearchX } from 'lucide-vue-next';
+import { SearchX } from '@lucide/vue';
 import { Dialog, EmptyState, Input } from '../ui';
 import { useSelection, openTask } from '../views';
 import { useExtensions } from '../modules/registry';

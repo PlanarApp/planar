@@ -231,6 +231,8 @@ export class AgentController {
     // a streamed OpenAI answer carries usage only on request
     if (body.stream && !anthropic && path === '/v1/chat/completions')
       body.stream_options = { ...(body.stream_options as object), include_usage: true };
+    // the cost is counted at the connection's prices: the agent cannot pick a pricier model (prompt injection)
+    if (conn.model) body.model = conn.model;
     if (!anthropic) putSigs(runId, body);
     const ac = new AbortController();
     reply.raw.on('close', () => ac.abort());

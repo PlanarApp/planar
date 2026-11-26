@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Calendar } from 'lucide-vue-next';
+import { Calendar } from '@lucide/vue';
 import { defineAsyncComponent, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Button, Input } from '../../ui';

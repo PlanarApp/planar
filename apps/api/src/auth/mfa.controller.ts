@@ -26,7 +26,7 @@ import { DB } from '../tokens.js';
 import { publicUser } from './auth.controller.js';
 import { AUTH_OPTS, authenticateRaw, getAuth, readCookie, type AuthOpts } from './auth.js';
 import { HttpError } from './errors.js';
-import { assertNotLimited, recordFailure, resetAttempts } from './login-limit.js';
+import { countAttempt, resetAttempts } from './login-limit.js';
 import {
   factors,
   finishSetup,
@@ -148,10 +148,9 @@ export class MfaController {
     if (!s?.totpSecret || s.totpEnabled)
       throw new HttpError(409, 'conflict', 'Сначала начните подключение');
     const key = `mfa|${me.userId}`;
-    await assertNotLimited(this.db, key);
+    await countAttempt(this.db, key);
     const step = verifyTotp(s.totpSecret, b.code.replace(/\s/g, ''), null);
     if (step === null) {
-      await recordFailure(this.db, key);
       throw new HttpError(401, 'invalid_credentials', 'Неверный код');
     }
     await resetAttempts(this.db, key);
@@ -362,11 +361,10 @@ export class MfaController {
   ) {
     const b = parseBody(assertion, body);
     const key = `${req.ip}|passkey`;
-    await assertNotLimited(this.db, key);
+    await countAttempt(this.db, key);
     const userId = await verifyPasskey(this.db, this.rp(req), b as never, null);
     const [u] = userId ? await this.db.select().from(users).where(eq(users.id, userId)) : [];
     if (!u || u.deactivatedAt || u.bot) {
-      await recordFailure(this.db, key);
       throw new HttpError(401, 'invalid_credentials', 'Ключ не подошёл');
     }
     await resetAttempts(this.db, key);

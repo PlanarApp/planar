@@ -24,7 +24,7 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@nestjs/common": "^11.2.7",
+    "@nestjs/common": "^12.0.0",
     "@planar/server-kit": "workspace:*",
     "@planar/shared": "workspace:*",
     "drizzle-orm": "^0.45.4",

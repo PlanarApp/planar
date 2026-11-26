@@ -24,21 +24,21 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@nestjs/common": "^11.2.7",
+    "@nestjs/common": "^12.0.0",
     "@planar/server-kit": "workspace:*",
     "@planar/shared": "workspace:*",
     "@planar/web": "workspace:*",
-    "@tanstack/vue-virtual": "^3.13.47",
+    "@tanstack/vue-virtual": "^3.13.52",
     "drizzle-orm": "^0.45.4",
     "emoji-picker-element": "1.29.1",
     "emoji-picker-element-data": "1.8.0",
-    "lucide-vue-next": "^1.0.0",
-    "vue": "~3.5.44",
-    "vue-router": "^5.4.0",
+    "@lucide/vue": "^1.75.0",
+    "vue": "~3.5.45",
+    "vue-router": "^5.5.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@vue/test-utils": "^2.5.1",
-    "fake-indexeddb": "^6.2.6"
+    "@vue/test-utils": "^2.6.0",
+    "fake-indexeddb": "^6.2.8"
   }
 }

@@ -32,6 +32,7 @@ export const {
   startSync,
   stopSync,
   clearLocal,
+  localOwner,
   mutate,
   mutateMany,
   registerMutators,

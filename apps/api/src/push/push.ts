@@ -1,3 +1,4 @@
+import https from 'node:https';
 import {
   Body,
   Controller,
@@ -17,10 +18,10 @@ import {
 import { and, eq, inArray } from 'drizzle-orm';
 import type { FastifyReply } from 'fastify';
 import type { PgBoss } from 'pg-boss';
-import webpush from 'web-push';
+import { sendNotification } from 'web-push';
 import { z } from 'zod';
 import { pushPayloadSchema, type PushPayload } from '@planar/shared';
-import { BlockedAddress, isDemo, safeAddress } from '@planar/server-kit';
+import { BlockedAddress, isDemo, pinnedLookup, safeAddress } from '@planar/server-kit';
 import { BadRequestException } from '@nestjs/common';
 import { getAuth } from '../auth/auth.js';
 import type { Db } from '../db/index.js';
@@ -57,16 +58,20 @@ export class WebPushSender implements PushSender {
   async send(s: PushSub, p: PushPayload) {
     if (isDemo()) return; // demo: no outgoing requests
     // the endpoint comes from the client: an internal address is gone for good (410 deletes the subscription)
-    await safeAddress(new URL(s.endpoint).hostname).catch((e: unknown) => {
+    const to = await safeAddress(new URL(s.endpoint).hostname).catch((e: unknown) => {
       throw Object.assign(e instanceof Error ? e : new Error(String(e)), {
         statusCode: e instanceof BlockedAddress ? 410 : undefined,
       });
     });
-    await webpush.sendNotification(
+    await sendNotification(
       { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
       JSON.stringify(p),
-      // a silent host must not hold the single push worker
-      { vapidDetails: this.v as never, timeout: 10_000 },
+      // a silent host must not hold the single push worker; the connection — to the verified address
+      {
+        vapidDetails: this.v as never,
+        timeout: 10_000,
+        agent: new https.Agent({ lookup: pinnedLookup(to) as never }),
+      },
     );
   }
 }

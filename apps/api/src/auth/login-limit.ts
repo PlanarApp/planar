@@ -6,17 +6,11 @@ import { HttpError } from './errors.js';
 const MAX = 10;
 const stale = sql`${loginAttempts.windowStartedAt} < now() - interval '1 minute'`;
 
-/** More than 10 failures in a minute → 429 (before password check). */
-export async function assertNotLimited(db: Db, key: string) {
-  const [r] = await db
-    .select({ n: loginAttempts.attempts })
-    .from(loginAttempts)
-    .where(sql`${loginAttempts.key} = ${key} and not (${stale})`);
-  if (r && r.n > MAX) throw tooMany();
-}
-
-/** Record a failure; the 11th and later → 429. */
-export async function recordFailure(db: Db, key: string) {
+/**
+ * Counts the attempt before the secret is checked (success resets it): the 11th in a minute → 429. Counting first —
+ * parallel requests cannot all pass a check that reads the counter before any failure is written.
+ */
+export async function countAttempt(db: Db, key: string) {
   const [r] = await db
     .insert(loginAttempts)
     .values({ key, attempts: 1, windowStartedAt: new Date().toISOString() })

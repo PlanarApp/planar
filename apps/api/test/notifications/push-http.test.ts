@@ -1,10 +1,13 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createApp } from '../../src/app.js';
 import { pushSubscriptions } from '../../src/db/schema.js';
 import { WebPushSender } from '../../src/push/push.js';
 import { ORIGIN, createUser, loginCookie } from '../auth.js';
 import { dbUrl, newDb } from '../sync/helpers.js';
+
+const sendNotification = vi.hoisted(() => vi.fn(async () => ({})));
+vi.mock('web-push', () => ({ sendNotification }));
 
 const db = newDb();
 let app: Awaited<ReturnType<typeof createApp>>;
@@ -111,5 +114,32 @@ describe('WebPushSender', () => {
       await expect(
         sender.send({ endpoint, p256dh: 'p', auth: 'a' } as never, { title: 't' } as never),
       ).rejects.toMatchObject({ statusCode: 410 });
+  });
+
+  it('соединение — на проверенный адрес, без повторного DNS (rebinding)', async () => {
+    const sender = new WebPushSender({ publicKey: 'p', privateKey: 'k', subject: 'mailto:a@b.c' });
+    try {
+      await sender.send(
+        { endpoint: 'https://1.1.1.1/x', p256dh: 'p', auth: 'a' } as never,
+        {
+          title: 't',
+        } as never,
+      );
+      const agent = (
+        sendNotification.mock.calls[0]![2] as {
+          agent: {
+            options: {
+              lookup: (h: string, o: object, cb: (e: unknown, a: unknown) => void) => void;
+            };
+          };
+        }
+      ).agent;
+      const got = await new Promise((r) =>
+        agent.options.lookup('evil.example', {}, (_e: unknown, a: unknown) => r(a)),
+      );
+      expect(got).toBe('1.1.1.1');
+    } finally {
+      sendNotification.mockClear();
+    }
   });
 });

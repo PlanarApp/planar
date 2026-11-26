@@ -979,7 +979,7 @@ export class AiController {
     const conn: LlmConnection = {
       provider: b.provider,
       baseUrl: b.baseUrl ?? null,
-      apiKey: apiKeyOf(b.apiKey, had),
+      apiKey: apiKeyOf(b.apiKey, had, b),
       model: b.model,
       priceIn: b.priceIn ?? null,
       priceOut: b.priceOut ?? null,
@@ -1082,15 +1082,12 @@ export class AiController {
     if (!b.apiKey) {
       if (!secretKey()) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');
       // a new workspace connection (no id): the default one's key, if the host is the same
-      had = await (b.scope === 'workspace' && !b.id
-        ? levelConnection(this.core.db, 'workspace', WORKSPACE_SCOPE_ID)
-        : this.savedOf(b));
-      had ??= undefined;
-      // the saved key goes only to the host it was saved for
-      if (had && (had.provider !== b.provider || had.baseUrl !== (b.baseUrl ?? null)))
-        had = undefined;
+      had =
+        (await (b.scope === 'workspace' && !b.id
+          ? levelConnection(this.core.db, 'workspace', WORKSPACE_SCOPE_ID)
+          : this.savedOf(b))) ?? undefined;
     }
-    const apiKey = apiKeyOf(b.apiKey, had);
+    const apiKey = apiKeyOf(b.apiKey, had, b);
     return {
       models: await providerCall(() =>
         listModels({ provider: b.provider, baseUrl: b.baseUrl ?? null, apiKey }),
@@ -1110,9 +1107,15 @@ export class AiController {
 }
 
 /** The key given in the form, else the level's saved one. */
-const apiKeyOf = (given: string | undefined, had: typeof C.$inferSelect | undefined) => {
+const apiKeyOf = (
+  given: string | undefined,
+  had: typeof C.$inferSelect | undefined,
+  to: { provider: string; baseUrl?: string | null },
+) => {
   if (given) return given;
-  if (!had) throw new HttpError(400, 'invalid_request', 'apiKey обязателен');
+  // the saved key goes only to the host it was saved for
+  if (!had || had.provider !== to.provider || had.baseUrl !== (to.baseUrl ?? null))
+    throw new HttpError(400, 'invalid_request', 'apiKey обязателен');
   return secretOf(had).apiKey;
 };
 

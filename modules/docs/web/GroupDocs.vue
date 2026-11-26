@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, useTemplateRef } from 'vue';
 import { useRoute } from 'vue-router';
-import { ChevronLeft, FileText, Plus } from 'lucide-vue-next';
+import { ChevronLeft, FileText, Plus } from '@lucide/vue';
 import { Button, EmptyState, useGroupLevels, type GroupScope } from '@planar/web/modules';
 import PageTree from './PageTree.vue';
 import PageView from './PageView.vue';

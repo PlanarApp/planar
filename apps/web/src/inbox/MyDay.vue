@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CalendarClock } from 'lucide-vue-next';
+import { CalendarClock } from '@lucide/vue';
 import { useScopeTasks, type TaskView } from '../tasks';
 import type { ViewOptions, ViewProps } from '../views';
 import { Button } from '../ui';

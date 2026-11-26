@@ -2,7 +2,7 @@
 // PLNRAPP-372: files of a comment — photos as thumbnails (a click — the gallery), other files — an icon and download
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Download, File as FileIcon, X } from 'lucide-vue-next';
+import { Download, File as FileIcon, X } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import Gallery from './Gallery.vue';
 import { downloadUrl, fileSize, isImage, previewUrl } from './commentFiles';

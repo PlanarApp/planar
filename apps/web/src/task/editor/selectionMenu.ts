@@ -12,7 +12,7 @@ import {
   ListTodo,
   SquareCode,
   Strikethrough,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { slashItems } from './slash';
 
 // the menu over a selection: inline marks + the block commands of «/» + selection → task (hotfix 2026-11-25)

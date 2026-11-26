@@ -75,6 +75,8 @@ export class ServerTx implements Tx {
   private created = new Set<string>();
   /** Projects created by this transaction: their creator initializes the project's statuses (PJ-1). */
   private createdProjects = new Set<string>();
+  /** spaces whose members got `_reset` in this transaction */
+  private resetSpaces = new Set<string>();
   private instanceRole?: string;
   /** PJ-11: project of a row (`entity:id` -> project id), the user's role in a project (0 — none), projects hidden from the user. */
   private projectOf = new Map<string, string | null>();
@@ -284,6 +286,8 @@ export class ServerTx implements Tx {
       this.projectOf.set(`${entity}:${id}`, (next.projectId as string) ?? null);
     }
     if (entity === 'attachments' && !old) await this.checkFile(next);
+    if (['spaces', 'projects', 'settings', 'templatesTemplates'].includes(entity))
+      await this.checkIcon(entity, old, next);
     if (entity === 'settings' && next.id === 'enabled_modules')
       await this.checkAvailable(old?.value, next.value);
     if (entity === 'projects') await this.checkProjectModules(old, next);
@@ -306,13 +310,17 @@ export class ServerTx implements Tx {
       await this.reset(next.userId as string);
     // a change of the project's composition: the replica of everyone in the space drops what it must (PJ-11)
     if (entity === 'projects' && old && old.membersMode !== next.membersMode)
-      for (const m of await this.exec(() =>
-        this.q
-          .select({ u: schema.spaceMembers.userId })
-          .from(schema.spaceMembers)
-          .where(eq(schema.spaceMembers.spaceId, next.spaceId as string)),
-      ))
-        await this.reset(m.u);
+      await this.resetSpace(next.spaceId as string);
+    // a task/page moved between projects of one space: a custom project on either side changes who sees it,
+    // and a log row of the new project does not remove it from the replica of those who saw the old one
+    if (
+      (entity === 'tasks' || (entity as string) === 'docsPages') &&
+      old &&
+      !moved &&
+      old.projectId !== next.projectId &&
+      (await this.anyCustom([old.projectId, next.projectId]))
+    )
+      await this.resetSpace(next.spaceId as string);
     if (entity === 'settings' && next.id === 'enabled_modules') {
       this.cache.modules = undefined;
       await this.log('_reset', 'put', null, next.id as string);
@@ -535,6 +543,32 @@ export class ServerTx implements Tx {
       for (const r of left)
         await this.store('docsPages' as EntityName, { ...toWire('docsPages', r), parentId: null });
     }
+  }
+
+  /** `_reset` for every member of the space, once per transaction. */
+  private async resetSpace(spaceId: string): Promise<void> {
+    if (this.resetSpaces.has(spaceId)) return;
+    this.resetSpaces.add(spaceId);
+    for (const m of await this.exec(() =>
+      this.q
+        .select({ u: schema.spaceMembers.userId })
+        .from(schema.spaceMembers)
+        .where(eq(schema.spaceMembers.spaceId, spaceId)),
+    ))
+      await this.reset(m.u);
+  }
+
+  private async anyCustom(projectIds: unknown[]): Promise<boolean> {
+    const ids = projectIds.filter((x): x is string => typeof x === 'string');
+    if (!ids.length) return false;
+    const rows = await this.exec(() =>
+      this.q
+        .select({ id: schema.projects.id })
+        .from(schema.projects)
+        .where(and(inArray(schema.projects.id, ids), eq(schema.projects.membersMode, 'custom')))
+        .limit(1),
+    );
+    return rows.length > 0;
   }
 
   /** `_reset` for one user: their replica is rebuilt from bootstrap. */
@@ -779,7 +813,13 @@ export class ServerTx implements Tx {
         this.created.add(spaceId);
         continue;
       }
-      if (w === 'member|self' && r.userId != null && r.userId !== this.ctx.userId)
+      // another user's personal view: only a space admin deletes it (space.delete takes all views of the space)
+      if (
+        w === 'member|self' &&
+        r.userId != null &&
+        r.userId !== this.ctx.userId &&
+        (next || !(await this.isSpaceOrInstanceAdmin(spaceId)))
+      )
         throw forbidden('личный вид другого пользователя');
       // project.create writes the new project's statuses (write: admin) on behalf of a member (projects.md §PJ-1)
       if (entity === 'statuses' && this.createdProjects.has(r.projectId as string)) continue;
@@ -848,5 +888,33 @@ export class ServerTx implements Tx {
         .limit(1),
     );
     if (!a) throw new MutatorError('forbidden', 'файл не загружен этим пользователем');
+  }
+
+  /**
+   * An icon `file:<sha>` opens the file to everyone who sees the space/project (files.controller): only a file the user
+   * uploaded, or one already used as an icon in this space (a project copy, a template).
+   */
+  private async checkIcon(entity: EntityName, old: Wire | undefined, next: Wire): Promise<void> {
+    const iconOf = (r: Wire | undefined): unknown =>
+      entity === 'settings'
+        ? (r?.value as { icon?: unknown } | undefined)?.icon
+        : (entity as string) === 'templatesTemplates'
+          ? (r?.data as { project?: { icon?: unknown } } | undefined)?.project?.icon
+          : r?.icon;
+    const icon = iconOf(next);
+    if (this.opts.system || typeof icon !== 'string' || !icon.startsWith('file:')) return;
+    if (icon === iconOf(old)) return;
+    const spaceId =
+      entity === 'settings' ? null : ((entity === 'spaces' ? next.id : next.spaceId) as string);
+    const { rows } = await this.exec(() =>
+      this.q
+        .execute(sql`select 1 from file_uploads where sha256 = ${icon.slice(5)} and user_id = ${this.ctx.userId}
+        union all select 1 from projects where space_id = ${spaceId} and icon = ${icon}
+        union all select 1 from spaces where id = ${spaceId} and icon = ${icon}
+        union all select 1 from templates_templates where space_id = ${spaceId} and data->'project'->>'icon' = ${icon}
+        limit 1`),
+    );
+    if (!rows.length)
+      throw new MutatorError('forbidden', 'файл иконки не загружен этим пользователем');
   }
 }

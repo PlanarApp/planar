@@ -7,7 +7,7 @@ import {
   ChevronsUpDown,
   ListTree,
   SlidersHorizontal,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { Button, Popover, Select } from '../../ui';
 import {
   fieldModule,

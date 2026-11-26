@@ -2,7 +2,7 @@
 import TaskContextMenu from '../TaskContextMenu.vue';
 import BulkBar from '../BulkBar.vue';
 import { useVirtualizer, type VirtualItem } from '@tanstack/vue-virtual';
-import { ChevronDown, ChevronRight, ListChecks, Plus } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, ListChecks, Plus } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {

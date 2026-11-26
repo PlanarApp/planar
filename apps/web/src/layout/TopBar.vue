@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, type Component } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Inbox, PanelLeft, Plus, Search } from 'lucide-vue-next';
+import { Inbox, PanelLeft, Plus, Search } from '@lucide/vue';
 const BellMenu = defineAsyncComponent(() => import('../inbox/BellMenu.vue'));
 import Button from '../ui/Button.vue';
 import IconButton from '../ui/IconButton.vue';

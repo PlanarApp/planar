@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarDays, Flag, Tag, UserRound } from 'lucide-vue-next';
+import { CalendarDays, Flag, Tag, UserRound } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import type { Row as DbRow } from '@planar/shared';
 import { AvatarStack } from '../../ui';

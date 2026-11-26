@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { VueDraggable } from 'vue-draggable-plus';
 import { rankBetween } from '../../sync';
-import { CopyPlus, Link, Pencil, Trash2 } from 'lucide-vue-next';
+import { CopyPlus, Link, Pencil, Trash2 } from '@lucide/vue';
 import { Button, Dialog, Menu } from '../../ui';
 import { deleteView, saveView, updateView } from './ops';
 import { toast } from '../../ui/toast';

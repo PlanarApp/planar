@@ -94,6 +94,15 @@ describe('лимит входа', () => {
     for (let i = 0; i < 10; i++) expect((await login('gina', 'badpassword')).statusCode).toBe(401);
     expect((await login('gina', 'badpassword')).statusCode).toBe(429);
   });
+
+  it('параллельные попытки не обходят лимит: из 15 одновременных проверяются не больше 10', async () => {
+    await mkUser('hank');
+    const codes = await Promise.all(
+      Array.from({ length: 15 }, () => login('hank', 'badpassword').then((r) => r.statusCode)),
+    );
+    expect(codes.filter((c) => c === 401)).toHaveLength(10);
+    expect(codes.filter((c) => c === 429)).toHaveLength(5);
+  });
 });
 
 describe('Origin', () => {

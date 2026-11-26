@@ -39,6 +39,7 @@ export async function createHandoffSession(
     userId,
     expiresAt: new Date(Date.now() + HANDOFF_MS).toISOString(),
     userAgent,
+    state: 'handoff',
   });
   return token;
 }

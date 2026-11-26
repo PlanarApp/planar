@@ -44,7 +44,7 @@ import {
   Tag,
   Users,
   X,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { useAuth } from '../auth/useAuth';
 import { mutate, newId, useQuery } from '../sync';
 import { router as appRouter } from '../router';

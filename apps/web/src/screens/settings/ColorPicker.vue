@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Ban } from 'lucide-vue-next';
+import { Ban } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import { COLORS } from './colors';
 

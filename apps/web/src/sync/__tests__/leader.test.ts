@@ -1,5 +1,5 @@
 // Tabs (navigator.locks): a tab that becomes the leader later takes the cursor the old leader left in _meta.
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { label, setup, stopAll } from './helpers';
 
 /** navigator.locks for one name: the holder runs until its callback settles, waiters queue up */
@@ -55,5 +55,21 @@ describe('лидер вкладок', () => {
     await new Promise((r) => setTimeout(r, 50));
     await other.syncNow();
     expect(s.server.bootstraps).toBe(1);
+  });
+
+  it('другая вкладка очистила реплику (выход, другой пользователь): лидер останавливается, а не синхронизирует со старым clientId', async () => {
+    const s = setup();
+    const a = s.mk();
+    const b = s.mk();
+    await s.start(a);
+    await s.start(b);
+    await a.syncNow();
+    let out = 0;
+    a.onUnauthorized(() => out++);
+    await b.clearLocal();
+    await vi.waitFor(() => expect(out).toBe(1));
+    const [pulls, pushes] = [s.server.pulls, s.server.pushes];
+    await a.syncNow();
+    expect([s.server.pulls, s.server.pushes]).toEqual([pulls, pushes]);
   });
 });

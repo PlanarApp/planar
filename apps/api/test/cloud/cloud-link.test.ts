@@ -3,6 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { eq } from 'drizzle-orm';
 import { afterAll, describe, expect, it } from 'vitest';
 import { allowedOrigins } from '../../src/auth/auth.js';
+import { createHandoffSession, createSession } from '../../src/auth/sessions.js';
 import { notifications } from '../../src/db/schema.js';
 import { createUser, loginCookie } from '../auth.js';
 import { db, req, useApp } from '../auth/harness.js';
@@ -209,6 +210,16 @@ describe('cloud-link', () => {
     expect(h.headers.location).toBe('/'); // вход из админки облака — без подсказки
     const cookie = String(h.headers['set-cookie']).split(';')[0]!;
     expect((await req('GET', '/api/auth/me', { cookie })).json().user.login).toBe('admin');
+  });
+
+  it('handoff меняет только handoff-токен: сессия mfa не становится полной, сам токен — не cookie', async () => {
+    const u = await createUser(db);
+    const mfa = await createSession(db, u.id, undefined, 'mfa');
+    const h = await req('GET', `/api/auth/handoff?token=${mfa}`);
+    expect([h.headers.location, h.headers['set-cookie']]).toEqual(['/login', undefined]);
+    const token = await createHandoffSession(db, u.id);
+    const me = await req('GET', '/api/auth/me', { cookie: `planar_sid=${token}` });
+    expect(me.statusCode).toBe(401);
   });
 
   it('выгрузка: только владелец; url — скачивание из облака', async () => {

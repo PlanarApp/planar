@@ -683,6 +683,8 @@ describe('agent: LLM-прокси', () => {
     expect(res.statusCode).toBe(200);
     expect(provHits[0]).toMatchObject({ url: '/chat/completions', auth: `Bearer ${KEY_SECRET}` });
     expect(provHits[0]!.headers['x-api-key']).toBeUndefined();
+    // the agent asked for 'm': the provider gets the connection's model (the cost is counted at its prices)
+    expect(provHits[0]!.body.model).toBe('fake');
     expect(res.body).not.toContain(KEY_SECRET);
     let row = await one(`select input_tokens, output_tokens, cost from ai_runs where id = $1`, [
       r.run.id,

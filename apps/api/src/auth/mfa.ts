@@ -8,7 +8,7 @@ import type { Db } from '../db/index.js';
 import { authChallenges, passkeys, sessions, settings, userSecurity, users } from '../db/schema.js';
 import { allowedOrigins, isAdminRole } from './auth.js';
 import { HttpError } from './errors.js';
-import { assertNotLimited, recordFailure, resetAttempts } from './login-limit.js';
+import { countAttempt, resetAttempts } from './login-limit.js';
 import { hashRecovery, verifyTotp } from './totp.js';
 
 export type MfaPolicy = 'off' | 'admins' | 'all';
@@ -127,18 +127,29 @@ async function verifyCode(db: Db, userId: string, code: string): Promise<boolean
   const c = code.replace(/\s/g, '');
   if (s.totpEnabled && s.totpSecret) {
     const step = verifyTotp(s.totpSecret, c, s.totpStep);
+    // conditional writes: of two parallel requests with the same code only one spends it
     if (step !== null) {
-      await db.update(userSecurity).set({ totpStep: step }).where(eq(userSecurity.userId, userId));
-      return true;
+      const won = await db
+        .update(userSecurity)
+        .set({ totpStep: step })
+        .where(
+          and(
+            eq(userSecurity.userId, userId),
+            sql`(${userSecurity.totpStep} is null or ${userSecurity.totpStep} < ${step})`,
+          ),
+        )
+        .returning({ u: userSecurity.userId });
+      return won.length > 0;
     }
   }
   const h = hashRecovery(c);
   if (c.length < 8 || !s.recoveryCodes.includes(h)) return false;
-  await db
+  const won = await db
     .update(userSecurity)
-    .set({ recoveryCodes: s.recoveryCodes.filter((x) => x !== h) })
-    .where(eq(userSecurity.userId, userId));
-  return true;
+    .set({ recoveryCodes: sql`array_remove(${userSecurity.recoveryCodes}, ${h})` })
+    .where(and(eq(userSecurity.userId, userId), sql`${h} = any(${userSecurity.recoveryCodes})`))
+    .returning({ u: userSecurity.userId });
+  return won.length > 0;
 }
 
 export type FactorProof = { code: string } | PasskeyProof;
@@ -151,13 +162,12 @@ export async function verifyFactor(
   rp: () => { origin: string; rpID: string },
 ): Promise<void> {
   const key = `mfa|${userId}`;
-  await assertNotLimited(db, key);
+  await countAttempt(db, key);
   const ok =
     'code' in proof
       ? await verifyCode(db, userId, proof.code)
       : (await verifyPasskey(db, rp(), proof, userId)) === userId;
   if (!ok) {
-    await recordFailure(db, key);
     throw new HttpError(401, 'invalid_credentials', 'Неверный код');
   }
   await resetAttempts(db, key);

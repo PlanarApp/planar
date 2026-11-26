@@ -93,7 +93,10 @@ export async function roleInProject(
   );
   if (!sm) return null;
   if (sm.role === 'admin' || !projectId) return sm.role;
-  if ((await tx.get('projects', projectId))?.membersMode !== 'custom') return sm.role;
+  const p = await tx.get('projects', projectId);
+  // on the server a custom project the caller is not in does not exist for them (PJ-11): no access
+  if (!p) return null;
+  if (p.membersMode !== 'custom') return sm.role;
   const pm = (await tx.scan('projectMembers', { index: 'projectId', eq: projectId })).find(
     (m) => m.userId === userId,
   );

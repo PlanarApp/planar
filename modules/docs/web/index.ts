@@ -1,4 +1,4 @@
-import { FileText } from 'lucide-vue-next';
+import { FileText } from '@lucide/vue';
 import { db, defineWebModule } from '@planar/web/modules';
 import { pageSearch } from './search';
 import { label } from './text';

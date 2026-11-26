@@ -1,4 +1,4 @@
-import { Zap } from 'lucide-vue-next';
+import { Zap } from '@lucide/vue';
 import { defineWebModule } from '@planar/web/modules';
 
 export const web = defineWebModule({

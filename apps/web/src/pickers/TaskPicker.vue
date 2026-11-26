@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { SquareCheck } from 'lucide-vue-next';
+import { SquareCheck } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import StatusIcon from '../tasks/fields/StatusIcon.vue';
 import PickList from './PickList.vue';

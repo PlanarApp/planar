@@ -161,7 +161,8 @@ async function authenticateAny(
     .innerJoin(users, eq(users.id, sessions.userId))
     .leftJoin(userSecurity, eq(userSecurity.userId, sessions.userId))
     .where(eq(sessions.id, hashToken(token)));
-  if (!row) return null;
+  // a handoff token is exchanged only by GET /api/auth/handoff
+  if (!row || row.s.state === 'handoff') return null;
   if (row.deactivated) {
     await deleteUserSessions(db, row.s.userId);
     return null;

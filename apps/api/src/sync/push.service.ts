@@ -123,7 +123,7 @@ export class PushService {
       // muts[n] is the first executed one: before it there were only repeats
       const m = muts[n];
       const r = { id: m.id, code: err.code, message: err.message };
-      await this.db.transaction(async (tx) => {
+      const own = await this.db.transaction(async (tx) => {
         await tx
           .insert(clientMutations)
           .values({ clientId, userId, lastMutationId: 0 })
@@ -133,11 +133,18 @@ export class PushService {
           .from(clientMutations)
           .where(eq(clientMutations.clientId, clientId))
           .for('update');
+        // a parallel push of the same mutations got past m: m is a repeat now, the next batch answers it
+        if (cm.lastMutationId >= m.id) return false;
         await tx
           .update(clientMutations)
           .set({ lastMutationId: m.id, rejected: keep(cm.rejected, [r]), updatedAt: sql`now()` })
           .where(eq(clientMutations.clientId, clientId));
+        return true;
       });
+      if (!own) {
+        results.push(...done);
+        return muts.slice(n);
+      }
       results.push(...done, failed(m, err));
       return muts.slice(n + 1);
     }

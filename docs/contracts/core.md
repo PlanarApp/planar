@@ -151,7 +151,7 @@ Entities — docs/contracts/core-schema.md (part of C-schema v22).
 ### Non-synced tables (server only)
 | table | columns |
 |---|---|
-| `sessions` | `id text pk` (sha256 hex of the cookie token), `user_id uuid`, `created_at`, `expires_at`, `last_seen_at timestamptz`, `user_agent text?`, `state text?` (null, mfa, setup — § Two-factor authentication), `locked_at timestamptz?` (app lock) |
+| `sessions` | `id text pk` (sha256 hex of the cookie token), `user_id uuid`, `created_at`, `expires_at`, `last_seen_at timestamptz`, `user_agent text?`, `state text?` (null, mfa, setup — § Two-factor authentication; handoff — a one-time sign-in token of cloud-link/setup, exchanged only by GET /api/auth/handoff, not accepted as a cookie), `locked_at timestamptz?` (app lock) |
 | `files` | `sha256 text pk`, `size bigint`, `mime text`, `width int?`, `height int?`, `created_by uuid`, `created_at` |
 | `push_subscriptions` | `id uuid pk`, `user_id uuid`, `endpoint text unique`, `p256dh text`, `auth text`, `user_agent text?`, `created_at` |
 | `client_mutations` | `client_id uuid pk`, `user_id uuid`, `last_mutation_id bigint not null`, `rejected jsonb not null default '[]'` (the last 100 refusals: id, code, message), `updated_at` |
@@ -159,6 +159,7 @@ Entities — docs/contracts/core-schema.md (part of C-schema v22).
 | `file_uploads` | `sha256 text`, `user_id uuid`, `created_at`; primary key (sha256, user_id) — who uploaded the file (duplicate content is a single row in files); created_at — the last upload of this content by this user |
 | `files_deleted` | `sha256 text pk`, `deleted_at timestamptz` — files of attachments deleted in the app (trigger attachments_files_deleted on attachments delete, any path: attachment.delete, comment.delete, cascades). Night job core.files.purge (04:10 UTC) takes rows older than 7 days: deletes the files row and the file in DATA_DIR if the sha256 occurs in no text/json/bytea/array column of the schema (except the sync journal changes: it keeps puts of deleted rows) and was not uploaded again within 7 days; the queue row goes in any outcome. Files never attached (inline images, avatars, icons) are not purged (PLNRAPP-858) |
 | `login_attempts` | `key text pk` (ip and login joined by "\|"), `attempts int`, `window_started_at timestamptz` — a 1-minute window for the login limit |
+| `due_reminders` | `user_id uuid`, `task_id uuid`, `kind text` (due_today, start_today, due_soon, due_now), `mark text` (the local day or the firing moment), `created_at`; primary key (user_id, task_id, kind, mark) — reminders already sent (jobs/due.ts): a deleted notification does not fire again; rows older than 2 days are deleted by the same job |
 | `api_tokens` | `id uuid pk`, `user_id uuid`, `name text`, `token_sha256 text unique`, `prefix text`, `scope text check (read,write)`, `expires_at?`, `last_used_at?`, `revoked_at?`, `created_at` |
 | `user_security` | `user_id uuid pk`, `totp_secret text?`, `totp_enabled bool`, `totp_step bigint?` (the last accepted step), `recovery_codes text[]` (sha256), `lock_on_open bool`, `lock_minutes int?`, `lock_wipe bool`, `updated_at` |
 | `passkeys` | `id text pk` (credential id, base64url), `user_id uuid`, `name text`, `public_key text`, `counter bigint`, `transports text[]?`, `created_at`, `last_used_at?` |

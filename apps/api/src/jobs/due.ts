@@ -23,6 +23,7 @@ export async function remindDue(db: Db, systemUserId: string, now = new Date()):
     spaceId: string;
     projectId: string;
     kind: Kind;
+    mark: string;
   }>(sql`
     with l as (
       select u.id, (${at}::timestamptz at time zone coalesce(z.name, 'UTC')) as local
@@ -30,7 +31,7 @@ export async function remindDue(db: Db, systemUserId: string, now = new Date()):
       where u.deactivated_at is null and not u.bot
     )
     select l.id as "userId", t.id as "taskId", t.space_id as "spaceId",
-      t.project_id as "projectId", k.kind
+      t.project_id as "projectId", k.kind, k.day::text as mark
     from l
     join task_assignees a on a.user_id = l.id
     join tasks t on t.id = a.task_id and t.archived_at is null
@@ -41,13 +42,22 @@ export async function remindDue(db: Db, systemUserId: string, now = new Date()):
       and not exists (select 1 from notifications n where n.user_id = l.id and n.task_id = t.id
         and n.kind = k.kind and n.created_at > ${at}::timestamptz - interval '20 hours')
   `);
+  // marks outlive every firing window (20 h for the daily ones, LATE_MIN for the timed)
+  await db.execute(sql`delete from due_reminders where created_at < now() - interval '2 days'`);
   return notifyRows(db, systemUserId, rows, at);
 }
 
 async function notifyRows(
   db: Db,
   systemUserId: string,
-  rows: { userId: string; taskId: string; spaceId: string; projectId: string; kind: Kind }[],
+  rows: {
+    userId: string;
+    taskId: string;
+    spaceId: string;
+    projectId: string;
+    kind: Kind;
+    mark: string;
+  }[],
   at: string,
 ): Promise<string[]> {
   if (!rows.length) return [];
@@ -56,6 +66,12 @@ async function notifyRows(
     const ids: string[] = [];
     for (const r of rows) {
       if (!(await projectAccess(q, r.userId, r.projectId))) continue; // PJ-11: custom project access
+      // once per firing, even if the user deleted the notification
+      const sent = await q.execute(
+        sql`insert into due_reminders (user_id, task_id, kind, mark) values (${r.userId}, ${r.taskId}, ${r.kind}, ${r.mark})
+          on conflict do nothing returning 1`,
+      );
+      if (!sent.rows.length) continue;
       const id = uuidv7();
       await tx.put('notifications', {
         id,
@@ -137,6 +153,7 @@ export async function remindDueTime(
     spaceId: string;
     projectId: string;
     kind: Kind;
+    mark: string;
   }>(sql`
     with l as (
       select u.id, coalesce(z.name, 'UTC') as zone
@@ -154,7 +171,7 @@ export async function remindDueTime(
       join space_members m on m.space_id = t.space_id and m.user_id = l.id
     )
     select x.uid as "userId", x.tid as "taskId", x.space_id as "spaceId",
-      x.project_id as "projectId", k.kind
+      x.project_id as "projectId", k.kind, k.fire::text as mark
     from x
     cross join lateral (values
       ('due_soon', x.due_at - x.n * interval '1 minute', x.n > 0),

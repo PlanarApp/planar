@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
-import { X } from 'lucide-vue-next';
+import { X } from '@lucide/vue';
 import { Badge, Button, EmptyState, IconButton, Input, Menu } from '@planar/web/modules';
 
 interface Sub {

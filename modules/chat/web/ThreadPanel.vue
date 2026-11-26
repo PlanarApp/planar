@@ -2,7 +2,7 @@
 import { useChatLinks } from './links';
 import { computed, onMounted, ref, shallowRef } from 'vue';
 import { RouterLink } from 'vue-router';
-import { X } from 'lucide-vue-next';
+import { X } from '@lucide/vue';
 import { api, db, useQuery } from '@planar/web/modules';
 import Composer from './Composer.vue';
 import MessageItem from './MessageItem.vue';
