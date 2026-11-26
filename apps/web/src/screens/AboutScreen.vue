@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import AppSection from '../../pwa/AppSection.vue';
-import { releases } from '../settings/changelog';
+import AppSection from '../pwa/AppSection.vue';
+import { releases } from './settings/changelog';
 
 const { t } = useI18n();
 // main open-source components (apps/web, apps/api package.json); links — the projects' home pages
@@ -25,7 +25,7 @@ const REPO = 'https://gitlab.com/planarhq/planar';
 </script>
 
 <template>
-  <div class="flex max-w-2xl flex-col gap-6">
+  <div class="mx-auto flex max-w-2xl flex-col gap-6 p-4">
     <header class="flex items-center gap-4">
       <img src="/icons/icon-192.png" alt="" class="size-16 rounded-xl" />
       <div class="min-w-0">

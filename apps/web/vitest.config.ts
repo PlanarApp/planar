@@ -1,8 +1,16 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vitest/config';
 
+// the app version for the sidebar button — the newest release of CHANGELOG.md (About shows the whole history)
+const appVersion =
+  /^## \[(\d[^\]]*)\]/m.exec(
+    readFileSync(new URL('../../CHANGELOG.md', import.meta.url), 'utf8'),
+  )?.[1] ?? '';
+
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(appVersion) },
   plugins: [vue()],
   resolve: {
     conditions: ['source'],

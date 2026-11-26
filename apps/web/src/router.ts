@@ -30,7 +30,16 @@ export const router = createRouter({
     // :view — group tab (docs, chats, …) or Tasks view key (list, board, …)
     { path: '/p/:projectId/:view?', name: 'project', component: screen('Group') },
     { path: '/t/:key', name: 'task', component: screen('Task') },
-    { path: '/settings/:section?', name: 'settings', component: screen('Settings') },
+    { path: '/about', name: 'about', component: screen('About') },
+    // workspace settings — the «Settings» tab of «All» (/w/settings?s=…); the old address leads there
+    {
+      path: '/settings/:section?',
+      name: 'settings',
+      redirect: (to) => ({
+        path: '/w/settings',
+        query: { ...to.query, ...(to.params.section && { s: String(to.params.section) }) },
+      }),
+    },
     // shared modules of the instance (PJ-3) — now a section of the Workspace settings (admin only)
     { path: '/admin/modules', redirect: '/settings/instanceModules' },
     { path: '/m/:moduleId/:rest(.*)*', name: 'module', component: screen('Module') },
@@ -85,8 +94,6 @@ router.beforeEach(async (to) => {
   // 2FA is required by the instance policy: only the security settings until it is set up
   if (useAuth().mfaSetup.value && to.name !== 'profile')
     return { path: '/profile', query: { tab: 'security' } };
-  // workspace settings — admins only; the rest have everything personal in the profile
-  if (to.name === 'settings' && !useAuth().isAdmin.value) return '/profile';
   // former group tab "Inbox" — "My work › Activity"
   const seg = String((to.name === 'project' ? to.params.view : to.params.tab) ?? '');
   // bare node address — the last opened tab (by default "My work")
@@ -94,6 +101,8 @@ router.beforeEach(async (to) => {
     const l = nodeLanding(to.path, lastTab.get());
     return { path: l.path, query: { ...l.query, ...to.query }, hash: to.hash, replace: true };
   }
+  // workspace settings — admins only; the rest have everything personal in the profile
+  if (seg === 'settings' && to.name === 'workspace' && !useAuth().isAdmin.value) return '/profile';
   // the removed space tab «Projects» (also remembered as the last tab) — "My work"
   if (seg === 'projects' && to.name === 'space')
     return { path: to.path.replace(/\/projects$/, '/work'), query: to.query, replace: true };

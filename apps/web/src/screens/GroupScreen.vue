@@ -93,7 +93,7 @@ watch(
   [seg, () => route.query.w],
   ([s, w]) => {
     if (!s || route.name === 'savedView') return;
-    if (!tabsFor(level.value).includes(tab.value)) {
+    if (!tabsFor().includes(tab.value)) {
       void router.replace(groupUrl(level.value, id.value, 'work'));
       return;
     }

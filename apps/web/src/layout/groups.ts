@@ -6,9 +6,8 @@ export type GroupTab = (typeof GROUP_TABS)[number];
 export const groupTab = (seg: unknown): GroupTab =>
   GROUP_TABS.includes(seg as GroupTab) ? (seg as GroupTab) : 'tasks';
 
-/** level tabs: Workspace has no settings (global settings are /settings); projects of a space are managed in its settings */
-export const tabsFor = (level: GroupLevel): GroupTab[] =>
-  GROUP_TABS.filter((k) => k !== 'settings' || level !== 'workspace');
+/** level tabs: the same on every level (Workspace settings — admins only, useGroupTabs); projects of a space are managed in its settings */
+export const tabsFor = (): GroupTab[] => [...GROUP_TABS];
 
 /** Group tab address; Tasks — the last chosen view (PLNRAPP-111), `list` by default: the bare node
  * address opens the remembered tab. */

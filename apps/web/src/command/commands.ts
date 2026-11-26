@@ -54,7 +54,7 @@ export async function buildCommands(o: {
     go(gNav, 'go:my', t('sidebar.my'), '/my', 'g m'),
     // workspace settings — admins only (router.ts)
     ...(useAuth().isAdmin.value
-      ? [go(gNav, 'go:settings', t('sidebar.settings'), '/settings', 'g s')]
+      ? [go(gNav, 'go:settings', t('sidebar.settings'), '/w/settings', 'g s')]
       : []),
   ];
 
@@ -178,7 +178,7 @@ export async function buildCommands(o: {
       id,
       label: t(`pwa.${k}`),
       group: gApp,
-      run: () => void router.push({ path: '/profile', query: { tab: 'about', pwa: id.slice(4) } }),
+      run: () => void router.push({ path: '/about', query: { pwa: id.slice(4) } }),
     });
 
   const ctx: CommandCtx = { route, selectedTaskIds: o.selected, projectId };

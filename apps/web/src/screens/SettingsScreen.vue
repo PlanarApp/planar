@@ -40,7 +40,9 @@ type Id = keyof typeof SECTIONS;
 // scope — the group's "Settings" tab: sections of its level, the section — in ?s; without scope — the global /settings:
 // everything but the project level and GLOBAL_HIDDEN (they live in the space / project settings)
 const props = defineProps<{ scope?: GroupScope }>();
-const level = computed<Level | undefined>(() => props.scope?.level);
+// the Workspace tab is the instance settings: the same set as the bare /settings had
+const global = computed(() => !props.scope || props.scope.level === 'workspace');
+const level = computed<Level | undefined>(() => (global.value ? undefined : props.scope?.level));
 const atLevel = (l: Level | 'any' | undefined) =>
   !level.value || l === 'any' || (l ?? 'workspace') === level.value;
 const GLOBAL_HIDDEN = [
@@ -54,7 +56,7 @@ const GLOBAL_HIDDEN = [
   'templates:templates',
   'forms:forms',
 ];
-const shown = (key: string) => !!props.scope || !GLOBAL_HIDDEN.includes(key);
+const shown = (key: string) => !global.value || !GLOBAL_HIDDEN.includes(key);
 
 const { t, te, locale } = useI18n();
 const route = useRoute();
@@ -77,7 +79,7 @@ const builtin = computed(() =>
       (isAdmin.value || !('admin' in SECTIONS[s])) &&
       (!!lastSetupInfo.value?.cloud || !('cloud' in SECTIONS[s])) &&
       shown(s) &&
-      (props.scope ? atLevel(SECTIONS[s].level) : SECTIONS[s].level !== 'project'),
+      (global.value ? SECTIONS[s].level !== 'project' : atLevel(SECTIONS[s].level)),
   ),
 );
 // C-schema v16: a data module's page shows if the module is on in the project / in a project of the space / anywhere (Workspace)
@@ -190,7 +192,7 @@ onMutationError((e) => (serverError.value = e.message || t('auth.failed')));
         :space-id="spaceId"
         v-bind="{
           // global: no level at all — an undefined attr would fall through and override a module page's own level
-          ...(scope && { level: scope.level }),
+          ...(!global && scope && { level: scope.level }),
           ...(scope?.projectId && { projectId: scope.projectId }),
         }"
       />

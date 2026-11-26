@@ -604,7 +604,7 @@ const setValue = (i: number, raw: string) => {
                 @update:model-value="(v) => (a.subscriptionId = v ?? '')"
               />
             </div>
-            <a v-else href="/settings/webhooks:webhooks" class="text-sm underline">{{
+            <a v-else href="/w/settings?s=webhooks:webhooks" class="text-sm underline">{{
               tx.noSubscriptions
             }}</a>
           </template>

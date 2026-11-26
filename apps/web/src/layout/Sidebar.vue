@@ -8,7 +8,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
-  Settings,
   X,
 } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
@@ -33,10 +32,11 @@ const Avatar = defineAsyncComponent(() => import('../ui/Avatar.vue'));
 const Menu = defineAsyncComponent(() => import('../ui/Menu.vue'));
 const { isMobile } = useBreakpoint();
 const rail = computed(() => !isMobile.value && sidebarMode.value === 'rail');
-const { user, isAdmin } = useAuth();
+const { user } = useAuth();
 const { items } = useUserMenu();
 
 const { t, te, locale } = useI18n();
+const about = `${t('app.name')} ${__APP_VERSION__}`.trim();
 const navItems = useExtensions('nav');
 // a section is its own component; a loading error does not break the panel
 const sections = new Map<string, Component>();
@@ -156,7 +156,7 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
   <aside
     v-if="rail"
     data-testid="sidebar-rail"
-    class="sidebar-dark flex shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-border bg-sidebar-bg py-2 text-fg"
+    class="sidebar-dark flex shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-border bg-sidebar-bg pt-2 text-fg"
   >
     <button
       type="button"
@@ -230,25 +230,25 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
         <template v-else>{{ p.prefix.slice(0, 2) }}</template>
       </RouterLink>
     </template>
-    <!-- workspace settings: admins only; flush with the bottom, the full width of the panel -->
+    <!-- the app and its version — «About»; flush with the bottom, the full width of the panel -->
     <RouterLink
-      v-if="isAdmin"
-      to="/settings"
-      :aria-label="t('sidebar.settings')"
-      :title="t('sidebar.settings')"
+      to="/about"
+      :aria-label="about"
+      :title="about"
       :class="[
         link,
-        'sticky bottom-0 -mb-2 mt-auto h-9 w-full shrink-0 justify-center rounded-none bg-sidebar-bg px-0',
+        'sticky bottom-0 mt-auto h-9 w-full shrink-0 justify-center rounded-none bg-sidebar-bg px-0',
       ]"
       active-class="!bg-accent-subtle"
+      data-testid="sidebar-about"
     >
-      <Settings :size="16" />
+      <img src="/icons/icon-192.png" alt="" class="size-4 rounded" />
     </RouterLink>
   </aside>
   <aside
     v-else
     data-testid="sidebar"
-    class="sidebar-dark flex w-60 shrink-0 flex-col gap-3 overflow-y-auto border-r border-border bg-sidebar-bg p-2 text-fg"
+    class="sidebar-dark flex w-60 shrink-0 flex-col gap-3 overflow-y-auto border-r border-border bg-sidebar-bg p-2 pb-0 text-fg"
   >
     <div class="flex h-9 items-center gap-2 px-1">
       <!-- как в шапке: значок без подложки, название цветом узла -->
@@ -490,15 +490,15 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
       </div>
     </nav>
     <RouterLink
-      v-if="isAdmin"
-      to="/settings"
+      to="/about"
       :class="[
         link,
-        'sticky bottom-0 -mx-2 -mb-2 mt-auto h-9 shrink-0 rounded-none bg-sidebar-bg px-4',
+        'sticky bottom-0 -mx-2 mt-auto h-9 shrink-0 rounded-none bg-sidebar-bg px-4 text-fg-muted',
       ]"
       active-class="!bg-accent-subtle"
+      data-testid="sidebar-about"
     >
-      <Settings :size="16" />{{ t('sidebar.settings') }}
+      <img src="/icons/icon-192.png" alt="" class="size-4 rounded" />{{ about }}
     </RouterLink>
   </aside>
 </template>

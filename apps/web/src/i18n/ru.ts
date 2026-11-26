@@ -79,7 +79,7 @@ export default {
   },
   sidebar: {
     create: 'Создать',
-    all: 'Всё',
+    all: 'Всё везде и сразу',
     newTask: 'Задача',
     inbox: 'Входящие',
     my: 'Мой день',

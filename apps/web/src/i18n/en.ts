@@ -79,7 +79,7 @@ export default {
   },
   sidebar: {
     create: 'Create',
-    all: 'All',
+    all: 'Everything Everywhere All at Once',
     newTask: 'Task',
     inbox: 'Inbox',
     my: 'My day',

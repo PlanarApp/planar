@@ -18,7 +18,6 @@ vi.mock('../../pwa/register', () => ({
   useRegisterSW: () => ({ needRefresh: { value: false }, updateServiceWorker: async () => {} }),
 }));
 import { ui } from '../../command/hotkeys';
-import { useAuth, type User } from '../../auth/useAuth';
 
 const stub = { template: '<div />' };
 // Tooltip (IconButton) requires a provider, which the app mounts in App.vue
@@ -144,14 +143,12 @@ describe('раскладка', () => {
     expect(w.text()).toContain('All');
   });
 
-  it('«Настройки» внизу панели — только админу воркспейса', async () => {
+  it('внизу панели — приложение и версия, ведёт на «О программе»', async () => {
     const { router, i18n } = setup(false);
     const w = mount(Sidebar, { global: { plugins: [router, i18n] } });
-    expect(w.find('a[href="/settings"]').exists()).toBe(false);
-    useAuth().user.value = { id: 'u', role: 'admin' } as User;
-    await nextTick();
-    expect(w.find('a[href="/settings"]').exists()).toBe(true);
-    useAuth().user.value = null;
+    const a = w.get('[data-testid=sidebar-about]');
+    expect(a.attributes('href')).toBe('/about');
+    expect(a.text()).toMatch(/^Planar \d+\.\d+\.\d+/);
   });
 
   it('боковая панель: группы сворачиваются, состояние пишется в localStorage', async () => {
@@ -159,7 +156,7 @@ describe('раскладка', () => {
     const { router, i18n } = setup(false);
     const w = mount(Sidebar, { global: { plugins: [router, i18n] } });
     // tree root — "All"; its chevron collapses spaces
-    expect(w.get('[data-testid=nav-workspace]').text()).toBe('Всё');
+    expect(w.get('[data-testid=nav-workspace]').text()).toBe('Всё везде и сразу');
     expect(w.text()).not.toContain('Избранное'); // empty — hidden
     const head = w.get('[data-testid=nav-workspace] button');
     expect(head.attributes('aria-expanded')).toBe('true');

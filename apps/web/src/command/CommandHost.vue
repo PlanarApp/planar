@@ -48,7 +48,7 @@ useHotkey(
 );
 useHotkey('g i', () => void router.push('/inbox'), { label: 'cmd.hk.inbox' });
 useHotkey('g m', () => void router.push('/my'), { label: 'cmd.hk.my' });
-useHotkey('g s', () => void (useAuth().isAdmin.value && router.push('/settings')), {
+useHotkey('g s', () => void (useAuth().isAdmin.value && router.push('/w/settings')), {
   label: 'cmd.hk.settings',
 });
 </script>
