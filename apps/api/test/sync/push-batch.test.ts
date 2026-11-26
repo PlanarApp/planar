@@ -6,7 +6,7 @@ import { uuidv7 } from '@planar/shared';
 import { changes, clientMutations, tasks } from '../../src/db/schema.js';
 import { changesPurge } from '../../src/jobs/changes.js';
 import type { JobApi } from '../../src/modules/hooks.js';
-import { PUSH_BATCH } from '../../src/sync/push.service.js';
+import { PUSH_BATCH, PushService } from '../../src/sync/push.service.js';
 import { newDb, services, taskArgs, world } from './helpers.js';
 
 const db = newDb();
@@ -94,5 +94,48 @@ describe('обрезка журнала changes', () => {
     await changesPurge.handler(undefined, { db } as unknown as JobApi);
     const last = (await db.$client.query('select seq::int from changes')).rows;
     expect(last).toEqual([{ seq: left.at(-1)!.seq }]);
+  });
+
+  it('отказ первой мутации, а параллельный push уже ушёл дальше: lastMutationId не откатывается, ничего не применяется дважды', async () => {
+    const w = await world(db);
+    const a = taskArgs(w);
+    const mutations = [
+      {
+        id: 1,
+        name: 'task.create',
+        args: { ...taskArgs(w), assignees: [{ id: uuidv7(), userId: uuidv7() }] },
+      },
+      { id: 2, name: 'task.create', args: a },
+    ];
+    const clientId = uuidv7();
+    // the main transaction is rejected; before the fallback one a parallel push commits both mutations
+    let first = true;
+    const racy = new Proxy(db, {
+      get: (t, k) =>
+        k !== 'transaction'
+          ? Reflect.get(t, k)
+          : async (fn: never) => {
+              if (!first) return t.transaction(fn);
+              first = false;
+              try {
+                return await t.transaction(fn);
+              } finally {
+                await t
+                  .insert(clientMutations)
+                  .values({ clientId, userId: w.admin.userId, lastMutationId: 2 })
+                  .onConflictDoUpdate({
+                    target: clientMutations.clientId,
+                    set: { lastMutationId: 2 },
+                  });
+              }
+            },
+    });
+    await new PushService(racy).push(w.admin.userId, { clientId, mutations });
+    const [cm] = await db
+      .select()
+      .from(clientMutations)
+      .where(eq(clientMutations.clientId, clientId));
+    expect(cm.lastMutationId).toBe(2);
+    expect(await db.select().from(tasks).where(eq(tasks.id, a.id))).toHaveLength(0);
   });
 });
