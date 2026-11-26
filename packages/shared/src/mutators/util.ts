@@ -76,9 +76,9 @@ export async function isProjectAdmin(
 }
 
 /**
- * Role of the user in the project (projectId null — in the space), as the SQL rule project_role but for
- * space members only (no instance-admin shortcut): space admin → admin, `inherit` → the space role,
- * `custom` → the project role (a space guest is at most a guest); null — no access.
+ * Role of the user in the project (projectId null — in the space), as the SQL rule project_role: instance
+ * owner/admin → admin, space admin → admin, `inherit` → the space role, `custom` → the project role
+ * (a space guest is at most a guest); null — no access.
  */
 export async function roleInProject(
   tx: Tx,
@@ -86,6 +86,8 @@ export async function roleInProject(
   projectId: string | null,
   userId: string,
 ): Promise<'admin' | 'member' | 'guest' | null> {
+  const u = await tx.get('users', userId);
+  if (u?.role === 'owner' || u?.role === 'admin') return 'admin';
   const sm = (await tx.scan('spaceMembers', { index: 'spaceId', eq: spaceId })).find(
     (m) => m.userId === userId,
   );
@@ -107,4 +109,19 @@ export async function needProjectAdmin(
 ) {
   if (!(await isProjectAdmin(tx, spaceId, projectId, userId)))
     throw new MutatorError('forbidden', 'нужна роль admin проекта');
+}
+
+/** Space and project roles are capped by the instance role: an instance guest is at most a guest (roles audit 2026-11-26). */
+export async function capByInstanceRole<R extends string>(
+  tx: Tx,
+  userId: string,
+  r: R,
+): Promise<R | 'guest'> {
+  return (await tx.get('users', userId))?.role === 'guest' ? 'guest' : r;
+}
+
+/** An explicitly requested role above the instance cap is refused. */
+export async function checkInstanceCap(tx: Tx, userId: string, r: string) {
+  if (r !== 'guest' && (await capByInstanceRole(tx, userId, r)) === 'guest')
+    throw bad(`${userId}: гость инстанса — только guest`);
 }

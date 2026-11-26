@@ -112,31 +112,37 @@ The suffix `?` means `.nullable()` (the key is present, the value may be `null`)
 - `indexes` — fields allowed for `Tx.scan({index, eq})` (in Dexie these are indexes; in the DB — b-tree).
 - `detail: tasks` (optional, C-sync v3) — a detail entity: its rows belong to a task and are kept by the client only for tasks in `_held` (§C-sync «Detail entities»); `ENTITIES[e].detail = 'tasks'`. Absent — a core entity.
 
-### Roles and access (audit 2026-11-25)
+### Roles and access (audit 2026-11-26)
 
 Three levels; each rule is enforced on the server (the mutator and `ServerTx.authorize`), the web only hides what the server would refuse.
 
 | level | role | what it can |
 |---|---|---|
-| instance (`users.role`) | `owner` | everything of `admin`; cannot be changed, deactivated or impersonated; the only one who changes `admin` users |
-| | `admin` | users (create, edit, deactivate — `member`/`guest` only), instance settings (modules, workspace, integrations, `settings.*`), impersonation of strictly lower roles (session only, not a token), switching modules and members mode of projects; space rights only through space membership |
+| instance (`users.role`) | `owner` | everything of `admin`; cannot be changed, deactivated or impersonated; the only one who creates or appoints `admin` users |
+| | `admin` | sees every space with its projects and tasks, even without membership, and changes them as an admin of the space; users (create, edit, deactivate — `member`/`guest` only), instance settings (modules, workspace, integrations, `settings.*`), impersonation of strictly lower roles (session only, not a token), switching modules and members mode of projects |
 | | `member` | creates spaces (becomes their admin), everything else through space roles |
-| | `guest` | does not create spaces, is not added to the root space (Workspace) automatically; everything else through space roles |
-| space (`spaceMembers.role`) | `admin` | `space.update/delete`, members and `membersMode` of the space, statuses, modules and members of every project of the space (always admin of them), delete/restore tasks, resolve any assigned comment |
-| | `member` | projects (create, update, archive, delete), tasks, labels, fields, links, attachments, comments, own views |
+| | `guest` | does not create spaces, is not added to the root space (Workspace) automatically, at most `guest` in every space and project, does not see other users' `email`; everything else through space roles |
+| space (`spaceMembers.role`) | `admin` | `space.update/delete`, members and `membersMode` of the space, statuses, modules and members of every project of the space (always admin of them), update/archive/delete of its projects, delete/restore tasks, resolve any assigned comment |
+| | `member` | creates projects, tasks, labels, fields, links, attachments, comments, own views |
 | | `guest` | comments, reactions, watching; reads the rest |
 | project (`projects.membersMode`) | `inherit` | the space role |
 | | `custom` | the role in `projectMembers`, no row — no access; space admins and instance admins keep admin; a space guest is at most a guest |
+| | admin of the project | `project.update` (rename, archive, lead…), `project.delete`, statuses, modules, members: a space admin, an instance admin, an admin of a `custom` project (an `inherit` project has no admins of its own) |
 
-Inheritance: instance → space is not automatic (a role in a space exists only with a `spaceMembers` row; the root space gets everyone except guests, instance owners and admins as admins). Space → project: `inherit` / `custom` (PJ-11). Space → root space: `spaces.membersMode` — `inherit` mirrors the root space's members and roles (rows are materialized, so every access rule keeps reading `spaceMembers`), `custom` is its own list; the root space is the source and always `custom`.
+Inheritance: instance → space is not automatic (a role in a space exists only with a `spaceMembers` row; the root space gets everyone except guests, instance owners and admins as admins) — except visibility and administration: instance owners and admins see every space (SQL `can_see_space`, `mySpaceIds`) and are admins of it (`ServerTx.spaceRole`, `roleInProject`). Space → project: `inherit` / `custom` (PJ-11). Space → root space: `spaces.membersMode` — `inherit` mirrors the root space's members and roles (rows are materialized, so every access rule keeps reading `spaceMembers`), `custom` is its own list; the root space is the source and always `custom`.
 
 Invariants kept by the code:
+- a role in a space or project never exceeds the instance role: an instance `guest` is `guest` there (`member.add/update`, `space.setMembersMode`, project members refuse with `invalid_args`, the mirror of an `inherit` space caps; demoting a user to `guest` lowers their roles in spaces with their own members and, through them, in projects; migration 0096 brought existing rows to the cap, a space may be left with no space admin — instance admins administer it);
 - the role in the root space follows the instance role: a demoted admin is demoted in the Workspace too (`ensureRootSpace(db, changed)`), an instance admin is always admin there;
-- a role inside a project is the project role (PJ-11), not the space role: `comment.assign` of a guest of a `custom` project is refused;
+- a role inside a project is the project role (PJ-11), not the space role: `comment.assign`, `checkAssignee` (task/doc comments, checklist assignees), `view.setNodeDefault` of a project node and `chat.channel.create/update` read `roleInProject` / `isProjectAdmin`;
+- `project.create` — a member of the space (a guest is refused); `project.update/delete` — an admin of the project (the sidebar and settings show these only to them);
+- creating a user with the `admin` role and promoting to `admin` — the instance owner only (`403`, REST and MCP `create_user/update_user` included);
+- leaving the Workspace — `member.remove` of the root row, or deactivating the user — removes them from every space with its own members (`custom`) and from every project with its own members (`inherit` spaces follow the Workspace); the last-admin check does not hold a deactivated user or an instance guest;
+- `users.email` of other users is `null` in sync (bootstrap and pull) for instance guests; REST/MCP user lists are for instance admins only, spaces' and projects' member lists carry no email;
 - comment resolve — the assignee, the author or an admin of the comment's space (the web checks the same, not the instance role);
 - the sidebar offers rename/delete of a space only to its admin.
 
-Open proposals (not applied — they change what users can do today): cap the space role by the instance role (an instance `guest` is at most a space `guest`, as a space guest is at most a project guest); `project.update/archive/delete` for a project admin only (create stays for members; the sidebar and settings already treat them as admin actions in settings); instance admins see every space (today an instance admin who is not in a space does not see it); hide `users.email` from instance guests; creating or promoting an `admin` user — owner only; the remaining mutators that read the space role instead of the project role (`checkAssignee`, `view.setNodeDefault`, docs and chat guards).
+Not changed: chat messages are posted by space members (an instance admin who is not a member reads a space's chats and administers channels, but does not post); notifications go to members only.
 
 ### Entities
 
@@ -166,6 +172,8 @@ Migrations — drizzle-kit, directory `apps/api/drizzle/`, schema — `apps/api/
 v3 (PLNRAPP-481): detail entities (`comments`, `commentReactions`) — the client keeps them only for the tasks it holds; protocol version `3`, `held` in bootstrap, `taskId` in pull changes, `POST /sync/tasks` — a snapshot of task details with `cursor`.
 
 v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core items 1–2.
+
+Visibility (roles audit 2026-11-26): instance owners and admins receive every space (bootstrap, pull, WS pokes), others — the spaces they are members of; an instance guest gets other users' `users.email` as `null` (bootstrap and pull), their own is kept.
 
 Transport — JSON over HTTP, authorization — session (C-http) or Bearer. Request-level errors use the C-http format (`401 unauthenticated`, `400 invalid_request`, `413 payload_too_large`, `426 upgrade_required`, `500 internal`).
 
@@ -346,7 +354,9 @@ Applies `changes` by `seq`; `reset` → bootstrap. After a pull it drops from th
 
 v3: details of a task are kept only while it is in `_held` (bootstrap `held`, `POST /sync/tasks`); opening a task updates `accessedAt`. Cooling: the leader tab, when the queue is empty, deletes the details and the `_held` row for tasks not accessed for 30 days (the task's y-indexeddb database is kept: it may hold unsent offline edits of the description), except «my» open tasks; the protocol does not change — a cooled task is loaded again via `POST /sync/tasks`. `reset` and a change of the protocol version clear `_held` too. Prefetch (PLNRAPP-488): hovering a task (`[data-task-id]`) and, in idle time, the tasks rendered on the page are loaded via `POST /sync/tasks` — only those not in `_held`, batches of ≤ `SYNC_TASKS_MAX` ids, at most one request per 500 ms; prefetch does not update `accessedAt`; `forbidden`/`not_found` are not prefetched again until `stopSync`.
 
-## C-mutators v24
+## C-mutators v25
+
+v25 (roles audit 2026-11-26): the role in a space/project is capped by the instance role (`member.add/update`, `space.setMembersMode`, mirror), `project.update/delete` — admin of the project, leaving the Workspace removes the user from spaces and projects with their own members, `checkAssignee` and the chat/docs/view guards read the role in the project — core-mutators.md.
 
 v24: `space.setMembersMode`; `member.add/update/remove` only in a `custom` space, a change of the root space's members is mirrored into `inherit` spaces — core-mutators.md.
 

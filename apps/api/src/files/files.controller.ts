@@ -17,7 +17,6 @@ import {
   files,
   projects,
   settings,
-  spaceMembers,
   spaces,
   users,
 } from '../db/schema.js';
@@ -135,11 +134,10 @@ export class FilesController {
               this.db
                 .select({ x: attachments.id })
                 .from(attachments)
-                .innerJoin(spaceMembers, eq(spaceMembers.spaceId, attachments.spaceId))
                 .where(
                   and(
                     eq(attachments.fileSha256, sha),
-                    eq(spaceMembers.userId, userId),
+                    sql`can_see_space(${userId}::uuid, ${attachments.spaceId})`,
                     notHidden('attachments', hidden),
                   ),
                 ),
@@ -158,18 +156,18 @@ export class FilesController {
               this.db
                 .select({ x: spaces.id })
                 .from(spaces)
-                .innerJoin(spaceMembers, eq(spaceMembers.spaceId, spaces.id))
-                .where(and(eq(spaces.icon, icon), eq(spaceMembers.userId, userId))),
+                .where(
+                  and(eq(spaces.icon, icon), sql`can_see_space(${userId}::uuid, ${spaces.id})`),
+                ),
             ),
             exists(
               this.db
                 .select({ x: projects.id })
                 .from(projects)
-                .innerJoin(spaceMembers, eq(spaceMembers.spaceId, projects.spaceId))
                 .where(
                   and(
                     eq(projects.icon, icon),
-                    eq(spaceMembers.userId, userId),
+                    sql`can_see_space(${userId}::uuid, ${projects.spaceId})`,
                     notHidden('projects', hidden),
                   ),
                 ),

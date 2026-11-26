@@ -227,7 +227,7 @@ const ops: ExtOp[] = [
   },
   {
     tool: 'delete_project',
-    description: 'Удалить проект; только без задач (необратимо)',
+    description: 'Удалить проект (админ проекта); только без задач (необратимо)',
     method: 'delete',
     path: '/api/v1/projects/{id}',
     shape: { id },

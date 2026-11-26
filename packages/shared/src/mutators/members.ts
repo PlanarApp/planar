@@ -6,11 +6,16 @@ import {
   type Row,
   type Tx,
 } from '../contract/index.js';
-import { bad, need, uuid } from './util.js';
+import { bad, capByInstanceRole, checkInstanceCap, need, uuid } from './util.js';
 
 const role = z.enum(['admin', 'member', 'guest']);
 
 async function assertNotLastAdmin(tx: Tx, spaceId: string, memberId: string) {
+  // a deactivated user leaves every space, an instance guest cannot be an admin: instance admins administer a space
+  // without being in it
+  const m = await tx.get('spaceMembers', memberId);
+  const u = m && (await tx.get('users', m.userId));
+  if (u && (u.deactivatedAt || u.role === 'guest')) return;
   const admins = (await tx.scan('spaceMembers', { index: 'spaceId', eq: spaceId })).filter(
     (m) => m.role === 'admin',
   );
@@ -86,12 +91,12 @@ async function reconcile(
 
 /** An `inherit` space mirrors the members of the root space (the Workspace) with their roles. */
 async function mirrorRoot(tx: Tx, spaceId: string, root: string, ctx: MutatorCtx) {
-  const want = new Map(
-    (await tx.scan('spaceMembers', { index: 'spaceId', eq: root })).map((m) => [
-      m.userId,
-      { id: mirrorId(spaceId, m.userId), role: m.role },
-    ]),
-  );
+  const want = new Map<string, { id: string; role: Role }>();
+  for (const m of await tx.scan('spaceMembers', { index: 'spaceId', eq: root }))
+    want.set(m.userId, {
+      id: mirrorId(spaceId, m.userId),
+      role: await capByInstanceRole(tx, m.userId, m.role),
+    });
   await reconcile(tx, spaceId, want, ctx);
 }
 
@@ -135,6 +140,7 @@ export const memberMutators = [
       for (const m of a.members!) {
         if (want.has(m.userId)) throw bad(`members: ${m.userId} повторяется`);
         if (!(await tx.get('users', m.userId))) throw bad(`${m.userId}: нет пользователя`);
+        await checkInstanceCap(tx, m.userId, m.role);
         want.set(m.userId, m);
       }
       await reconcile(tx, s.id, want, ctx);
@@ -149,6 +155,7 @@ export const memberMutators = [
         (m) => m.userId === a.userId,
       );
       if (dup) throw new MutatorError('conflict', 'уже участник');
+      await checkInstanceCap(tx, a.userId, a.role);
       await tx.put('spaceMembers', { ...a, createdAt: ctx.now, updatedAt: ctx.now });
       await syncInherited(tx, a.spaceId, ctx);
     },
@@ -159,6 +166,7 @@ export const memberMutators = [
     async run(tx, a, ctx) {
       const m = await need(tx, 'spaceMembers', a.id);
       await needOwnList(tx, m.spaceId);
+      await checkInstanceCap(tx, m.userId, a.role);
       if (a.role !== 'admin') await assertNotLastAdmin(tx, m.spaceId, m.id);
       await setRole(tx, m, a.role, ctx);
       await syncInherited(tx, m.spaceId, ctx);
@@ -172,6 +180,12 @@ export const memberMutators = [
       await needOwnList(tx, m.spaceId);
       await assertNotLastAdmin(tx, m.spaceId, m.id);
       await dropMember(tx, m);
+      // leaving the Workspace: out of the spaces with their own members (and their projects') too;
+      // `inherit` spaces follow the Workspace below
+      if (m.spaceId === (await rootSpaceId(tx)))
+        for (const x of await tx.scan('spaceMembers', { index: 'userId', eq: m.userId }))
+          if ((await tx.get('spaces', x.spaceId))?.membersMode === 'custom')
+            await dropMember(tx, x);
       await syncInherited(tx, m.spaceId, ctx);
     },
   }),

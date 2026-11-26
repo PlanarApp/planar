@@ -673,6 +673,13 @@
       "when": 1797398400000,
       "tag": "0095_space_members_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1797484800000,
+      "tag": "0096_roles_audit",
+      "breakpoints": true
     }
   ]
 }

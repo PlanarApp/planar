@@ -30,13 +30,14 @@ import {
   commentReactions,
   comments,
   notifications,
-  spaceMembers,
+  users,
   statuses,
   taskAssignees,
   tasks,
 } from '../db/schema.js';
 import { DB } from '../tokens.js';
 import { hiddenProjectIds, notHidden, projectAccess } from './project-access.js';
+import { mySpaceIds } from './my-spaces.js';
 import { visibleEntities } from './registry.js';
 import { tableOf, toIso, toWire } from './rows.js';
 
@@ -54,11 +55,16 @@ export class PullService {
   }
 
   private async mySpaces(tx: Tx, userId: string): Promise<string[]> {
-    const rows = await tx
-      .select({ id: spaceMembers.spaceId })
-      .from(spaceMembers)
-      .where(eq(spaceMembers.userId, userId));
-    return rows.map((r) => r.id);
+    return mySpaceIds(tx, userId);
+  }
+
+  /** An instance guest does not see other users' emails (roles audit 2026-11-26). */
+  private async hideEmails(
+    tx: Tx,
+    userId: string,
+  ): Promise<(w: Record<string, unknown>) => Record<string, unknown>> {
+    const [u] = await tx.select({ role: users.role }).from(users).where(eq(users.id, userId));
+    return u?.role === 'guest' ? (w) => (w.id === userId ? w : { ...w, email: null }) : (w) => w;
   }
 
   private async lastMutationId(tx: Tx, userId: string, clientId: string): Promise<number> {
@@ -125,6 +131,7 @@ export class PullService {
         .from(changes);
       const data: SyncBootstrap['data'] = {};
       const hidden = await hiddenProjectIds(tx, userId);
+      const mask = await this.hideEmails(tx, userId);
       const held =
         protocol >= SYNC_PROTOCOL ? await this.myTasks(tx, userId, my, hidden) : undefined;
       for (const [name, meta] of Object.entries(await visibleEntities(tx))) {
@@ -170,6 +177,7 @@ export class PullService {
           : q);
         data[name] = rows.map((r) => {
           const w = toWire(name as EntityName, r);
+          if (name === 'users') return mask(w);
           // lean: the description is the heaviest part of a task; it comes in bootstrapHeavy()
           return lean && name === 'tasks' ? { ...w, description: null } : w;
         });
@@ -235,6 +243,7 @@ export class PullService {
 
       const visible = Object.keys(await visibleEntities(tx));
       const hidden = await hiddenProjectIds(tx, userId);
+      const mask = await this.hideEmails(tx, userId);
       const rows = await tx
         .select()
         .from(changes)
@@ -295,7 +304,11 @@ export class PullService {
             entity: r.entity,
             id: r.id,
             op: r.op as 'put' | 'del',
-            ...(r.op === 'put' ? { data: r.data as Record<string, unknown> } : {}),
+            ...(r.op === 'put'
+              ? {
+                  data: (r.entity === 'users' ? mask(data(r)) : r.data) as Record<string, unknown>,
+                }
+              : {}),
             ...(taskId ? { taskId } : {}),
           };
         }),

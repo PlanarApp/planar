@@ -8,6 +8,7 @@ import { defaultModules } from '../../api/defaultModules';
 import RowMenu from './RowMenu.vue';
 import SectionHeader from './SectionHeader.vue';
 import BulkBar, { type BulkAction } from './BulkBar.vue';
+import { useRoleIn } from '../../tasks/admin';
 import { KEY_RE, useAction, useAdminSpaces } from './shared';
 
 const DEFAULT_STATUSES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'] as const;
@@ -16,6 +17,9 @@ const { t } = useI18n();
 const { error, run } = useAction();
 const isAdmin = useAdminSpaces();
 const canEdit = computed(() => isAdmin(props.spaceId));
+// project.create — a member of the space; update/archive/delete — an admin of the project
+const roleIn = useRoleIn();
+const canCreate = computed(() => ['admin', 'member'].includes(roleIn(props.spaceId) ?? ''));
 const all = useQuery(() => db.table<Row<'projects'>>('projects').toArray());
 const projects = computed(() =>
   (all.value ?? [])
@@ -93,7 +97,7 @@ const bulk = computed<BulkAction[]>(() => [
   <section class="flex flex-col gap-3">
     <SectionHeader :title="t('settings.projects')" :description="t('settings.projectsDesc')">
       <form
-        v-if="canEdit"
+        v-if="canCreate"
         class="flex flex-wrap items-start gap-2 max-md:w-full"
         @submit.prevent="create"
       >
