@@ -49,12 +49,12 @@ async function call<T>(method: string, path: string, body?: FormData): Promise<T
   return data as T;
 }
 /** Plane API connection (format plane-api) — instead of a file */
-export type PlaneConn = { url: string; workspace: string; token: string };
+export type PlaneConn = { url: string; workspace: string; token: string; fingerprint?: string };
 const form = (src: File | PlaneConn, fields: Record<string, string>) => {
   const f = new FormData();
   for (const [k, v] of Object.entries(fields)) f.append(k, v);
   if (src instanceof File) f.append('file', src);
-  else for (const [k, v] of Object.entries(src)) f.append(k, v);
+  else for (const [k, v] of Object.entries(src)) if (v) f.append(k, v);
   return f;
 };
 
@@ -89,6 +89,21 @@ const dict = {
   planeUrl: { ru: 'Адрес Plane', en: 'Plane address' },
   planeWorkspace: { ru: 'Воркспейс (slug из адреса)', en: 'Workspace (slug from the address)' },
   planeToken: { ru: 'API-токен Plane', en: 'Plane API token' },
+  certUntrusted: {
+    ru: 'Сертификат Plane не доверен серверу Planar',
+    en: 'The Plane certificate is not trusted by the Planar server',
+  },
+  certSubject: { ru: 'Выдан для', en: 'Issued to' },
+  certIssuer: { ru: 'Кем выдан', en: 'Issued by' },
+  certValidTo: { ru: 'Действует до', en: 'Valid until' },
+  certHint: {
+    ru: 'Сверьте отпечаток с администратором Plane. Импорт примет только сертификат с этим отпечатком; если он сменится — подтвердите заново.',
+    en: 'Check the fingerprint with the Plane admin. The import accepts only a certificate with this fingerprint; if it changes, confirm again.',
+  },
+  certTrust: {
+    ru: 'Доверять этому сертификату для импорта',
+    en: 'Trust this certificate for the import',
+  },
   planeHint: {
     ru: 'Задачи, описания и комментарии с форматированием читаются из API Plane сервером Planar. Токен хранится только пока идёт импорт.',
     en: 'Issues, descriptions and comments with formatting are read from the Plane API by the Planar server. The token is kept only while the import runs.',
