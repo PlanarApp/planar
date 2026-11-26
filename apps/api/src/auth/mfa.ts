@@ -8,7 +8,7 @@ import type { Db } from '../db/index.js';
 import { authChallenges, passkeys, sessions, settings, userSecurity, users } from '../db/schema.js';
 import { allowedOrigins, isAdminRole } from './auth.js';
 import { HttpError } from './errors.js';
-import { assertNotLimited, recordFailure, resetAttempts } from './login-limit.js';
+import { countAttempt, resetAttempts } from './login-limit.js';
 import { hashRecovery, verifyTotp } from './totp.js';
 
 export type MfaPolicy = 'off' | 'admins' | 'all';
@@ -151,13 +151,12 @@ export async function verifyFactor(
   rp: () => { origin: string; rpID: string },
 ): Promise<void> {
   const key = `mfa|${userId}`;
-  await assertNotLimited(db, key);
+  await countAttempt(db, key);
   const ok =
     'code' in proof
       ? await verifyCode(db, userId, proof.code)
       : (await verifyPasskey(db, rp(), proof, userId)) === userId;
   if (!ok) {
-    await recordFailure(db, key);
     throw new HttpError(401, 'invalid_credentials', 'Неверный код');
   }
   await resetAttempts(db, key);

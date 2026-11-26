@@ -20,7 +20,7 @@ import { DB } from '../tokens.js';
 import { findUserByLogin } from '../users/users.repo.js';
 import { AUTH_OPTS, getAuth, isAdminRole, readCookie, type AuthOpts } from './auth.js';
 import { HttpError } from './errors.js';
-import { assertNotLimited, recordFailure, resetAttempts } from './login-limit.js';
+import { countAttempt, resetAttempts } from './login-limit.js';
 import { factors, securityOf, stateAfterPassword } from './mfa.js';
 import { verifyDummy, verifyPassword } from './password.js';
 import { Public } from './public.js';
@@ -73,13 +73,12 @@ export class AuthController {
     const b = parseBody(loginBody, body);
     const login = b.login.toLowerCase();
     const key = `${req.ip}|${login}`;
-    await assertNotLimited(this.db, key);
+    await countAttempt(this.db, key);
     const user = await findUserByLogin(this.db, login);
     const ok = user
       ? await verifyPassword(user.passwordHash, b.password)
       : (await verifyDummy(b.password), false);
     if (!user || !ok || user.deactivatedAt) {
-      await recordFailure(this.db, key);
       throw new HttpError(401, 'invalid_credentials', 'Неверный логин или пароль');
     }
     await resetAttempts(this.db, key);
