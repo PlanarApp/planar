@@ -66,8 +66,8 @@ const ops: ExtOp[] = [
       const q = async (s: ReturnType<typeof sql>) =>
         (await d.db.execute(s)).rows as Record<string, unknown>[];
       const visible = await q(
-        sql`select r.project_id as "projectId" from automations_rules r join space_members m on m.space_id = r.space_id
-            where r.id = ${a.id} and m.user_id = ${u}`,
+        sql`select r.project_id as "projectId" from automations_rules r
+            where r.id = ${a.id} and can_see_space(${u}::uuid, r.space_id)`,
       );
       if (!visible.length) throw gone;
       const on = await q(
@@ -288,12 +288,13 @@ const ops: ExtOp[] = [
       const ok = await d.db.execute(
         a.projectId
           ? sql`
-        select p.space_id from projects p join space_members m on m.space_id = p.space_id
-        where p.id = ${a.projectId} and m.user_id = ${u} and m.role in ('admin', 'member')
-          and project_role(${u}::uuid, p.id) in ('admin', 'member')`
+        select p.space_id from projects p
+        where p.id = ${a.projectId} and project_role(${u}::uuid, p.id) in ('admin', 'member')`
           : sql`
-        select m.space_id from space_members m
-        where m.space_id = ${a.spaceId} and m.user_id = ${u} and m.role in ('admin', 'member')`,
+        select s.id as space_id from spaces s where s.id = ${a.spaceId} and (
+          exists (select 1 from space_members m where m.space_id = s.id and m.user_id = ${u}
+            and m.role in ('admin', 'member'))
+          or exists (select 1 from users x where x.id = ${u}::uuid and x.role in ('owner', 'admin')))`,
       );
       if (!ok.rows.length) throw notFound(a.projectId ? 'Проект' : 'Пространство');
       const spaceId = (ok.rows[0] as { space_id: string }).space_id;

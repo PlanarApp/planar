@@ -4,8 +4,7 @@ import type { ExtDeps } from './types.js';
 
 /** channel visible to the user: a space member (and the project, if any, is visible) or a dialog member — as in modules/chat canSee */
 const seen = (userId: string): SQL => sql`(
-  (chat_channels.space_id is not null and exists (
-    select 1 from space_members m where m.space_id = chat_channels.space_id and m.user_id = ${userId})
+  (chat_channels.space_id is not null and can_see_space(${userId}::uuid, chat_channels.space_id)
     and (chat_channels.project_id is null
       or project_role(${userId}::uuid, chat_channels.project_id) is not null))
   or (chat_channels.space_id is null and exists (

@@ -3,6 +3,7 @@ import { generateKeyBetween } from 'fractional-indexing';
 import { uuidv7 } from '@planar/shared';
 import { HttpError } from '../../auth/errors.js';
 import * as s from '../../db/schema.js';
+import { mySpaceIds } from '../../sync/my-spaces.js';
 import { toWire } from '../../sync/rows.js';
 import type { ExtDeps } from './types.js';
 
@@ -12,13 +13,8 @@ const isUuid = (v: string) =>
 
 /** 404 unless the user is a member of the space (a foreign space is not visible) */
 export async function visibleSpace(d: ExtDeps, userId: string, id: string) {
-  const [m] = isUuid(id)
-    ? await d.db
-        .select({ id: s.spaceMembers.id })
-        .from(s.spaceMembers)
-        .where(and(eq(s.spaceMembers.spaceId, id), eq(s.spaceMembers.userId, userId)))
-    : [];
-  if (!m) throw NOT_FOUND('Пространство');
+  if (!isUuid(id) || !(await mySpaceIds(d.db, userId)).includes(id))
+    throw NOT_FOUND('Пространство');
   return id;
 }
 

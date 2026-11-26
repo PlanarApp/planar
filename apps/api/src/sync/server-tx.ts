@@ -666,6 +666,8 @@ export class ServerTx implements Tx {
 
   private async spaceRole(spaceId: string): Promise<number> {
     if (this.created.has(spaceId)) return RANK.admin;
+    // an instance owner/admin changes a space as its admin, without being a member (roles audit 2026-11-26)
+    if (['owner', 'admin'].includes((await this.userRole())!)) return RANK.admin;
     let r = this.roles.get(spaceId);
     if (r === undefined) {
       const [m] = await this.exec(() =>

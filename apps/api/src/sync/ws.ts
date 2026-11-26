@@ -7,8 +7,8 @@ import {
   type OnModuleDestroy,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import { eq, sql } from 'drizzle-orm';
-import { spaceMembers } from '../db/schema.js';
+import { sql } from 'drizzle-orm';
+import { mySpaceIds } from './my-spaces.js';
 import { wsOpened } from '../metrics/metrics.js';
 import { WebSocket, WebSocketServer } from 'ws';
 import { wsClientSchema, wsTypingClientSchema } from '@planar/shared';
@@ -147,11 +147,8 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
   private async loadSpaces(ws: WebSocket, userId: string) {
     const gen = this.spacesGen;
     try {
-      const rows = await this.db
-        .select({ id: spaceMembers.spaceId })
-        .from(spaceMembers)
-        .where(eq(spaceMembers.userId, userId));
-      if (gen === this.spacesGen) this.spaces.set(ws, new Set(rows.map((r) => r.id)));
+      const ids = await mySpaceIds(this.db, userId);
+      if (gen === this.spacesGen) this.spaces.set(ws, new Set(ids));
     } catch {
       // not cached: the next poke goes out unaddressed and loads again
     }
