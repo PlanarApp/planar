@@ -3,6 +3,7 @@ import { i18n } from '../../../i18n';
 import UserPicker from '../../../pickers/UserPicker.vue';
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
+import { ref } from 'vue';
 
 const push = vi.hoisted(() => vi.fn());
 vi.mock('vue-router', async (orig) => ({
@@ -31,7 +32,7 @@ vi.mock('../../../../../../modules/import/web/data', async () => {
         { id: 's2', name: 'Empty', rank: 'a1' },
       ]),
     useProjects: () => ref([{ id: 'p1', name: 'Proj', key: 'PRJ', spaceId: 's1' }]),
-    useUsers: () => ref([{ id: 'u1', name: 'Alice', login: 'alice', deactivatedAt: null }]),
+    useUsers: vi.fn(() => ref([{ id: 'u1', name: 'Alice', login: 'alice', deactivatedAt: null }])),
     useSession: () => ref({ id: 'u1', role: 'admin' }),
     useStatuses: () =>
       ref([
@@ -131,6 +132,59 @@ describe('wk6: web импорта', () => {
     expect(guessStatus('DONE', [{ id: 'd', name: 'Done' }])).toBe('d');
     expect(presetsFor('trello')).toEqual(['trello']);
     expect(presetsFor('csv')).toContain('jira');
+    expect(presetsFor('plane-api')).toEqual(['plane']);
+    // PLNRAPP-874: the person's e-mail from the source matches a user
+    expect(
+      guessUser(
+        'alice.p',
+        [{ id: 'u1', name: 'A', login: 'a', email: 'Alice@x.io' }],
+        false,
+        'alice@x.io',
+      ),
+    ).toBe('u1');
+  });
+
+  it('PLNRAPP-874: Plane (API) — адрес, воркспейс, токен вместо файла; без колонок и таблицы предпросмотра', async () => {
+    const plane = { url: 'https://plane.example.com', workspace: 'acme', token: 't0k' };
+    vi.mocked(data.previewFile).mockResolvedValueOnce({
+      columns: [],
+      rows: [],
+      mapping: { title: 'name', status: 'state', project: 'project', assignee: 'assignees' },
+      values: {
+        status: ['Todo'],
+        project: [{ name: 'Engineering', key: 'ENG' }],
+        people: ['alice.p'],
+        emails: { 'alice.p': 'Alice@x.io' },
+      },
+    });
+    vi.mocked(data.useUsers).mockReturnValueOnce(
+      ref([{ id: 'u1', name: 'A', login: 'a', email: 'alice@x.io', deactivatedAt: null }]) as never,
+    );
+    const w = mount(ImportPage, { global: { plugins: [i18n] } });
+    w.findAllComponents(Select)[0]!.vm.$emit('update:modelValue', 'plane-api');
+    await w.vm.$nextTick();
+    expect(w.find('input[type=file]').exists()).toBe(false);
+    expect(w.get('.import-next').attributes('disabled')).toBeDefined();
+    await w.get('.import-plane-url').setValue(plane.url);
+    await w.get('.import-plane-workspace').setValue(plane.workspace);
+    await w.get('.import-plane-token').setValue(plane.token);
+    expect(w.get('.import-plane-token').attributes('type')).toBe('password');
+    await w.get('.import-next').trigger('click');
+    await flushPromises();
+    expect(data.previewFile).toHaveBeenLastCalledWith(plane, 'plane-api', 'plane');
+    expect(w.find('.import-preview').exists()).toBe(false);
+    expect(w.findAll('.import-map')).toHaveLength(0);
+    w.get('.import-space').getComponent(Select).vm.$emit('update:modelValue', 's1');
+    await w.vm.$nextTick();
+    // the person — by the Plane e-mail
+    expect(w.getComponent(UserPicker).props('selected')).toEqual(['u1']);
+    await w.get('.import-start').trigger('click');
+    await flushPromises();
+    expect(data.startJob).toHaveBeenLastCalledWith(
+      plane,
+      expect.objectContaining({ format: 'plane-api', preset: 'plane', spaceId: 's1' }),
+    );
+    w.unmount();
   });
 
   it('wk6: мастер — файл → предпросмотр и сопоставление → прогресс и отчёт о пропусках', async () => {

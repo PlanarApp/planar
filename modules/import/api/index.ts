@@ -11,6 +11,7 @@ import {
   STATUS_CATEGORIES,
   mappingSchema,
   shared,
+  type FileFormat,
   type ImportFormat,
   type ImportPreset,
   type Mapping,
@@ -25,6 +26,17 @@ import {
   suggestMapping,
   type Item,
 } from './parse.js';
+import { htmlToDoc, type MentionOf } from './html.js';
+import {
+  PLANE_API_MAPPING,
+  planeClient,
+  planeConnSchema,
+  planeItems,
+  planePreview,
+  PlaneForbidden,
+  type PlaneConn,
+  type PlaneData,
+} from './plane.js';
 import { resolveNew } from './resolve.js';
 import { importJobs, type RowNote, type RowWarning } from './schema.js';
 
@@ -42,8 +54,10 @@ interface FastifyRequest {
 const bad = (m: string) => new HttpError(400, 'invalid_request', m);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Multipart fields and the file; file ≤ MAX_BYTES, otherwise 400. */
-async function readForm(req: FastifyRequest) {
+/** Multipart fields and the file; file ≤ MAX_BYTES, otherwise 400; plane-api comes without a file. */
+async function readForm(
+  req: FastifyRequest,
+): Promise<{ fields: Record<string, string>; file?: string }> {
   if (!req.isMultipart()) throw bad('Ожидается multipart/form-data');
   const fields: Record<string, string> = {};
   let file: Buffer | undefined;
@@ -64,8 +78,8 @@ async function readForm(req: FastifyRequest) {
       throw bad('Файл слишком большой или multipart некорректен');
     throw e;
   }
-  if (!file) throw bad('Нужно поле file');
-  return { fields, file: file.toString('utf8') };
+  if (!file && fields.format !== 'plane-api') throw bad('Нужно поле file');
+  return { fields, file: file?.toString('utf8') };
 }
 
 function formatPreset(f: Record<string, string>): [ImportFormat, ImportPreset] {
@@ -73,8 +87,28 @@ function formatPreset(f: Record<string, string>): [ImportFormat, ImportPreset] {
   const preset = f.preset as ImportPreset;
   if (!FORMATS.includes(format) || !PRESETS.includes(preset)) throw bad('format/preset неверны');
   if ((format === 'trello') !== (preset === 'trello')) throw bad('preset не подходит формату');
+  if (format === 'plane-api' && preset !== 'plane') throw bad('preset не подходит формату');
   return [format, preset];
 }
+
+/**
+ * Plane connection from the form; only an instance owner/admin: the server goes to the given address,
+ * internal network included. Plane errors (token, address, certificate) — 400.
+ */
+function planeConn(core: CoreServices, req: FastifyRequest, f: Record<string, string>): PlaneConn {
+  core.requireInstanceAdmin(req);
+  const r = planeConnSchema.safeParse(f);
+  if (!r.success) throw bad(r.error.issues[0]!.message);
+  return r.data;
+}
+const planeOrBad = async <T>(p: Promise<T>) => {
+  try {
+    return await p;
+  } catch (e) {
+    if (e instanceof ParseError || e instanceof PlaneForbidden) throw bad(e.message);
+    throw e;
+  }
+};
 
 function parseOrThrow(...a: Parameters<typeof parseSource>) {
   try {
@@ -84,6 +118,15 @@ function parseOrThrow(...a: Parameters<typeof parseSource>) {
   } catch (e) {
     if (e instanceof ParseError) throw bad(e.message);
     throw e;
+  }
+}
+
+/** the wizard's value tables over Plane's fixed fields */
+function planeMapping(s = '{}'): string {
+  try {
+    return JSON.stringify({ ...(JSON.parse(s) as object), ...PLANE_API_MAPPING });
+  } catch {
+    throw bad('mapping неверен');
   }
 }
 
@@ -109,8 +152,9 @@ class ImportController {
   @HttpCode(200)
   async preview(@Req() req: FastifyRequest): Promise<Preview> {
     this.core.auth(req);
-    const { fields, file } = await readForm(req);
+    const { fields, file = '' } = await readForm(req);
     const [format, preset] = formatPreset(fields);
+    if (format === 'plane-api') return planeOrBad(planePreview(planeConn(this.core, req, fields)));
     // with mapping — the wizard re-reads values over the whole file after a column change
     const mapping = format === 'csv' && fields.mapping ? parseMapping(fields.mapping) : null;
     const p = parseOrThrow(file, format, mapping, preset);
@@ -128,10 +172,16 @@ class ImportController {
   async create(@Req() req: FastifyRequest) {
     const auth = this.core.auth(req);
     const { userId } = auth;
-    const { fields, file } = await readForm(req);
+    const { fields, file = '' } = await readForm(req);
     const [format, preset] = formatPreset(fields);
+    const conn = format === 'plane-api' ? planeConn(this.core, req, fields) : null;
     let mapping =
-      format === 'trello' && !fields.mapping ? TRELLO_MAPPING : parseMapping(fields.mapping ?? '');
+      format === 'trello' && !fields.mapping
+        ? TRELLO_MAPPING
+        : // plane-api: fixed fields, the wizard sends only the value tables
+          conn
+          ? parseMapping(planeMapping(fields.mapping))
+          : parseMapping(fields.mapping ?? '');
     // the main project, or only the space — then the rows go to projects by the project column
     const projectId = fields.projectId || null;
     if (projectId !== null && !UUID.test(projectId)) throw bad('projectId неверен');
@@ -155,9 +205,22 @@ class ImportController {
         'not_found',
         projectId ? 'Проект не найден' : 'Пространство не найдено',
       );
-    const p = parseOrThrow(file, format, mapping, preset);
+    // plane-api: issues are read by the job; for creating projects only their keys are needed (also checks the token)
+    const items: Item[] = conn
+      ? (
+          await planeOrBad(
+            planeClient(conn).all<{ name: string; identifier: string }>('/projects/'),
+          )
+        ).map((pr, i) => ({
+          row: i,
+          title: '',
+          project: pr.name,
+          projectKey: pr.identifier,
+          notes: [],
+        }))
+      : parseOrThrow(file, format as FileFormat, mapping, preset).items;
     const spaceId = (ok.rows[0] as { space_id: string }).space_id;
-    mapping = await resolveNew(this.core, auth, spaceId, mapping, p.items);
+    mapping = await resolveNew(this.core, auth, spaceId, mapping, items);
     const [row] = await this.core.db
       .insert(importJobs)
       .values({
@@ -167,8 +230,8 @@ class ImportController {
         spaceId,
         format,
         preset,
-        total: p.items.length,
-        source: file,
+        total: conn ? 0 : items.length,
+        source: conn ? JSON.stringify(conn) : file,
         mapping,
       })
       .returning();
@@ -215,6 +278,12 @@ const docOf = (text: string) => ({
     ),
 });
 
+/** the source date/author line above an HTML comment */
+const withHead = (head: string, d: Record<string, unknown> | null) => {
+  const body = (d?.content as unknown[] | undefined) ?? [];
+  return head ? { type: 'doc', content: [...docOf(head).content, ...body] } : (d ?? docOf('-'));
+};
+
 type Mut = { name: string; args: unknown };
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -233,12 +302,22 @@ async function runImport(jobId: string, api: JobApi) {
   let processed = 0;
   try {
     const mapping = job!.mapping as Mapping;
-    const { items } = parseSource(
-      job!.source ?? '',
-      job!.format as ImportFormat,
-      mapping,
-      job!.preset as ImportPreset,
-    );
+    let items: Item[];
+    let plane: PlaneData | undefined;
+    if (job!.format === 'plane-api') {
+      const conn = planeConnSchema.parse(JSON.parse(job!.source ?? '{}'));
+      // only the chosen projects; with a main project every row has a place — all projects
+      const names = job!.projectId ? null : new Set(Object.keys(mapping.projectMap ?? {}));
+      plane = await planeItems(conn, names, () => touch({}));
+      items = plane.items;
+      warnings.push(...plane.warnings);
+    } else
+      ({ items } = parseSource(
+        job!.source ?? '',
+        job!.format as FileFormat,
+        mapping,
+        job!.preset as ImportPreset,
+      ));
     await touch({ total: items.length });
 
     const q = <T>(s: ReturnType<typeof sql>) => db.execute(s).then((r) => r.rows as T[]);
@@ -324,10 +403,12 @@ async function runImport(jobId: string, api: JobApi) {
       Object.entries(mapping.userMap ?? {}).map(([k, v]) => [k.toLowerCase(), v]),
     );
     const users = new Map<string, string>();
+    const loginOf = new Map<string, string>();
     for (const u of await q<{ id: string; login: string; email: string | null }>(sql`
       select u.id, u.login, u.email from users u join space_members m on m.user_id = u.id
       where m.space_id = ${spaceId} and u.deactivated_at is null`)) {
       users.set(u.login.toLowerCase(), u.id);
+      loginOf.set(u.id, u.login);
     }
     // email takes precedence over login: overwrites on matching rows
     for (const u of await q<{ id: string; email: string }>(sql`
@@ -335,8 +416,18 @@ async function runImport(jobId: string, api: JobApi) {
       where m.space_id = ${spaceId} and u.deactivated_at is null and u.email is not null`)) {
       users.set(u.email.toLowerCase(), u.id);
     }
+    // Plane API: a person not in the table — by their Plane e-mail
     const person = (name: string) =>
-      userMap.get(name.toLowerCase()) ?? users.get(name.toLowerCase());
+      userMap.get(name.toLowerCase()) ??
+      users.get(name.toLowerCase()) ??
+      users.get(plane?.emails.get(name)?.toLowerCase() ?? '');
+    const mentionOf: MentionOf = (planeId) => {
+      const name = plane?.people.get(planeId);
+      if (!name) return null;
+      const id = person(name);
+      const login = id && loginOf.get(id);
+      return login ? { id: id!, label: login } : name;
+    };
 
     for (const it of items) {
       if (it.skip) continue;
@@ -493,11 +584,13 @@ async function runImport(jobId: string, api: JobApi) {
         }
       }
       const description =
-        it.description === undefined
-          ? undefined
-          : it.description === null
-            ? null
-            : docOf(it.description);
+        it.descriptionHtml !== undefined
+          ? htmlToDoc(it.descriptionHtml, mentionOf)
+          : it.description === undefined
+            ? undefined
+            : it.description === null
+              ? null
+              : docOf(it.description);
       const title = it.title.slice(0, 500);
       if (title !== it.title) notes.push('заголовок обрезан до 500 символов');
       if (isUpdate && existing) {
@@ -594,7 +687,14 @@ async function runImport(jobId: string, api: JobApi) {
           userId: author ?? job!.userId,
           mut: {
             name: 'comment.create',
-            args: { id: uuidv7(), taskId: id, body: docOf(head ? `${head}\n${c.text}` : c.text) },
+            args: {
+              id: uuidv7(),
+              taskId: id,
+              body:
+                c.html === undefined
+                  ? docOf(head ? `${head}\n${c.text}` : c.text)
+                  : withHead(head, htmlToDoc(c.html, mentionOf)),
+            },
           },
         };
       });

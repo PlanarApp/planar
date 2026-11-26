@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { Button, EmptyState, Select, UserPicker } from '@planar/web/modules';
-import { NEW, STATUS_CATEGORIES, type ImportJob, type Preview } from '../shared/index.js';
+import {
+  NEW,
+  STATUS_CATEGORIES,
+  type ImportFormat,
+  type ImportJob,
+  type Preview,
+} from '../shared/index.js';
 import {
   getJob,
   previewFile,
@@ -13,6 +19,7 @@ import {
   useStatuses,
   useUsers,
   type Key,
+  type PlaneConn,
 } from './data';
 import {
   FIELDS,
@@ -27,7 +34,15 @@ import {
 
 const step = ref<1 | 2 | 3>(1);
 const file = ref<File | null>(null);
-const format = ref<'csv' | 'trello'>('csv');
+const format = ref<ImportFormat>('csv');
+const plane = ref<PlaneConn>({ url: '', workspace: '', token: '' });
+// what the server reads: the file or the Plane API
+const source = () => (format.value === 'plane-api' ? plane.value : file.value!);
+const hasSource = computed(() =>
+  format.value === 'plane-api'
+    ? !!(plane.value.url && plane.value.workspace && plane.value.token)
+    : !!file.value,
+);
 const preset = ref<string>('clickup');
 const spaceId = ref('');
 const projectId = ref('');
@@ -102,12 +117,7 @@ const setMap = (f: string, v: string | null) => {
 const refreshValues = () =>
   guard(async () => {
     if (!map.value.title) return;
-    const p = await previewFile(
-      file.value!,
-      format.value,
-      preset.value,
-      buildMapping(map.value, {}),
-    );
+    const p = await previewFile(source(), format.value, preset.value, buildMapping(map.value, {}));
     pv.value = { ...pv.value!, values: p.values };
     guessAll();
   });
@@ -117,10 +127,15 @@ function guessAll() {
   for (const v of fileProjects.value)
     projMap.value[v.name] ??= guessProject(v, spaceProjects.value);
   for (const n of filePeople.value)
-    people.value[n] ??= guessUser(n, activeUsers.value, isAdmin.value);
+    people.value[n] ??= guessUser(
+      n,
+      activeUsers.value,
+      isAdmin.value,
+      pv.value?.values.emails?.[n],
+    );
 }
 
-function setFormat(f: 'csv' | 'trello') {
+function setFormat(f: ImportFormat) {
   format.value = f;
   preset.value = presetsFor(f)[0]!;
 }
@@ -137,7 +152,7 @@ async function guard(fn: () => Promise<void>) {
 }
 const toPreview = () =>
   guard(async () => {
-    pv.value = await previewFile(file.value!, format.value, preset.value);
+    pv.value = await previewFile(source(), format.value, preset.value);
     map.value = { ...pv.value.mapping } as unknown as Record<string, string>;
     chosen.value = {};
     projMap.value = {};
@@ -160,7 +175,7 @@ function setProject(id: string) {
 }
 const run = () =>
   guard(async () => {
-    job.value = await startJob(file.value!, {
+    job.value = await startJob(source(), {
       spaceId: spaceId.value,
       projectId: projectId.value,
       format: format.value,
@@ -191,14 +206,39 @@ onBeforeUnmount(() => clearInterval(timer));
     <p v-if="err" role="alert" class="import-err text-sm text-danger">{{ err }}</p>
 
     <section v-if="step === 1" class="flex flex-col gap-3">
-      <EmptyState v-if="!file" :title="tr('file')" />
-      <label class="flex flex-col gap-1 text-sm"
-        >{{ tr('file') }}
-        <input
-          type="file"
-          accept=".csv,.json"
-          @change="file = ($event.target as HTMLInputElement).files?.[0] ?? null"
-      /></label>
+      <template v-if="format === 'plane-api'">
+        <p class="text-xs text-fg-muted">{{ tr('planeHint') }}</p>
+        <label class="flex flex-col gap-1 text-sm"
+          >{{ tr('planeUrl') }}
+          <input
+            v-model.trim="plane.url"
+            class="import-plane-url"
+            type="url"
+            placeholder="https://plane.example.com"
+        /></label>
+        <label class="flex flex-col gap-1 text-sm"
+          >{{ tr('planeWorkspace') }}
+          <input v-model.trim="plane.workspace" class="import-plane-workspace" type="text"
+        /></label>
+        <label class="flex flex-col gap-1 text-sm"
+          >{{ tr('planeToken') }}
+          <input
+            v-model.trim="plane.token"
+            class="import-plane-token"
+            type="password"
+            autocomplete="off"
+        /></label>
+      </template>
+      <template v-else>
+        <EmptyState v-if="!file" :title="tr('file')" />
+        <label class="flex flex-col gap-1 text-sm"
+          >{{ tr('file') }}
+          <input
+            type="file"
+            accept=".csv,.json"
+            @change="file = ($event.target as HTMLInputElement).files?.[0] ?? null"
+        /></label>
+      </template>
       <div class="flex flex-wrap items-center gap-2 text-sm">
         {{ tr('format') }}
         <Select
@@ -207,8 +247,10 @@ onBeforeUnmount(() => clearInterval(timer));
           :options="[
             { value: 'csv', label: 'CSV / JSON' },
             { value: 'trello', label: 'Trello JSON' },
+            // the server goes to the given address: instance admins only
+            ...(isAdmin ? [{ value: 'plane-api', label: 'Plane (API)' }] : []),
           ]"
-          @update:model-value="(v) => v && setFormat(v as 'csv' | 'trello')"
+          @update:model-value="(v) => v && setFormat(v as ImportFormat)"
         />
         {{ tr('preset') }}
         <Select
@@ -221,7 +263,7 @@ onBeforeUnmount(() => clearInterval(timer));
         <Button
           variant="primary"
           class="import-next"
-          :disabled="!file || busy"
+          :disabled="!hasSource || busy"
           :loading="busy"
           @click="toPreview"
         >
@@ -311,8 +353,8 @@ onBeforeUnmount(() => clearInterval(timer));
           />
         </div>
       </div>
-      <h2 class="font-medium">{{ tr('preview') }}</h2>
-      <div class="overflow-x-auto">
+      <h2 v-if="pv.columns.length" class="font-medium">{{ tr('preview') }}</h2>
+      <div v-if="pv.columns.length" class="overflow-x-auto">
         <table class="import-preview text-sm">
           <thead>
             <tr>
