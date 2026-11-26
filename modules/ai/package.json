@@ -24,8 +24,8 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "3.0.135",
-    "@ai-sdk/openai": "3.0.134",
+    "@ai-sdk/anthropic": "4.0.106",
+    "@ai-sdk/openai": "4.0.121",
     "@nestjs/common": "^12.0.0",
     "@planar/editor": "workspace:*",
     "@planar/module-automations": "workspace:*",
@@ -35,7 +35,7 @@
     "@planar/shared": "workspace:*",
     "@planar/web": "workspace:*",
     "@tiptap/core": "^3.34.0",
-    "ai": "6.0.317",
+    "ai": "7.0.177",
     "drizzle-orm": "^0.45.4",
     "fastify": "^5.12.8",
     "fractional-indexing": "^4.0.0",
