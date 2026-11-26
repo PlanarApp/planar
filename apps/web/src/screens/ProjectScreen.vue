@@ -135,6 +135,7 @@ const headerMenu = computed<MenuItem[]>(() => [
         id: project.value.id,
         name: project.value.name,
         prefix: project.value.key,
+        rank: project.value.rank,
         color: project.value.color ?? null,
         icon: project.value.icon ?? null,
       }).filter((it) => !('id' in it) || it.id !== 'rename')

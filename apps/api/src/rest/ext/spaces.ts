@@ -241,6 +241,23 @@ const ops: ExtOp[] = [
     },
   },
   {
+    tool: 'move_project',
+    description:
+      'Перенести проект со всеми задачами в другое пространство (в конец списка); кто не участник нового пространства — теряет роль в проекте, назначения и наблюдение',
+    method: 'post',
+    path: '/api/v1/projects/{id}/move',
+    shape: { id, spaceId: id },
+    write: true,
+    run: async (d, u, i, t) => {
+      const a = i as { id: string; spaceId: string };
+      await d.visibleProject(u, a.id);
+      await visibleSpace(d, u, a.spaceId);
+      const rank = await lastProjectRank(d, a.spaceId);
+      await d.run(u, [{ name: 'project.move', args: { ...a, rank } }], t);
+      return projectRow(d, a.id);
+    },
+  },
+  {
     tool: 'copy_project_dictionaries',
     description:
       'Скопировать в проект все статусы и метки другого проекта того же пространства (одноимённые пропускаются)',

@@ -4,7 +4,13 @@ import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { MutatorError, uuidv7, type EntityName, type Row, type Tx } from '@planar/shared';
 import * as schema from '../db/schema.js';
 import { installed } from '../modules/installed.js';
-import { hiddenProjectIds, projectAccess, projectOfWire, PROJECT_RANK } from './project-access.js';
+import {
+  hiddenProjectIds,
+  projectAccess,
+  projectIdSql,
+  projectOfWire,
+  PROJECT_RANK,
+} from './project-access.js';
 import { Notify } from './notify.js';
 import { allMetas, metaOf, schemaOf, tableOf, toWire } from './rows.js';
 
@@ -269,8 +275,8 @@ export class ServerTx implements Tx {
     extra?: Record<string, unknown>,
   ): Promise<void> {
     const moved = entity !== 'spaces' && !!old && old.spaceId !== next.spaceId;
-    // only a task or a docs page changes its space (PLNRAPP-152, PLNRAPP-5): its rows follow it in relocate()
-    if (moved && entity !== 'tasks' && (entity as string) !== 'docsPages')
+    // only a project, a task or a docs page changes its space (PLNRAPP-152, PLNRAPP-5): its rows follow it in relocate()
+    if (moved && !['projects', 'tasks', 'docsPages'].includes(entity))
       throw new MutatorError('invalid_args', 'spaceId неизменяем');
     await this.authorize(entity, old, next);
     if (moved) {
@@ -435,6 +441,7 @@ export class ServerTx implements Tx {
    * PLNRAPP-152, PLNRAPP-5: a task or docs page moved to another space takes along the rows tied to it — every space entity
    * (core and modules) with taskId or pageId, reactions to its comments: del in the old space, put in the new one;
    * no rights check and no hooks (the move itself is authorized). A child left behind is cut off.
+   * A moved project takes every space row tied to it (project.move).
    */
   private async relocate(entity: EntityName, row: Wire, old: Wire): Promise<void> {
     const id = row.id as string;
@@ -473,6 +480,43 @@ export class ServerTx implements Tx {
           .where(and(eq(schema.tasks.parentId, id), ne(schema.tasks.spaceId, to))),
       );
       for (const r of left) await this.store('tasks', { ...toWire('tasks', r), parentId: null });
+    } else if (entity === 'projects') {
+      // every space row of the project — by its project reference, also through tasks, comments, pages
+      for (const [e, m] of Object.entries(allMetas())) {
+        const pid = m.scope === 'space' && e !== 'projects' ? projectIdSql(e) : null;
+        const c = pid && getTableColumns(tableOf(e));
+        if (!c || !c.spaceId) continue;
+        const rows = await this.exec(() =>
+          this.q
+            .select()
+            .from(tableOf(e))
+            .where(and(sql`${pid} = ${id}`, ne(c.spaceId!, to))),
+        );
+        for (const r of rows) {
+          const w = toWire(e, r);
+          await this.append(w.spaceId as string, null, e, w.id as string, 'del', null, id);
+          await this.store(e as EntityName, { ...w, spaceId: to });
+        }
+      }
+      // a parent and a child now in different spaces (the other one in another project) are cut apart
+      for (const [e, m] of Object.entries(allMetas())) {
+        const t = tableOf(e);
+        const c = getTableColumns(t);
+        if (m.scope !== 'space' || !c.parentId || !c.spaceId) continue;
+        const parentSpace = sql`(select p.space_id from ${t} p where p.id = ${c.parentId})`;
+        const cut = await this.exec(() =>
+          this.q
+            .select()
+            .from(t)
+            .where(
+              and(
+                sql`${c.spaceId} <> ${parentSpace}`,
+                sql`(${c.spaceId} = ${to} or ${parentSpace} = ${to})`,
+              ),
+            ),
+        );
+        for (const r of cut) await this.store(e as EntityName, { ...toWire(e, r), parentId: null });
+      }
     } else if ((entity as string) === 'docsPages') {
       for (const [e, m] of Object.entries(allMetas())) {
         if (m.scope !== 'space' || e === 'docsPages') continue;

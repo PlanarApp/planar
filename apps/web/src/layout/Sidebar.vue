@@ -15,9 +15,16 @@ import { prefetchIdle, prefetchProject, useRootSpaceId, useWorkspace } from '../
 import { useExtensions } from '../modules/registry';
 import type { LocalizedText } from '../modules/types';
 import { VueDraggable } from 'vue-draggable-plus';
-import { favorites as favStore, sidebarCollapse as sc, useNavData, useUserMenu } from './nav';
+import {
+  favorites as favStore,
+  sidebarCollapse as sc,
+  useNavData,
+  useUserMenu,
+  type NavSpace,
+} from './nav';
 import { useAuth } from '../auth/useAuth';
-import { createSpace, useSidebarActions } from './sidebarActions';
+import { createSpace, reorder, useSidebarActions } from './sidebarActions';
+import { mutate } from '../sync';
 import { quickCreate } from '../command/hotkeys';
 import { useRoute } from 'vue-router';
 import { CheckSquare, FolderPlus, LayoutGrid } from 'lucide-vue-next';
@@ -56,6 +63,15 @@ function moveFav(e: { oldIndex?: number; newIndex?: number }) {
   keys.splice(e.newIndex!, 0, k!);
   favStore.reorder(keys);
 }
+type SortEnd = { oldIndex?: number; newIndex?: number };
+const moveSpace = (e: SortEnd) => {
+  for (const [s, rank] of reorder(spaces.value, e.oldIndex!, e.newIndex!))
+    void mutate('space.update', { id: s.id, rank });
+};
+const moveProject = (s: NavSpace, e: SortEnd) => {
+  for (const [p, rank] of reorder(s.projects, e.oldIndex!, e.newIndex!))
+    void mutate('project.update', { id: p.id, rank });
+};
 // a task card dragged from the board onto a project moves there (PLNRAPP-152); other drags are ignored
 function dragOver(projectId: string, e: DragEvent) {
   if (!dragged.value) return;
@@ -379,84 +395,103 @@ const nodeIcon = 'flex size-4 shrink-0 items-center justify-center text-sm';
       </section>
       <section>
         <template v-if="!sc.is('spaces')">
-          <div v-for="s in spaces" :key="s.id">
-            <input
-              v-if="act.editing.value === 'space:' + s.id"
-              :ref="focusInput"
-              v-model="act.draft.value"
-              :class="input"
-              :aria-label="t('sidebar.rename')"
-              @keydown="onKey"
-              @blur="act.commit"
-            />
-            <Menu v-else context :items="act.spaceItems(s)">
-              <div :class="[link, 'w-full pr-1 font-medium']" data-testid="nav-space">
-                <button
-                  type="button"
-                  class="flex shrink-0 items-center outline-none"
-                  :aria-label="t('sidebar.expand')"
-                  :aria-expanded="!sc.is('space:' + s.id)"
-                  @click="sc.toggle('space:' + s.id)"
+          <!-- spaces and the projects of a space are dragged to change the shared order (by their admins) -->
+          <VueDraggable
+            :model-value="spaces"
+            :animation="150"
+            draggable="[data-drag]"
+            handle="[data-testid=nav-space]"
+            data-testid="nav-spaces"
+            @update="moveSpace"
+          >
+            <div v-for="s in spaces" :key="s.id" :data-drag="act.canMoveSpace(s.id) || undefined">
+              <input
+                v-if="act.editing.value === 'space:' + s.id"
+                :ref="focusInput"
+                v-model="act.draft.value"
+                :class="input"
+                :aria-label="t('sidebar.rename')"
+                @keydown="onKey"
+                @blur="act.commit"
+              />
+              <Menu v-else context :items="act.spaceItems(s)">
+                <div :class="[link, 'w-full pr-1 font-medium']" data-testid="nav-space">
+                  <button
+                    type="button"
+                    class="flex shrink-0 items-center outline-none"
+                    :aria-label="t('sidebar.expand')"
+                    :aria-expanded="!sc.is('space:' + s.id)"
+                    @click="sc.toggle('space:' + s.id)"
+                  >
+                    <ChevronRight :size="12" :class="chev('space:' + s.id)" />
+                  </button>
+                  <span v-if="s.icon" :class="nodeIcon" aria-hidden="true"
+                    ><NodeIcon :icon="s.icon"
+                  /></span>
+                  <RouterLink
+                    :to="`/s/${s.id}`"
+                    class="min-w-0 flex-1 truncate outline-none"
+                    :style="s.color ? { color: s.color } : undefined"
+                    >{{ s.name }}</RouterLink
+                  >
+                </div>
+              </Menu>
+              <template v-if="!sc.is('space:' + s.id) || act.editing.value === 'new:' + s.id">
+                <VueDraggable
+                  :model-value="s.projects"
+                  :animation="150"
+                  draggable="[data-drag]"
+                  class="flex flex-col"
+                  @update="moveProject(s, $event)"
                 >
-                  <ChevronRight :size="12" :class="chev('space:' + s.id)" />
-                </button>
-                <span v-if="s.icon" :class="nodeIcon" aria-hidden="true"
-                  ><NodeIcon :icon="s.icon"
-                /></span>
-                <RouterLink
-                  :to="`/s/${s.id}`"
-                  class="min-w-0 flex-1 truncate outline-none"
-                  :style="s.color ? { color: s.color } : undefined"
-                  >{{ s.name }}</RouterLink
-                >
-              </div>
-            </Menu>
-            <template v-if="!sc.is('space:' + s.id) || act.editing.value === 'new:' + s.id">
-              <template v-for="p in s.projects" :key="p.id">
+                  <template v-for="p in s.projects" :key="p.id">
+                    <input
+                      v-if="act.editing.value === p.id"
+                      :ref="focusInput"
+                      v-model="act.draft.value"
+                      :class="[input, 'ml-5 w-[calc(100%-1.25rem)]']"
+                      :aria-label="t('sidebar.rename')"
+                      @keydown="onKey"
+                      @blur="act.commit"
+                    />
+                    <Menu v-else context :items="act.projectItems(p, s, spaces)">
+                      <RouterLink
+                        :data-drag="act.canMoveProject(p.id) || undefined"
+                        :to="`/p/${p.id}`"
+                        :class="[link, 'pl-8 pr-1', overProject === p.id && 'ring-2 ring-focus']"
+                        active-class="bg-accent-subtle"
+                        data-testid="nav-project"
+                        :data-drop-project="p.id"
+                        @pointerenter="prefetchProject(p.id)"
+                        @focus="prefetchProject(p.id)"
+                        @dragover="dragOver(p.id, $event)"
+                        @dragleave="dragLeave(p.id)"
+                        @drop="dropTask(p.id, $event)"
+                      >
+                        <span v-if="p.icon" :class="nodeIcon" aria-hidden="true"
+                          ><NodeIcon :icon="p.icon"
+                        /></span>
+                        <span class="truncate" :style="p.color ? { color: p.color } : undefined">{{
+                          p.name
+                        }}</span>
+                      </RouterLink>
+                    </Menu>
+                  </template>
+                </VueDraggable>
                 <input
-                  v-if="act.editing.value === p.id"
+                  v-if="act.editing.value === 'new:' + s.id"
                   :ref="focusInput"
                   v-model="act.draft.value"
                   :class="[input, 'ml-5 w-[calc(100%-1.25rem)]']"
-                  :aria-label="t('sidebar.rename')"
+                  :placeholder="t('sidebar.projectName')"
+                  :aria-label="t('sidebar.projectName')"
+                  data-inline-edit
                   @keydown="onKey"
-                  @blur="act.commit"
+                  @blur="act.blurNew"
                 />
-                <Menu v-else context :items="act.projectItems(p)">
-                  <RouterLink
-                    :to="`/p/${p.id}`"
-                    :class="[link, 'pl-8 pr-1', overProject === p.id && 'ring-2 ring-focus']"
-                    active-class="bg-accent-subtle"
-                    data-testid="nav-project"
-                    :data-drop-project="p.id"
-                    @pointerenter="prefetchProject(p.id)"
-                    @focus="prefetchProject(p.id)"
-                    @dragover="dragOver(p.id, $event)"
-                    @dragleave="dragLeave(p.id)"
-                    @drop="dropTask(p.id, $event)"
-                  >
-                    <span v-if="p.icon" :class="nodeIcon" aria-hidden="true"
-                      ><NodeIcon :icon="p.icon"
-                    /></span>
-                    <span class="truncate" :style="p.color ? { color: p.color } : undefined">{{
-                      p.name
-                    }}</span>
-                  </RouterLink>
-                </Menu>
               </template>
-              <input
-                v-if="act.editing.value === 'new:' + s.id"
-                :ref="focusInput"
-                v-model="act.draft.value"
-                :class="[input, 'ml-5 w-[calc(100%-1.25rem)]']"
-                :placeholder="t('sidebar.projectName')"
-                :aria-label="t('sidebar.projectName')"
-                data-inline-edit
-                @keydown="onKey"
-                @blur="act.blurNew"
-              />
-            </template>
-          </div>
+            </div>
+          </VueDraggable>
           <div
             v-if="loading"
             role="status"

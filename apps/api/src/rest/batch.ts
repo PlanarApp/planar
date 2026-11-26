@@ -48,6 +48,7 @@ const addRemove = z.object({ add: z.array(uuid).optional(), remove: z.array(uuid
 export const batchPatch = z
   .object({
     statusId: uuid.optional(),
+    projectId: uuid.optional().describe('перенести в проект (любого пространства) с подзадачами'),
     labelIds: addRemove.optional(),
     assigneeIds: addRemove.optional(),
     fields: z.record(uuid, z.unknown()).optional(),
