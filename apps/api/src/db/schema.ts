@@ -652,6 +652,22 @@ export const filesDeleted = pgTable('files_deleted', {
   deletedAt: ts().notNull().defaultNow(),
 });
 
+/** Due reminders already sent (jobs/due.ts): deleting the notification does not make it fire again. */
+export const dueReminders = pgTable(
+  'due_reminders',
+  {
+    userId: cascadeUser(),
+    taskId: uuid()
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    kind: text().notNull(),
+    /** the firing: the local day (due_today/start_today) or the moment (due_soon/due_now) */
+    mark: text().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.taskId, t.kind, t.mark] })],
+);
+
 export const loginAttempts = pgTable('login_attempts', {
   key: text().primaryKey(),
   attempts: integer().notNull(),
