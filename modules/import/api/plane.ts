@@ -69,6 +69,18 @@ type Issue = {
 };
 type Attachment = { id: string; attributes?: { name?: string; size?: number; type?: string } };
 type Comment = { comment_html?: string | null; actor?: string | null; created_at: string };
+type PageRef = { id: string; name?: string; parent?: string | null; archived_at?: string | null };
+
+/** A Plane page of a project: HTML is converted by runImport with the people matched. */
+export interface PlanePage {
+  /** Plane project name: the page goes to the project of its issues */
+  project: string;
+  id: string;
+  /** Plane id of the parent page; null — a root page */
+  parent: string | null;
+  name: string;
+  html: string;
+}
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -363,6 +375,7 @@ export interface PlaneData {
   /** display name → e-mail: matching people by e-mail without the wizard's table */
   emails: Map<string, string>;
   warnings: { row: number; message: string }[];
+  pages: PlanePage[];
   /** a file of an issue: its attachment or an image of its text (the same Plane endpoint) */
   file(
     project: string,
@@ -373,14 +386,39 @@ export interface PlaneData {
 }
 
 /**
- * Issues of the chosen projects (by name; null — all) with comments, as import rows.
- * Descriptions and comments stay HTML: runImport converts them with the people matched.
+ * Pages of a project: the root list, then ?parent= of each page (breadth-first, archived ones skipped).
+ * seen — the same page from several lists is taken once; a list without `parent` gives the queried parent.
+ */
+async function projectPages(api: ReturnType<typeof planeClient>, project: string) {
+  const out: (PageRef & { parent: string | null })[] = [];
+  const seen = new Set<string>();
+  const queue: (string | null)[] = [null];
+  while (queue.length) {
+    const parent = queue.shift()!;
+    const list = await api.all<PageRef>(
+      `/projects/${project}/pages/${parent ? `?parent=${parent}` : ''}`,
+    );
+    for (const pg of list)
+      if (!seen.has(pg.id) && !pg.archived_at) {
+        seen.add(pg.id);
+        out.push({ ...pg, parent: pg.parent ?? parent });
+        queue.push(pg.id);
+      }
+  }
+  return out;
+}
+
+/**
+ * Issues of the chosen projects (by name; null — all) with comments, as import rows, and their pages.
+ * Descriptions, comments and pages stay HTML: runImport converts them with the people matched.
+ * docsOn(project name) — whether its target project has «Документы» on: otherwise pages are only counted.
  * onProgress — after each page/issue batch: keeps the job alive for the sweep.
  */
 export async function planeItems(
   c: PlaneConn,
   projectNames: Set<string> | null,
   onProgress: () => Promise<unknown>,
+  docsOn: (project: string) => boolean = () => false,
 ): Promise<PlaneData> {
   const api = planeClient(c);
   const members = await api.all<Member>('/members/');
@@ -388,6 +426,7 @@ export async function planeItems(
   const emails = new Map(members.filter((m) => m.email).map((m) => [m.display_name, m.email!]));
   const items: Item[] = [];
   const warnings: PlaneData['warnings'] = [];
+  const pages: PlanePage[] = [];
   for (const p of await api.all<Project>('/projects/')) {
     if (projectNames && !projectNames.has(p.name)) continue;
     try {
@@ -448,6 +487,42 @@ export async function planeItems(
     } catch (e) {
       if (!(e instanceof PlaneForbidden)) throw e;
       warnings.push({ row: 0, message: `проект «${p.name}» пропущен: ${e.message}` });
+      continue;
+    }
+    // pages are not issues: an error of theirs (an older Plane without the pages API included) — a warning
+    try {
+      const refs = await projectPages(api, p.id);
+      if (refs.length && !docsOn(p.name)) {
+        warnings.push({
+          row: 0,
+          message: `страницы проекта «${p.name}» (${refs.length}) не импортированы: модуль «Документы» выключен в проекте`,
+        });
+        continue;
+      }
+      for (const r of refs)
+        try {
+          const d = await api.get<{ name?: string; description_html?: string | null }>(
+            `/projects/${p.id}/pages/${r.id}/`,
+          );
+          pages.push({
+            project: p.name,
+            id: r.id,
+            parent: r.parent,
+            name: (d.name ?? r.name ?? '').trim(),
+            html: d.description_html ?? '',
+          });
+        } catch (e) {
+          // a private page of another user
+          if (!(e instanceof PlaneForbidden)) throw e;
+          warnings.push({
+            row: 0,
+            message: `страница «${r.name ?? r.id}» пропущена: ${e.message}`,
+          });
+        }
+      await onProgress();
+    } catch (e) {
+      if (!(e instanceof ParseError || e instanceof PlaneForbidden)) throw e;
+      warnings.push({ row: 0, message: `страницы проекта «${p.name}» не прочитаны: ${e.message}` });
     }
   }
   return {
@@ -455,6 +530,7 @@ export async function planeItems(
     people,
     emails,
     warnings,
+    pages,
     file: (project, issue, asset, maxBytes) =>
       api.file(`/projects/${project}/issues/${issue}/issue-attachments/${asset}/`, maxBytes),
   };

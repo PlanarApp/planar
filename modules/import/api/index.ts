@@ -308,7 +308,21 @@ async function runImport(jobId: string, api: JobApi) {
       const conn = planeConnSchema.parse(JSON.parse(job!.source ?? '{}'));
       // only the chosen projects; with a main project every row has a place — all projects
       const names = job!.projectId ? null : new Set(Object.keys(mapping.projectMap ?? {}));
-      plane = await planeItems(conn, names, () => touch({}));
+      // pages go to the project of the Plane project's issues: only where «Документы» is on
+      const docs = new Set(
+        (
+          await db.execute(
+            sql`select id from projects where space_id = ${job!.spaceId} and 'docs' = any(modules)`,
+          )
+        ).rows.map((r) => (r as { id: string }).id),
+      );
+      const target = (name: string) => mapping.projectMap?.[name] || job!.projectId;
+      plane = await planeItems(
+        conn,
+        names,
+        () => touch({}),
+        (name) => docs.has(target(name) ?? ''),
+      );
       items = plane.items;
       warnings.push(...plane.warnings);
     } else
@@ -781,11 +795,11 @@ async function runImport(jobId: string, api: JobApi) {
     };
 
     const prepare =
-      (rows: { ext: string; taskId: string; projectId: string }[]) =>
+      (rows: { ext: string; taskId: string; projectId: string }[], preset = job!.preset) =>
       async (tx: { execute: (q: never) => Promise<unknown> }) => {
         if (!rows.length) return;
         const vals = sql.join(
-          rows.map((r) => sql`(${r.projectId}, ${job!.preset}, ${r.ext}, ${r.taskId}, now())`),
+          rows.map((r) => sql`(${r.projectId}, ${preset}, ${r.ext}, ${r.taskId}, now())`),
           sql`, `,
         );
         await tx.execute(
@@ -873,6 +887,78 @@ async function runImport(jobId: string, api: JobApi) {
         }
       processed = Math.min(order.length, b + BATCH);
       await touch({ processed, created, updated, skipped, warnings });
+    }
+
+    // Plane pages: one by one (a few dozen); import_items keeps Plane page id → our page (preset plane-page)
+    const pages = plane?.pages.filter((pg) => live.has(projectMap[pg.project] || main || ''));
+    if (pages?.length) {
+      const PRESET = 'plane-page';
+      const pageOf = new Map<string, { id: string; archived: boolean }>();
+      for (const r of await q<{ external_id: string; id: string; archived_at: string | null }>(sql`
+        select i.external_id, p.id, p.archived_at from import_items i join docs_pages p on p.id = i.task_id
+        where i.project_id in (${pidList}) and i.preset = ${PRESET}`))
+        pageOf.set(r.external_id, { id: r.id, archived: !!r.archived_at });
+      // parents before children: by depth within the import
+      const byId = new Map(pages.map((pg) => [pg.id, pg]));
+      const depth = (pg: (typeof pages)[number], n = 0): number => {
+        const up = pg.parent ? byId.get(pg.parent) : undefined;
+        return up && n < pages.length ? depth(up, n + 1) : n;
+      };
+      const lastPageRank = new Map<string, string | null>();
+      for (const pg of [...pages].sort((a, b) => depth(a) - depth(b))) {
+        const pid = projectMap[pg.project] || main!;
+        const title = (pg.name || 'Без названия').slice(0, 200);
+        const body = htmlToDoc(pg.html, mentionOf) ?? { type: 'doc', content: [] };
+        const known = pageOf.get(pg.id);
+        const fail = (e: unknown) =>
+          warnings.push({ row: 0, message: `страница «${title}» не импортирована: ${msg(e)}` });
+        if (known?.archived) {
+          warnings.push({ row: 0, message: `страница «${title}» в архиве: не обновлена` });
+          continue;
+        }
+        if (/<image-component/.test(pg.html))
+          // shortcut: Plane gives page images no download path by the API token — a caption instead
+          warnings.push({ row: 0, message: `страница «${title}»: картинки заменены подписью` });
+        try {
+          if (known) {
+            await api.execute(
+              job!.userId,
+              [{ name: 'docs.page.update', args: { id: known.id, title, body } }],
+              { quiet: true },
+            );
+            updated++;
+            continue;
+          }
+          const parentId = (pg.parent && pageOf.get(pg.parent)?.id) || null;
+          const rkey = `${pid}\u0000${parentId ?? ''}`;
+          if (!lastPageRank.has(rkey)) {
+            const [r] = await q<{ m: string | null }>(
+              sql`select max(rank) as m from docs_pages where project_id = ${pid} and parent_id is not distinct from ${parentId}`,
+            );
+            lastPageRank.set(rkey, r?.m ?? null);
+          }
+          const rank = generateKeyBetween(lastPageRank.get(rkey)!, null);
+          const id = uuidv7();
+          await api.execute(
+            job!.userId,
+            [
+              {
+                name: 'docs.page.create',
+                args: { id, spaceId, projectId: pid, parentId, rank, title, body },
+              },
+            ],
+            {
+              quiet: true,
+              prepare: prepare([{ ext: pg.id, taskId: id, projectId: pid }], PRESET) as never,
+            },
+          );
+          lastPageRank.set(rkey, rank);
+          pageOf.set(pg.id, { id, archived: false });
+          created++;
+        } catch (e) {
+          fail(e);
+        }
+      }
     }
     await touch({
       status: 'done',

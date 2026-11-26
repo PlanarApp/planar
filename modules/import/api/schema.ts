@@ -54,6 +54,7 @@ export const importItems = pgTable(
     projectId: uuid().notNull(),
     preset: text().notNull(),
     externalId: text().notNull(),
+    /** preset plane-page: the id of a docs page (a Plane page imported into «Документы») */
     taskId: uuid().notNull(),
     updatedAt: ts().notNull().defaultNow(),
   },
