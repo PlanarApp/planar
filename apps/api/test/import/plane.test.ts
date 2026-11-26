@@ -539,7 +539,7 @@ describe('импорт из API Plane', () => {
     ).toBe(403);
   });
 
-  it('PLNRAPP-876: страницы — с иерархией в «Документы» проекта задач; приватная и картинка — предупреждения; повтор обновляет; модуль выключен — страницы не создаются', async () => {
+  it('PLNRAPP-876: страницы — с иерархией в «Документы» проекта задач; картинка сохраняется, приватная — предупреждение; повтор обновляет; модуль выключен — страницы не создаются', async () => {
     withPages = true;
     const pid = uuidv7();
     await w.admin.ok('project.create', {
@@ -576,12 +576,14 @@ describe('импорт из API Plane', () => {
       const body = JSON.stringify(arch.body);
       expect(body).toContain('"type":"heading"');
       expect(body).toContain(`"type":"mention","attrs":{"id":"${w.admin.userId}"`);
-      expect(body).toContain('[изображение]');
+      // the image — over issue-attachments with no issue of its own (the stub, as Plane, checks the project only)
+      expect(body).toContain(`"src":"/files/${sha(BYTES[IMG]!)}"`);
+      expect(body).not.toContain('[изображение]');
       const msgs = job.warnings.map((x: { message: string }) => x.message);
       expect(msgs).toContainEqual(
         expect.stringMatching(/^страница «Личное» пропущена: Plane: нет доступа/),
       );
-      expect(msgs).toContain('страница «Архитектура»: картинки заменены подписью');
+      expect(msgs.filter((m: string) => m.startsWith('страница «Архитектура»'))).toEqual([]);
 
       // a repeat: the same pages updated, an edit in Plane comes through
       PAGES[PG2]!.html = '<p>Версия 2</p>';
