@@ -166,7 +166,13 @@ export function createClient(db: PlanarDB) {
       }
   };
   channel?.addEventListener('message', (ev: MessageEvent) => {
-    if (ev.data?.db === db.name && Array.isArray(ev.data.batch)) fire(ev.data.batch);
+    if (ev.data?.db !== db.name) return;
+    if (Array.isArray(ev.data.batch)) fire(ev.data.batch);
+    // another tab cleared the replica (logout, another user): this tab's clientId and cursor are stale
+    if (ev.data.wiped && unsub) {
+      void stopSync();
+      authCbs.forEach((cb) => cb());
+    }
   });
   /** after commit: to this tab's subscribers and (unless local) to the other tabs */
   const emit = (b: ReplicaChange[], local = false) => {
@@ -857,9 +863,14 @@ export function createClient(db: PlanarDB) {
     const owner = (await meta('userId')) as string | undefined;
     if (owner !== undefined && owner !== o.userId) await wipe(); // replica of another user
     await db._meta.put({ key: 'userId', value: o.userId });
-    const id = (await meta('clientId')) as string | undefined;
-    clientId = id ?? uuidv7();
-    if (!id) await db._meta.put({ key: 'clientId', value: clientId });
+    // read-or-create in one transaction: tabs starting together get the same clientId
+    clientId = await db.transaction('rw', db._meta, async () => {
+      const id = (await meta('clientId')) as string | undefined;
+      if (id) return id;
+      const fresh = uuidv7();
+      await db._meta.put({ key: 'clientId', value: fresh });
+      return fresh;
+    });
     await readState();
     pushedUpTo = 0;
     failures = wsFailures = 0;
@@ -951,6 +962,7 @@ export function createClient(db: PlanarDB) {
     replicaState.value = 'empty';
     syncState.value = { status: 'idle', pending: 0 };
     emit([RESET]);
+    channel?.postMessage({ db: db.name, wiped: true });
   }
 
   async function clearLocal(): Promise<void> {
