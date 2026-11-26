@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { createServer as createTls } from 'node:https';
 import { mkdtempSync, readFileSync } from 'node:fs';
@@ -9,6 +10,7 @@ import { api as importApi } from '@planar/module-import/api';
 import { htmlToDoc } from '../../../../modules/import/api/html.js';
 import { createApp } from '../../src/app.js';
 import { settings } from '../../src/db/schema.js';
+import { storeBuffer } from '../../src/files/store.js';
 import type { JobApi } from '../../src/modules/hooks.js';
 import { executeMutations } from '../../src/sync/mutate.js';
 import { ORIGIN, loginCookie } from '../auth.js';
@@ -26,11 +28,17 @@ let planeUrl = '';
 const TOKEN = 'plane_api_test';
 const WS = 'acme';
 
+const dataDir = mkdtempSync(join(tmpdir(), 'planar-plane-'));
+const MAX = 1000; // bytes: BIG is over it
 const jobApi: JobApi = {
   db,
   systemUserId: '',
   execute: (u, m, o) => executeMutations(db, u, m, undefined, undefined, o),
   async enqueue() {},
+  files: {
+    store: (b, u, mime) => storeBuffer(db, { dataDir, maxUploadMb: 1 }, b, u, mime),
+    maxBytes: MAX,
+  },
 };
 const worker = (
   importApi.jobs as { queue: string; handler(d: unknown, a: JobApi): Promise<void> }[]
@@ -41,6 +49,18 @@ const ALICE = '11111111-1111-4111-8111-111111111111';
 const GHOST = '22222222-2222-4222-8222-222222222222';
 const P1 = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const P2 = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+// files behind 302: an attachment, an image of the description, an image of a comment, one over the limit
+const DOC = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const IMG = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+const CIMG = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+const BIG = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+const BYTES: Record<string, Buffer> = {
+  [DOC]: Buffer.from('%PDF spec'),
+  [IMG]: Buffer.from('png description'),
+  [CIMG]: Buffer.from('png comment'),
+  [BIG]: Buffer.alloc(MAX + 1),
+};
+const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex');
 const issue = (n: number, extra: Record<string, unknown> = {}) => ({
   id: `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
   sequence_id: n,
@@ -60,7 +80,8 @@ const issue = (n: number, extra: Record<string, unknown> = {}) => ({
 const ISSUES = [
   issue(1, {
     description_html:
-      '<h3 class="editor-heading-block">Цель</h3><p class="editor-paragraph-block"><strong>Важно</strong> и <code class="rounded-sm">код</code></p><ul class="list-disc pl-7"><li><p>пункт</p></li></ul>',
+      '<h3 class="editor-heading-block">Цель</h3><p class="editor-paragraph-block"><strong>Важно</strong> и <code class="rounded-sm">код</code></p><ul class="list-disc pl-7"><li><p>пункт</p></li></ul>' +
+      `<image-component src="${IMG}" width="300" status="uploaded"></image-component>`,
     assignees: [ALICE],
     labels: ['l1'],
     priority: 'high',
@@ -72,7 +93,7 @@ const ISSUES = [
 const COMMENTS: Record<string, unknown[]> = {
   [issue(1).id]: [
     {
-      comment_html: '<p>второй</p>',
+      comment_html: `<p>второй</p><image-component src="${CIMG}"></image-component>`,
       actor: GHOST,
       created_at: '2026-11-02T10:00:00Z',
     },
@@ -85,6 +106,7 @@ const COMMENTS: Record<string, unknown[]> = {
 };
 let rateLimited = false;
 let calls: string[] = [];
+const storageKeys: (string | undefined)[] = [];
 
 function handle(req: IncomingMessage, res: ServerResponse) {
   {
@@ -94,6 +116,13 @@ function handle(req: IncomingMessage, res: ServerResponse) {
       res.writeHead(code, { 'content-type': 'application/json', ...headers });
       res.end(JSON.stringify(body));
     };
+    // the signed storage link: no API key needed
+    const st = /^\/storage\/(.+)$/.exec(u.pathname);
+    if (st) {
+      storageKeys.push(req.headers['x-api-key'] as string | undefined);
+      res.writeHead(200, { 'content-type': 'image/png' });
+      return res.end(BYTES[st[1]!]);
+    }
     if (req.headers['x-api-key'] !== TOKEN) return send(401, { detail: 'bad key' });
     if (rateLimited) {
       rateLimited = false;
@@ -128,6 +157,21 @@ function handle(req: IncomingMessage, res: ServerResponse) {
       expect(u.searchParams.get('expand')).toBe('state');
       return page(ISSUES);
     }
+    const att = /^\/projects\/[^/]+\/issues\/([^/]+)\/issue-attachments\/(?:([^/]+)\/)?$/.exec(p);
+    if (att && att[2]) {
+      res.writeHead(302, { location: `/storage/${att[2]}?sig=1` });
+      return res.end();
+    }
+    if (att)
+      return send(
+        200,
+        att[1] === issue(1).id
+          ? [
+              { id: DOC, attributes: { name: 'spec.pdf', size: 9, type: 'application/pdf' } },
+              { id: BIG, attributes: { name: 'big.bin', size: MAX + 1, type: '' } },
+            ]
+          : [],
+      );
     const m = /^\/projects\/[^/]+\/issues\/([^/]+)\/comments\/$/.exec(p);
     if (m) return send(200, { results: COMMENTS[m[1]!] ?? [], next_page_results: false });
     send(404, { detail: 'not found' });
@@ -164,7 +208,7 @@ beforeAll(async () => {
   app = await createApp({
     databaseUrl: testDbUrl(),
     publicUrl: ORIGIN,
-    dataDir: mkdtempSync(join(tmpdir(), 'planar-plane-')),
+    dataDir,
   });
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
@@ -362,6 +406,24 @@ describe('импорт из API Plane', () => {
     expect(desc).toContain('"type":"heading"');
     expect(desc).toContain('"type":"bold"');
     expect(desc).toContain('"type":"bulletList"');
+    expect(desc).toContain(`"src":"/files/${sha(BYTES[IMG]!)}"`);
+    // attachments: the file is stored, the one over the limit — a warning; the storage gets no API key
+    const files = async () =>
+      (
+        await db.$client.query(
+          'select name, mime, size::int, file_sha256 from attachments where task_id = $1',
+          [tasks[0].id],
+        )
+      ).rows;
+    expect(await files()).toEqual([
+      { name: 'spec.pdf', mime: 'application/pdf', size: 9, file_sha256: sha(BYTES[DOC]!) },
+    ]);
+    expect(job.warnings).toContainEqual({
+      row: 1,
+      message: expect.stringMatching(/^файл «big\.bin» не импортирован: больше/),
+    });
+    expect(storageKeys.length).toBeGreaterThan(0);
+    expect(storageKeys.every((k) => k === undefined)).toBe(true);
     // assignee by the Plane e-mail (no table row), the label by its name
     const [a] = (
       await db.$client.query('select user_id from task_assignees where task_id = $1', [tasks[0].id])
@@ -386,6 +448,7 @@ describe('импорт из API Plane', () => {
     expect(first).toContain('2026-11-01 09:30');
     expect(first).toContain(`"type":"mention","attrs":{"id":"${w.admin.userId}"`);
     expect(JSON.stringify(comments[1].body)).toContain('второй');
+    expect(JSON.stringify(comments[1].body)).toContain(`"src":"/files/${sha(BYTES[CIMG]!)}"`);
     // the project without access was not chosen: not read at all
     expect(calls.some((c) => c.includes(P2) && c.includes('/issues/'))).toBe(false);
 
@@ -398,6 +461,8 @@ describe('импорт из API Plane', () => {
       )
     ).rows[0].n;
     expect(n).toBe(2);
+    // the same files: no second attachment
+    expect(await files()).toHaveLength(1);
   });
 
   it('проект Plane без доступа — предупреждение, остальное импортируется; неверный токен при создании — 400, задание не создаётся', async () => {
@@ -511,5 +576,16 @@ describe('импорт из API Plane', () => {
     await worker.handler({ jobId: id }, jobApi);
     const [done] = (await db.$client.query('select * from import_jobs where id = $1', [id])).rows;
     expect([done.status, done.error, done.created, done.source]).toEqual(['done', null, 2, null]);
+    // the signed link of the same host — over the trusted certificate too
+    const files = (
+      await db.$client.query(
+        'select a.name from attachments a join tasks t on t.id = a.task_id where t.project_id = $1',
+        [pid],
+      )
+    ).rows;
+    expect(files).toEqual([{ name: 'spec.pdf' }]);
+    expect(done.warnings.map((x: { message: string }) => x.message)).toEqual([
+      expect.stringMatching(/^файл «big\.bin» не импортирован: больше/),
+    ]);
   });
 });

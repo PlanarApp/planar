@@ -21,12 +21,22 @@ const parse = (html: string): Document => {
   return dom.parseFromString(`<!doctype html><body>${html}</body>`, 'text/html');
 };
 
+/** src of Plane images (asset ids): to be stored before htmlToDoc */
+export const imageSrcs = (html: string): string[] =>
+  [...parse(html).querySelectorAll('image-component')].flatMap(
+    (el) => el.getAttribute('src') || [],
+  );
+
 /**
  * HTML of the Plane editor (TipTap, like ours) → our document by the server schema; null — empty.
- * Plane's own tags: mention-component → mention, image-component / attachment-component → a text
- * placeholder (files are PLNRAPP-875), horizontalRule div → hr. Unknown tags keep their text.
+ * Plane's own tags: mention-component → mention, image-component → image by imageOf (not stored — a text
+ * placeholder), attachment-component → a text placeholder, horizontalRule div → hr. Unknown tags keep their text.
  */
-export function htmlToDoc(html: string, mentionOf: MentionOf): Record<string, unknown> | null {
+export function htmlToDoc(
+  html: string,
+  mentionOf: MentionOf,
+  imageOf: (src: string) => string | null = () => null,
+): Record<string, unknown> | null {
   const doc = parse(html);
   const swap = (sel: string, make: (el: Element) => Node) =>
     doc.querySelectorAll(sel).forEach((el) => el.replaceWith(make(el)));
@@ -44,7 +54,13 @@ export function htmlToDoc(html: string, mentionOf: MentionOf): Record<string, un
     span.setAttribute('data-label', m.label);
     return span;
   });
-  swap('image-component', () => p('[изображение]'));
+  swap('image-component', (el) => {
+    const src = imageOf(el.getAttribute('src') ?? '');
+    if (!src) return p('[изображение]');
+    const img = doc.createElement('img');
+    img.setAttribute('src', src);
+    return img;
+  });
   swap('attachment-component', (el) => p(`[вложение: ${el.getAttribute('name') ?? ''}]`));
   swap('[data-type="horizontalRule"]', () => doc.createElement('hr'));
   // happy-dom nodes are DOM-compatible for the ProseMirror parser

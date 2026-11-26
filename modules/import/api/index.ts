@@ -26,7 +26,7 @@ import {
   suggestMapping,
   type Item,
 } from './parse.js';
-import { htmlToDoc, type MentionOf } from './html.js';
+import { htmlToDoc, imageSrcs, type MentionOf } from './html.js';
 import {
   PLANE_API_MAPPING,
   planeClient,
@@ -428,6 +428,67 @@ async function runImport(jobId: string, api: JobApi) {
       const login = id && loginOf.get(id);
       return login ? { id: id!, label: login } : name;
     };
+    // Plane files: stored on behalf of the importer; an error or the size limit — a row warning, the import goes on
+    const fetchFile = async (
+      it: Item,
+      asset: string,
+      name: string,
+      mime: string,
+      notes: string[],
+    ) => {
+      try {
+        if (!api.files) throw new Error('хранилище файлов недоступно');
+        const f = await plane!.file(it.plane!.project, it.plane!.issue, asset, api.files.maxBytes);
+        return await api.files.store(f.buf, job!.userId, mime || f.mime || undefined);
+      } catch (e) {
+        notes.push(`файл «${name}» не импортирован: ${msg(e)}`);
+        return null;
+      }
+    };
+    /** images of the HTML (asset id → /files/<sha>) */
+    const storeImages = async (it: Item, htmls: string[], notes: string[]) => {
+      const out = new Map<string, string>();
+      if (!it.plane) return out;
+      for (const src of new Set(htmls.flatMap(imageSrcs)))
+        if (UUID.test(src)) {
+          const f = await fetchFile(it, src, 'изображение', '', notes);
+          if (f) out.set(src, `/files/${f.sha256}`);
+        }
+      return out;
+    };
+    /** attachment.create for the Plane attachments whose file the task does not have yet */
+    const attachMuts = async (it: Item, taskId: string, isUpdate: boolean, notes: string[]) => {
+      if (!it.plane?.attachments.length) return [];
+      const had = new Set(
+        isUpdate
+          ? (
+              await q<{ file_sha256: string }>(
+                sql`select file_sha256 from attachments where task_id = ${taskId}`,
+              )
+            ).map((r) => r.file_sha256)
+          : [],
+      );
+      const muts: Mut[] = [];
+      for (const a of it.plane.attachments) {
+        const f = await fetchFile(it, a.id, a.name, a.mime, notes);
+        if (!f || had.has(f.sha256)) continue;
+        had.add(f.sha256);
+        muts.push({
+          name: 'attachment.create',
+          args: {
+            id: uuidv7(),
+            taskId,
+            fileSha256: f.sha256,
+            name: a.name,
+            mime: f.mime,
+            size: f.size,
+            width: f.width,
+            height: f.height,
+          },
+        });
+      }
+      return muts;
+    };
 
     for (const it of items) {
       if (it.skip) continue;
@@ -583,9 +644,19 @@ async function runImport(jobId: string, api: JobApi) {
           notes.push(`родитель «${it.parentExt}» в другом проекте: не назначен`);
         }
       }
+      // comments are imported only into a new task: their images too
+      const images = await storeImages(
+        it,
+        [
+          it.descriptionHtml ?? '',
+          ...(isUpdate ? [] : (it.comments ?? []).map((c) => c.html ?? '')),
+        ],
+        notes,
+      );
+      const imageOf = (src: string) => images.get(src) ?? null;
       const description =
         it.descriptionHtml !== undefined
-          ? htmlToDoc(it.descriptionHtml, mentionOf)
+          ? htmlToDoc(it.descriptionHtml, mentionOf, imageOf)
           : it.description === undefined
             ? undefined
             : it.description === null
@@ -638,6 +709,7 @@ async function runImport(jobId: string, api: JobApi) {
                 args: { id: uuidv7(), taskId: existing, labelId: l },
               });
         }
+        muts.push(...(await attachMuts(it, existing, true, notes)));
         // comments — only on creation: a repeated import must not duplicate them
         return {
           muts,
@@ -679,6 +751,7 @@ async function runImport(jobId: string, api: JobApi) {
         });
         if (c.done) muts.push({ name: 'checklist.update', args: { id: cid, done: true } });
       });
+      muts.push(...(await attachMuts(it, id, false, notes)));
       // the comment date is set by the mutator (now): the source date goes into the first line
       const comments = (it.comments ?? []).map((c) => {
         const author = c.author ? person(c.author) : undefined;
@@ -693,7 +766,7 @@ async function runImport(jobId: string, api: JobApi) {
               body:
                 c.html === undefined
                   ? docOf(head ? `${head}\n${c.text}` : c.text)
-                  : withHead(head, htmlToDoc(c.html, mentionOf)),
+                  : withHead(head, htmlToDoc(c.html, mentionOf, imageOf)),
             },
           },
         };

@@ -67,6 +67,7 @@ type Issue = {
   is_draft?: boolean;
   archived_at?: string | null;
 };
+type Attachment = { id: string; attributes?: { name?: string; size?: number; type?: string } };
 type Comment = { comment_html?: string | null; actor?: string | null; created_at: string };
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -167,7 +168,8 @@ async function plainGet(url: string, headers: Record<string, string>): Promise<R
   try {
     const res = await fetch(url, {
       headers,
-      redirect: 'error',
+      // a redirect is a status: a file answers 302 to a signed link, the API otherwise — an error
+      redirect: 'manual',
       signal: AbortSignal.timeout(60_000),
     });
     return { status: res.status, header: (n) => res.headers.get(n), json: () => res.json() };
@@ -181,10 +183,59 @@ async function plainGet(url: string, headers: Record<string, string>): Promise<R
   }
 }
 
+/** A response body up to maxBytes (Content-Length is checked first, then the bytes read). */
+async function readCapped(
+  body: AsyncIterable<Uint8Array>,
+  length: string | null,
+  maxBytes: number,
+): Promise<Buffer> {
+  const tooBig = () => new ParseError(`больше ${Math.round(maxBytes / 1048576)} МБ`);
+  if (Number(length ?? 0) > maxBytes) throw tooBig();
+  const parts: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of body) {
+    size += chunk.length;
+    if (size > maxBytes) throw tooBig();
+    parts.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(parts);
+}
+
+/** GET of a file over the pinned connection, capped at maxBytes. */
+async function pinnedFile(
+  url: string,
+  fp: string,
+  maxBytes: number,
+): Promise<{ status: number; buf: Buffer; mime: string }> {
+  const u = new URL(url);
+  const socket = await pinnedSocket(u, fp);
+  return new Promise((ok, fail) => {
+    const req = request(u, { createConnection: () => socket, timeout: 120_000 }, (res) => {
+      const status = res.statusCode ?? 0;
+      const mime = String(res.headers['content-type'] ?? '').split(';')[0]!;
+      if (status !== 200) {
+        res.destroy();
+        return ok({ status, buf: Buffer.alloc(0), mime });
+      }
+      readCapped(res, res.headers['content-length'] ?? null, maxBytes).then(
+        (buf) => ok({ status, buf, mime }),
+        (e: Error) => {
+          res.destroy();
+          fail(e);
+        },
+      );
+    });
+    req.on('error', (e) => fail(unreachable(e)));
+    req.on('timeout', () => req.destroy(new Error('таймаут')));
+    req.end();
+  });
+}
+
 /** Plane API v1 client: X-API-Key, cursor pages, waits out the rate limit; errors — in plain words. */
 export function planeClient(c: PlaneConn) {
   const base = `${c.url}/api/v1/workspaces/${c.workspace}`;
-  async function get<T>(path: string): Promise<T> {
+  /** redirect — a 3xx is returned, not an error (a file: 302 to a signed link) */
+  async function send(path: string, redirect = false): Promise<Res> {
     for (let attempt = 0; ; attempt++) {
       const headers = { 'X-API-Key': c.token, Accept: 'application/json' };
       // a trusted fingerprint applies to https only: plain http has no certificate
@@ -202,12 +253,39 @@ export function planeClient(c: PlaneConn) {
       if (res.status === 401) throw new ParseError('Plane: неверный API-токен');
       if (res.status === 403) throw new PlaneForbidden(path);
       if (res.status === 404) throw new ParseError(`Plane: не найдено (${path.split('?')[0]})`);
-      if (res.status < 200 || res.status >= 300)
+      if (res.status < 200 || res.status >= (redirect ? 400 : 300))
         throw new ParseError(`Plane: ошибка ${res.status} (${path.split('?')[0]})`);
       // little quota left: slow down instead of hitting 429
       if (Number(res.header('x-ratelimit-remaining') ?? 100) < 5) await wait(1000);
-      return (await res.json()) as T;
+      return res;
     }
+  }
+  const get = async <T>(path: string): Promise<T> => (await send(path)).json() as Promise<T>;
+  /**
+   * A file: Plane answers 302 to a signed storage link, fetched without the API key, capped at maxBytes.
+   * The link to Plane's own host goes over the trusted certificate too.
+   */
+  async function file(path: string, maxBytes: number): Promise<{ buf: Buffer; mime: string }> {
+    const loc = (await send(path, true)).header('location');
+    if (!loc) throw new ParseError('Plane: нет ссылки на файл');
+    const u = new URL(loc, c.url);
+    let r: { status: number; buf: Buffer; mime: string };
+    if (c.fingerprint && u.protocol === 'https:' && u.origin === new URL(c.url).origin)
+      r = await pinnedFile(u.href, c.fingerprint, maxBytes);
+    else {
+      const res = await fetch(u, { signal: AbortSignal.timeout(120_000) });
+      r = {
+        status: res.status,
+        mime: res.headers.get('content-type')?.split(';')[0] ?? '',
+        buf:
+          res.ok && res.body
+            ? await readCapped(res.body, res.headers.get('content-length'), maxBytes)
+            : Buffer.alloc(0),
+      };
+      if (!res.ok) await res.body?.cancel();
+    }
+    if (r.status !== 200) throw new ParseError(`хранилище Plane ответило ${r.status}`);
+    return r;
   }
   /** every page of a list: `results` + next_cursor (an empty cursor is rejected — the first page has none) */
   async function all<T>(path: string): Promise<T[]> {
@@ -223,7 +301,7 @@ export function planeClient(c: PlaneConn) {
       cursor = page.next_cursor;
     }
   }
-  return { get, all };
+  return { get, all, file };
 }
 
 /** No access to a Plane object (a project the token's user is not in): skipped with a warning. */
@@ -285,6 +363,13 @@ export interface PlaneData {
   /** display name → e-mail: matching people by e-mail without the wizard's table */
   emails: Map<string, string>;
   warnings: { row: number; message: string }[];
+  /** a file of an issue: its attachment or an image of its text (the same Plane endpoint) */
+  file(
+    project: string,
+    issue: string,
+    asset: string,
+    maxBytes: number,
+  ): Promise<{ buf: Buffer; mime: string }>;
 }
 
 /**
@@ -318,7 +403,9 @@ export async function planeItems(
       await onProgress();
       const key = new Map(issues.map((i) => [i.id, `${p.identifier}-${i.sequence_id}`]));
       for (const [n, i] of issues.entries()) {
-        const comments = await api.all<Comment>(`/projects/${p.id}/issues/${i.id}/comments/`);
+        const path = `/projects/${p.id}/issues/${i.id}`;
+        const comments = await api.all<Comment>(`${path}/comments/`);
+        const files = await api.all<Attachment>(`${path}/issue-attachments/`);
         const it: Item = {
           row: items.length + 1,
           externalId: key.get(i.id),
@@ -343,6 +430,15 @@ export async function planeItems(
               at: x.created_at.slice(0, 16).replace('T', ' '),
             })),
           notes: [],
+          plane: {
+            project: p.id,
+            issue: i.id,
+            attachments: files.map((f) => ({
+              id: f.id,
+              name: f.attributes?.name || f.id,
+              mime: f.attributes?.type ?? '',
+            })),
+          },
         };
         // a parent of another project / archived — not in this list
         if (i.parent) it.parentExt = key.get(i.parent) ?? i.parent;
@@ -354,5 +450,12 @@ export async function planeItems(
       warnings.push({ row: 0, message: `проект «${p.name}» пропущен: ${e.message}` });
     }
   }
-  return { items, people, emails, warnings };
+  return {
+    items,
+    people,
+    emails,
+    warnings,
+    file: (project, issue, asset, maxBytes) =>
+      api.file(`/projects/${project}/issues/${issue}/issue-attachments/${asset}/`, maxBytes),
+  };
 }
