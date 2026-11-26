@@ -127,18 +127,29 @@ async function verifyCode(db: Db, userId: string, code: string): Promise<boolean
   const c = code.replace(/\s/g, '');
   if (s.totpEnabled && s.totpSecret) {
     const step = verifyTotp(s.totpSecret, c, s.totpStep);
+    // conditional writes: of two parallel requests with the same code only one spends it
     if (step !== null) {
-      await db.update(userSecurity).set({ totpStep: step }).where(eq(userSecurity.userId, userId));
-      return true;
+      const won = await db
+        .update(userSecurity)
+        .set({ totpStep: step })
+        .where(
+          and(
+            eq(userSecurity.userId, userId),
+            sql`(${userSecurity.totpStep} is null or ${userSecurity.totpStep} < ${step})`,
+          ),
+        )
+        .returning({ u: userSecurity.userId });
+      return won.length > 0;
     }
   }
   const h = hashRecovery(c);
   if (c.length < 8 || !s.recoveryCodes.includes(h)) return false;
-  await db
+  const won = await db
     .update(userSecurity)
-    .set({ recoveryCodes: s.recoveryCodes.filter((x) => x !== h) })
-    .where(eq(userSecurity.userId, userId));
-  return true;
+    .set({ recoveryCodes: sql`array_remove(${userSecurity.recoveryCodes}, ${h})` })
+    .where(and(eq(userSecurity.userId, userId), sql`${h} = any(${userSecurity.recoveryCodes})`))
+    .returning({ u: userSecurity.userId });
+  return won.length > 0;
 }
 
 export type FactorProof = { code: string } | PasskeyProof;
