@@ -23,6 +23,12 @@ export interface Item {
   /** html — the comment as HTML (Plane API) instead of text */
   comments?: { text: string; html?: string; author: string; at: string }[];
   checklist?: { text: string; done: boolean }[];
+  /** Plane API: ids of the issue for its files, its attachments */
+  plane?: {
+    project: string;
+    issue: string;
+    attachments: { id: string; name: string; mime: string }[];
+  };
   notes: string[];
   /** reason the row cannot be imported */
   skip?: string;

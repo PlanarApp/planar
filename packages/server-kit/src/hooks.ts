@@ -1,5 +1,6 @@
 import type { MutationOrigin, Tx } from '@planar/shared';
 import type { z } from 'zod';
+import type { CoreServices } from './core.js';
 import type { Db, Q } from './types.js';
 
 export type { AfterMutationCtx, MutationOrigin, MutationWrite } from '@planar/shared';
@@ -59,6 +60,8 @@ export interface JobApi {
   tools?(origin: MutationOrigin): Promise<JobTool[]>;
   /** id of the user «Automation» */
   systemUserId: string;
+  /** file store as POST /files (store over maxBytes → 413); absent in an API built by hand */
+  files?: { store: CoreServices['storeFile']; maxBytes: number };
 }
 
 export interface JobDef<D = Record<string, unknown>> {

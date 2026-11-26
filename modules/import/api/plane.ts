@@ -54,6 +54,7 @@ type Issue = {
   is_draft?: boolean;
   archived_at?: string | null;
 };
+type Attachment = { id: string; attributes?: { name?: string; size?: number; type?: string } };
 type Comment = { comment_html?: string | null; actor?: string | null; created_at: string };
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -61,13 +62,14 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** Plane API v1 client: X-API-Key, cursor pages, waits out the rate limit; errors — in plain words. */
 export function planeClient(c: PlaneConn) {
   const base = `${c.url}/api/v1/workspaces/${c.workspace}`;
-  async function get<T>(path: string): Promise<T> {
+  /** manual — a redirect is returned, not followed (a file: 302 to a signed link) */
+  async function send(path: string, manual = false): Promise<Response> {
     for (let attempt = 0; ; attempt++) {
       let res: Response;
       try {
         res = await fetch(base + path, {
           headers: { 'X-API-Key': c.token, Accept: 'application/json' },
-          redirect: 'error',
+          redirect: manual ? 'manual' : 'error',
           signal: AbortSignal.timeout(60_000),
         });
       } catch (e) {
@@ -88,11 +90,38 @@ export function planeClient(c: PlaneConn) {
       if (res.status === 401) throw new ParseError('Plane: неверный API-токен');
       if (res.status === 403) throw new PlaneForbidden(path);
       if (res.status === 404) throw new ParseError(`Plane: не найдено (${path.split('?')[0]})`);
-      if (!res.ok) throw new ParseError(`Plane: ошибка ${res.status} (${path.split('?')[0]})`);
+      if (!res.ok && !(manual && res.status >= 300 && res.status < 400))
+        throw new ParseError(`Plane: ошибка ${res.status} (${path.split('?')[0]})`);
       // little quota left: slow down instead of hitting 429
       if (Number(res.headers.get('x-ratelimit-remaining') ?? 100) < 5) await wait(1000);
-      return (await res.json()) as T;
+      return res;
     }
+  }
+  const get = async <T>(path: string): Promise<T> => (await send(path)).json() as Promise<T>;
+  /** a file: Plane answers 302 to a signed storage link, fetched without the API key; over maxBytes — an error */
+  async function file(path: string, maxBytes: number): Promise<{ buf: Buffer; mime: string }> {
+    const r = await send(path, true);
+    const loc = r.headers.get('location');
+    if (!loc) throw new ParseError(`Plane: нет ссылки на файл (${r.status})`);
+    const res = await fetch(new URL(loc, c.url), { signal: AbortSignal.timeout(120_000) });
+    if (!res.ok || !res.body) throw new ParseError(`хранилище Plane ответило ${res.status}`);
+    const tooBig = () => new ParseError(`больше ${Math.round(maxBytes / 1048576)} МБ`);
+    if (Number(res.headers.get('content-length') ?? 0) > maxBytes) {
+      await res.body.cancel();
+      throw tooBig();
+    }
+    // no Content-Length: counted while reading
+    const parts: Buffer[] = [];
+    let size = 0;
+    for await (const chunk of res.body) {
+      size += chunk.length;
+      if (size > maxBytes) throw tooBig();
+      parts.push(Buffer.from(chunk));
+    }
+    return {
+      buf: Buffer.concat(parts),
+      mime: res.headers.get('content-type')?.split(';')[0] ?? '',
+    };
   }
   /** every page of a list: `results` + next_cursor (an empty cursor is rejected — the first page has none) */
   async function all<T>(path: string): Promise<T[]> {
@@ -108,7 +137,7 @@ export function planeClient(c: PlaneConn) {
       cursor = page.next_cursor;
     }
   }
-  return { get, all };
+  return { get, all, file };
 }
 
 /** No access to a Plane object (a project the token's user is not in): skipped with a warning. */
@@ -155,6 +184,13 @@ export interface PlaneData {
   /** display name → e-mail: matching people by e-mail without the wizard's table */
   emails: Map<string, string>;
   warnings: { row: number; message: string }[];
+  /** a file of an issue: its attachment or an image of its text (the same Plane endpoint) */
+  file(
+    project: string,
+    issue: string,
+    asset: string,
+    maxBytes: number,
+  ): Promise<{ buf: Buffer; mime: string }>;
 }
 
 /**
@@ -188,7 +224,9 @@ export async function planeItems(
       await onProgress();
       const key = new Map(issues.map((i) => [i.id, `${p.identifier}-${i.sequence_id}`]));
       for (const [n, i] of issues.entries()) {
-        const comments = await api.all<Comment>(`/projects/${p.id}/issues/${i.id}/comments/`);
+        const path = `/projects/${p.id}/issues/${i.id}`;
+        const comments = await api.all<Comment>(`${path}/comments/`);
+        const files = await api.all<Attachment>(`${path}/issue-attachments/`);
         const it: Item = {
           row: items.length + 1,
           externalId: key.get(i.id),
@@ -213,6 +251,15 @@ export async function planeItems(
               at: x.created_at.slice(0, 16).replace('T', ' '),
             })),
           notes: [],
+          plane: {
+            project: p.id,
+            issue: i.id,
+            attachments: files.map((f) => ({
+              id: f.id,
+              name: f.attributes?.name || f.id,
+              mime: f.attributes?.type ?? '',
+            })),
+          },
         };
         // a parent of another project / archived — not in this list
         if (i.parent) it.parentExt = key.get(i.parent) ?? i.parent;
@@ -224,5 +271,12 @@ export async function planeItems(
       warnings.push({ row: 0, message: `проект «${p.name}» пропущен: ${e.message}` });
     }
   }
-  return { items, people, emails, warnings };
+  return {
+    items,
+    people,
+    emails,
+    warnings,
+    file: (project, issue, asset, maxBytes) =>
+      api.file(`/projects/${project}/issues/${issue}/issue-attachments/${asset}/`, maxBytes),
+  };
 }
