@@ -15,7 +15,14 @@ import { archivePurge } from './archive.js';
 import { changesPurge } from './changes.js';
 import { authPurge } from './auth.js';
 import { filesPurge } from './files.js';
-import { DUE_CRON, DUE_QUEUE, remindDue } from './due.js';
+import {
+  DUE_CRON,
+  DUE_QUEUE,
+  DUE_TIME_CRON,
+  DUE_TIME_QUEUE,
+  remindDue,
+  remindDueTime,
+} from './due.js';
 
 export const PUSH_OPTS = Symbol('PUSH_OPTS');
 
@@ -61,6 +68,12 @@ export class JobsService implements OnApplicationShutdown {
           queue: DUE_QUEUE,
           cron: DUE_CRON,
           handler: async (_, api) => this.push?.enqueue(await remindDue(this.db, api.systemUserId)),
+        });
+        await this.register(boss, null, {
+          queue: DUE_TIME_QUEUE,
+          cron: DUE_TIME_CRON,
+          handler: async (_, api) =>
+            this.push?.enqueue(await remindDueTime(this.db, api.systemUserId)),
         });
         for (const m of installed)
           for (const j of (m.api.jobs ?? []) as JobDef[]) await this.register(boss, m.api.id, j);

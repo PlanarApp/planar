@@ -7,7 +7,7 @@ import {
   type Tx,
   type MutatorCtx,
 } from '../contract/index.js';
-import { changes, need, rank, record, uuid } from './util.js';
+import { changes, need, rank, record, roleInProject, uuid } from './util.js';
 
 /** All notifications rows with these ids; someone else's → forbidden; missing ones are skipped. */
 async function own(tx: Tx, ids: string[], ctx: MutatorCtx) {
@@ -121,8 +121,9 @@ export const miscMutators = [
     }),
     async run(tx, a, ctx) {
       await need(tx, 'spaces', a.spaceId);
-      const members = await tx.scan('spaceMembers', { index: 'spaceId', eq: a.spaceId });
-      const role = members.find((m) => m.userId === ctx.userId)?.role;
+      // a project's node (p:<id>) — the role in that project (PJ-11), others — in the space
+      const projectId = a.node.startsWith('p:') ? a.node.slice(2, 38) : null;
+      const role = await roleInProject(tx, a.spaceId, projectId, ctx.userId);
       if (!role || role === 'guest') throw new MutatorError('forbidden', 'нужна роль member');
       // the old shared default and my personal row of the same node+layout go away
       for (const v of await tx.scan('savedViews', { index: 'spaceId', eq: a.spaceId }))

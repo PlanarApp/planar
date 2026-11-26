@@ -52,7 +52,10 @@ export async function buildCommands(o: {
   const out: Cmd[] = [
     go(gNav, 'go:inbox', t('sidebar.inbox'), '/inbox', 'g i'),
     go(gNav, 'go:my', t('sidebar.my'), '/my', 'g m'),
-    go(gNav, 'go:settings', t('sidebar.settings'), '/settings', 'g s'),
+    // workspace settings — admins only (router.ts)
+    ...(useAuth().isAdmin.value
+      ? [go(gNav, 'go:settings', t('sidebar.settings'), '/w/settings', 'g s')]
+      : []),
   ];
 
   const [spaces, projects] = await Promise.all([
@@ -175,7 +178,7 @@ export async function buildCommands(o: {
       id,
       label: t(`pwa.${k}`),
       group: gApp,
-      run: () => void router.push({ path: '/settings/about', query: { pwa: id.slice(4) } }),
+      run: () => void router.push({ path: '/about', query: { pwa: id.slice(4) } }),
     });
 
   const ctx: CommandCtx = { route, selectedTaskIds: o.selected, projectId };

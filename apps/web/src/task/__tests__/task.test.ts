@@ -107,7 +107,8 @@ describe('PLNRAPP-830: пустые поля под катом, меню «…»
     const probe = mount(
       defineComponent({
         setup() {
-          const menuFor = useTaskMenu(ids.space);
+          // as the views' context menu: with the value fields
+          const menuFor = useTaskMenu(ids.space, () => {});
           const tv = task(() => 'PLN-1');
           return () => {
             if (tv.value)
@@ -123,13 +124,48 @@ describe('PLNRAPP-830: пустые поля под катом, меню «…»
     w = await open();
     await until(() => w.find('[aria-label="Меню задачи"]').exists());
     await openMenu();
-    const items = [...document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    // a row of icon buttons («Open», «Copy») is a group named by its label
+    const items = [
+      ...document.body.querySelectorAll<HTMLElement>('[role="menuitem"], [role="group"]'),
+    ].filter((e) => !e.parentElement?.closest('[role="group"]'));
     expect(labels).toContain('Открыть');
+    expect(labels).toContain('Копировать');
     expect(
-      items.map((e) =>
-        [...labels].sort((x, y) => y.length - x.length).find((l) => e.textContent?.startsWith(l)),
-      ),
+      items.map((e) => {
+        const text =
+          e.getAttribute('role') === 'group' ? e.getAttribute('aria-label') : e.textContent;
+        return [...labels].sort((x, y) => y.length - x.length).find((l) => text?.startsWith(l));
+      }),
     ).toEqual(labels);
+    expect(labels).toContain('Приоритет');
+  });
+  it('табы формы: подпись видна только у выбранного, у остальных — иконка (подпись — для скринридера)', async () => {
+    w = await open();
+    await until(() => w.findAll('[role="tab"]').length > 1);
+    const hidden = () =>
+      w
+        .findAll('[role="tab"]')
+        .filter((b) => b.find('span.sr-only').exists())
+        .map((b) => b.attributes('aria-selected'));
+    expect(hidden().every((x) => x === 'false')).toBe(true);
+    await openTab('Подзадачи');
+    const sel = w.findAll('[role="tab"]').find((b) => b.attributes('aria-selected') === 'true')!;
+    expect(sel.find('span.sr-only').exists()).toBe(false);
+    expect(hidden()).toHaveLength(w.findAll('[role="tab"]').length - 1);
+  });
+  it('меню «…» › «Приоритет» открывает селектор приоритета формы', async () => {
+    w = await open();
+    await until(() => w.find('[aria-label="Меню задачи"]').exists());
+    await openMenu();
+    const item = [...document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+      (e) => e.textContent?.trim() === 'Приоритет',
+    )!;
+    item.click();
+    await until(() =>
+      [...document.body.querySelectorAll('[role="option"]')].some(
+        (e) => e.textContent?.trim() === 'Срочный',
+      ),
+    );
   });
 });
 
@@ -305,8 +341,7 @@ describe('task:description', () => {
     // PLNRAPP-684: not created at once — the creation dialog opens prefilled, a subtask of this task
     const { ui } = await import('../../command/hotkeys');
     await w
-      .findAll('[data-testid="selection-to-task"] button')
-      .find((b) => b.text() === 'Сделать подзадачей')!
+      .find('[data-testid="selection-to-task"] button[aria-label="Сделать подзадачей"]')
       .trigger('click');
     expect(ui.create).toBe(true);
     expect(ui.createTitle).toBe('купить');
@@ -330,8 +365,7 @@ describe('task:description', () => {
     await until(() => w.find('[data-testid="selection-to-task"]').exists());
     const { ui } = await import('../../command/hotkeys');
     await w
-      .findAll('[data-testid="selection-to-task"] button')
-      .find((b) => b.text() !== 'Сделать подзадачей')!
+      .find('[data-testid="selection-to-task"] button[aria-label="Сделать задачей"]')
       .trigger('click');
     expect(ui.create).toBe(true);
     expect(ui.createTitle).toBe('купить хлеб');
@@ -534,7 +568,7 @@ describe('task:subtasks', () => {
     });
 
     it('перетаскивание меняет порядок и сохраняет его', async () => {
-      // the manual order without grouping: rows 32px one under another — the header, k1, k2, k3
+      // the manual order without grouping: rows 32px one under another — k1, k2, k3
       await db.table('savedViews').put(listView({ groupBy: 'none', wrapTitles: false }));
       await show();
       document.elementFromPoint ??= () => null; // jsdom: no layout — nothing under the pointer
@@ -543,12 +577,12 @@ describe('task:subtasks', () => {
       grid.getBoundingClientRect = () => ({ top: 0, bottom: 600, height: 600 }) as DOMRect;
       const at = (type: string, clientY: number) =>
         Object.assign(new MouseEvent(type, { bubbles: true, clientY }), { pointerId: 1 });
-      rowOf('PLN-4').get('[data-testid="row-grip"]').element.dispatchEvent(at('pointerdown', 112));
+      rowOf('PLN-4').get('[data-testid="row-grip"]').element.dispatchEvent(at('pointerdown', 80));
       await flushPromises();
-      window.dispatchEvent(at('pointermove', 40)); // the upper half of k1 — before it
+      window.dispatchEvent(at('pointermove', 8)); // the upper half of k1 — before it
       await flushPromises();
       expect(w.find('[data-testid="drop-line"]').exists()).toBe(true);
-      window.dispatchEvent(at('pointerup', 40));
+      window.dispatchEvent(at('pointerup', 8));
       await eventually(async () => (await order()).join() === 'k3,k1,k2');
       await until(() => !w.find('[data-testid="drop-line"]').exists());
     });
@@ -579,7 +613,6 @@ describe('task:subtasks', () => {
     expect(cols()).toEqual(['status', 'assignee', 'priority']);
     expect(row().find('[data-testid="row-key"]').exists()).toBe(false);
     expect(w.find('[data-testid="group-row"]').exists()).toBe(false);
-    expect(w.find('[data-testid="list-head"]').exists()).toBe(true);
     // the List hides «Assignees» and groups by status: the tab follows without reopening
     await db.table('savedViews').put({
       ...view,

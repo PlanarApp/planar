@@ -39,7 +39,28 @@ export const aiConnections = pgTable(
     createdAt: ts().notNull().defaultNow(),
     updatedAt: ts().notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('ai_connections_scope_uq').on(t.scope, t.scopeId)],
+  // the workspace level keeps a list of connections; a space or a project has at most one of its own
+  (t) => [
+    uniqueIndex('ai_connections_scope_uq')
+      .on(t.scope, t.scopeId)
+      .where(sql`${t.scope} <> 'workspace'`),
+  ],
+);
+
+// server table: a space or a project that uses a connection of a parent level instead of its own;
+// no row and no own connection — inherits (the nearest level, the workspace default is its first connection).
+// Deleting the connection resets the choice to inheriting.
+export const aiConnectionChoices = pgTable(
+  'ai_connection_choices',
+  {
+    /** space | project */
+    scope: text().notNull(),
+    scopeId: uuid().notNull(),
+    connectionId: uuid()
+      .notNull()
+      .references(() => aiConnections.id, { onDelete: 'cascade' }),
+  },
+  (t) => [uniqueIndex('ai_connection_choices_scope_uq').on(t.scope, t.scopeId)],
 );
 
 /** Synced (aiActions): what a rule `ai_run` runs; the prompt is the docs page pageId. */
@@ -81,6 +102,8 @@ export const aiHarnessKeys = pgTable(
     kind: text().notNull(),
     key: text().notNull(),
     entityId: uuid().notNull(),
+    /** kind rule: models allowed for the rule's AI runs, `provider:model`, the first available one wins (harness.yml `models`) */
+    models: jsonb().$type<string[]>(),
   },
   (t) => [uniqueIndex('ai_harness_keys_project_kind_key_uq').on(t.projectId, t.kind, t.key)],
 );
@@ -121,6 +144,8 @@ export const aiRuns = pgTable(
     kind: text().notNull(),
     actionId: uuid(),
     ruleId: uuid(),
+    /** the model the run used (the action's, the rule's or the connection's); null — not known */
+    model: text(),
     /** the comment (comment, mention) or checklist item the assignment came from */
     itemId: uuid(),
     /** queued | running | waiting_human | waiting_subtasks (PLNRAPP-405) | done | failed | cancelled */

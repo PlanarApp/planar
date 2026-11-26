@@ -137,10 +137,18 @@ describe('раскладка', () => {
   it('смена локали меняет текст панели', async () => {
     const { router, i18n } = setup(false);
     const w = mount(Sidebar, { global: { plugins: [router, i18n] } });
-    expect(w.text()).toContain('Настройки');
+    expect(w.text()).toContain('Всё');
     i18n.global.locale.value = 'en';
     await nextTick();
-    expect(w.text()).toContain('Settings');
+    expect(w.text()).toContain('All');
+  });
+
+  it('внизу панели — приложение и версия, ведёт на «О программе»', async () => {
+    const { router, i18n } = setup(false);
+    const w = mount(Sidebar, { global: { plugins: [router, i18n] } });
+    const a = w.get('[data-testid=sidebar-about]');
+    expect(a.attributes('href')).toBe('/about');
+    expect(a.text()).toMatch(/^Planar \d+\.\d+\.\d+/);
   });
 
   it('боковая панель: группы сворачиваются, состояние пишется в localStorage', async () => {
@@ -148,7 +156,7 @@ describe('раскладка', () => {
     const { router, i18n } = setup(false);
     const w = mount(Sidebar, { global: { plugins: [router, i18n] } });
     // tree root — "All"; its chevron collapses spaces
-    expect(w.get('[data-testid=nav-workspace]').text()).toBe('Всё');
+    expect(w.get('[data-testid=nav-workspace]').text()).toBe('Всё везде и сразу');
     expect(w.text()).not.toContain('Избранное'); // empty — hidden
     const head = w.get('[data-testid=nav-workspace] button');
     expect(head.attributes('aria-expanded')).toBe('true');

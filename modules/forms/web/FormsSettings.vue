@@ -9,7 +9,6 @@ const ru = !/^en/i.test(document.documentElement.lang || navigator.language || '
 const L = ru
   ? {
       title: 'Формы',
-      project: 'Проект',
       status: 'Статус новых задач',
       name: 'Название формы',
       create: 'Создать форму',
@@ -35,7 +34,6 @@ const L = ru
     }
   : {
       title: 'Forms',
-      project: 'Project',
       status: 'Status of new tasks',
       name: 'Form name',
       create: 'Create form',
@@ -64,31 +62,8 @@ const session = useSession();
 // the server checks rights anyway (write: admin)
 const admin = computed(() => ['owner', 'admin'].includes(session.value?.role ?? ''));
 
-const projects = useQuery(async () =>
-  (await db.table<Row<'projects'>>('projects').toArray()).filter((p) => !p.archivedAt),
-);
-// the selected project — in the address (?project=): after a reload, the same
-const router = useRouter();
-// without a router (page tests) — the selection is simply not remembered
-const query = () => router?.currentRoute.value.query ?? {};
-// projectId — settings of a group project: the project is set, there is no choice
-const props = defineProps<{ projectId?: string }>();
-const projectId = ref(
-  props.projectId ?? (typeof query().project === 'string' ? (query().project as string) : ''),
-);
-watch(
-  projects,
-  (p) => {
-    if (!p?.length || props.projectId) return;
-    if (!p.some((x) => x.id === projectId.value)) projectId.value = p[0]!.id;
-  },
-  { immediate: true },
-);
-watch(projectId, (id) => {
-  if (id && !props.projectId && query().project !== id)
-    void router?.replace({ query: { ...query(), project: id } });
-});
-const project = computed(() => projects.value?.find((p) => p.id === projectId.value));
+const props = defineProps<{ projectId: string }>();
+const projectId = computed(() => props.projectId);
 
 // liveQuery does not watch a Vue ref: read everything and filter in computed
 const allForms = useQuery(() => db.table('formsForms').toArray() as Promise<FormsForm[]>);
@@ -167,17 +142,6 @@ async function issue(f: FormsForm) {
 <template>
   <section class="flex flex-col gap-4" data-testid="forms-settings">
     <h2 class="text-lg font-semibold">{{ L.title }}</h2>
-    <label v-if="!props.projectId" class="flex items-center gap-2">
-      {{ L.project }}
-      <select
-        v-model="projectId"
-        data-testid="fm-project"
-        class="rounded-md border border-border bg-bg px-2 py-1"
-      >
-        <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
-      </select>
-    </label>
-
     <form v-if="admin" class="flex flex-wrap gap-2" @submit.prevent="create()">
       <input
         v-model="nf.title"

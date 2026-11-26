@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row as DbRow } from '@planar/shared';
 import { StatusPicker, updateTask, type TaskView } from '../../tasks';
@@ -11,6 +11,7 @@ import { useCardExtensions } from '../cardExtensions';
 import { openTask } from '../open';
 import TaskAiStatus from '../TaskAiStatus.vue';
 import TaskProgress from '../TaskProgress.vue';
+import CardSubtasks from '../board/CardSubtasks.vue';
 
 // task card (Board, Cards, List on mobile): the parent line, the key with the badges block on the right,
 // status (AI icon under it) and the name, the field buttons below. Mobile — fields as icons only.
@@ -34,19 +35,21 @@ const props = defineProps<{
   projectText?: boolean;
   /** name on one line (a List row of fixed height) */
   oneLine?: boolean;
-  /** the whole name, wrapped by words (the "Wrap task names" option); otherwise up to 3 lines */
+  /** the whole name, wrapped by words (the "Wrap task names" option); otherwise one line */
   wrap?: boolean;
   depth?: number;
   /** the List card (mobile, narrow area): the compact layout, see above */
   head?: boolean;
-  /** `head`: the AI status icon (the "AI" view field) */
+  /** the AI status icon (the "AI" view field) */
   ai?: boolean;
-  /** `head`: branches / MR / CI (the "Git" view field) */
+  /** branches / MR / CI (the "Git" view field) */
   git?: boolean;
   /** tag names instead of tag icons (the "Show tag names" option) */
   labelNames?: boolean;
-  /** `head`: the key before the name (the "Show task key" option) */
+  /** the task key (the "Show task key" option) */
   showKey?: boolean;
+  /** the status icon (the "Status" view field) */
+  status?: boolean;
 }>();
 const { t } = useI18n();
 const { isMobile } = useBreakpoint();
@@ -60,6 +63,8 @@ const TAP =
   '[&_button]:h-7! [&_button:not([data-test^=time-])]:min-w-7! [&_button]:justify-center [&_button]:px-0.5!';
 // the field buttons of the List card are 24 px high on desktop: the card is dense
 const DENSE = '[&_button]:h-6! [&_button]:px-0.5!';
+// the Board card: the subtasks under it, opened by the subtasks chip
+const subtasksOpen = ref(false);
 // click on the key — copy it (PLNRAPP-181)
 const copyKey = () =>
   void navigator.clipboard
@@ -71,7 +76,13 @@ const copyKey = () =>
   <!-- статус, справа от него колонка: родитель мелко, ключ и название одним абзацем
        (перенос — по левому краю после статуса), поля и иконки — по тому же краю -->
   <div v-if="head" class="flex min-w-0 items-start gap-1">
-    <div data-no-drag role="gridcell" :class="['-ml-1 shrink-0', parent && 'mt-4']" @click.stop>
+    <div
+      v-if="status"
+      data-no-drag
+      role="gridcell"
+      :class="['-ml-1 shrink-0', parent && 'mt-4']"
+      @click.stop
+    >
       <StatusPicker
         compact
         :space-id="spaceId"
@@ -135,7 +146,6 @@ const copyKey = () =>
             :hot="hot"
             :project-name="projectName"
             :label-names="labelNames"
-            tag-icon
             :dense="!isMobile"
           />
         </template>
@@ -175,6 +185,7 @@ const copyKey = () =>
         aria-hidden="true"
       />
       <button
+        v-if="showKey"
         type="button"
         data-no-drag
         class="shrink-0 cursor-copy text-xs text-fg-subtle underline-offset-2 outline-none hover:underline focus-visible:ring-2 ring-focus"
@@ -188,8 +199,18 @@ const copyKey = () =>
       <span
         class="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5"
         data-testid="card-badges"
-        ><TaskProgress :task-id="task.id" :comments="task" /><span
-          v-for="x in badges"
+        ><TaskAiStatus
+          v-if="ai"
+          :task="task"
+          data-no-drag
+          data-testid="card-ai"
+          @click.stop /><TaskProgress
+          :task-id="task.id"
+          :comments="task"
+          expandable
+          :expanded="subtasksOpen"
+          @toggle="subtasksOpen = !subtasksOpen" /><span
+          v-for="x in git ? badges : []"
           :key="x.key"
           data-no-drag
           class="inline-flex"
@@ -204,8 +225,8 @@ const copyKey = () =>
         :style="{ width: `${depth * 12}px` }"
         aria-hidden="true"
       />
-      <!-- -ml-1.5: иконка статуса вровень с полями ниже (у кнопок пикеров свой отступ); под ней — ИИ (PLNRAPP-401) -->
-      <div class="-ml-1.5 flex shrink-0 flex-col items-center">
+      <!-- -ml-1.5: иконка статуса вровень с полями ниже (у кнопок пикеров свой отступ) -->
+      <div v-if="status" class="-ml-1.5 flex shrink-0 flex-col items-center">
         <div data-no-drag role="gridcell" @click.stop>
           <StatusPicker
             compact
@@ -215,14 +236,13 @@ const copyKey = () =>
             @update:model-value="updateTask(task.id, { statusId: $event })"
           />
         </div>
-        <TaskAiStatus :task="task" data-no-drag data-testid="card-ai" @click.stop />
       </div>
       <BlockedIcon v-if="blocked" class="mt-1.5" />
       <p
         role="gridcell"
         :class="[
           'min-w-0 flex-1 pt-1 text-sm leading-snug text-fg',
-          oneLine ? 'truncate font-medium' : wrap ? 'break-words' : 'line-clamp-3',
+          oneLine ? 'truncate font-medium' : wrap ? 'break-words' : 'truncate',
         ]"
       >
         {{ task.title }}
@@ -259,5 +279,6 @@ const copyKey = () =>
         <component :is="x.view" :task-id="task.id" />
       </span>
     </div>
+    <CardSubtasks v-if="subtasksOpen" :task-id="task.id" :space-id="spaceId" />
   </template>
 </template>

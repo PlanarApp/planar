@@ -694,6 +694,6 @@ describe('ServerTx: changes, номера, activity, ошибки', () => {
     });
     await new Promise((r) => setTimeout(r, 200));
     await listener.end();
-    expect(got).toContain(String(seq));
+    expect(got.map((p) => JSON.parse(p).seq ?? Number(p))).toContain(seq);
   });
 });

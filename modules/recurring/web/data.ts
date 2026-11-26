@@ -21,7 +21,7 @@ const dict = {
   day: { ru: 'дн.', en: 'days' },
   week: { ru: 'нед.', en: 'weeks' },
   month: { ru: 'мес.', en: 'months' },
-  tz: { ru: 'Часовой пояс', en: 'Time zone' },
+  anchor: { ru: 'Начало отсчёта', en: 'Counting starts' },
   next: { ru: 'Следующая дата', en: 'Next date' },
   save: { ru: 'Сохранить', en: 'Save' },
   remove: { ru: 'Убрать повтор', en: 'Remove repeat' },

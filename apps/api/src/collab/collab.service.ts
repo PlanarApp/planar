@@ -174,8 +174,9 @@ export class CollabService implements OnApplicationBootstrap, OnModuleDestroy {
     }
     if (!spaceId) return null;
     const r = await this.db.execute(sql`
-      select m.role from space_members m join users u on u.id = m.user_id
-      where m.space_id = ${spaceId} and m.user_id = ${userId} and u.deactivated_at is null`);
+      select coalesce(m.role, case when u.role in ('owner', 'admin') then 'admin' end) as role
+      from users u left join space_members m on m.user_id = u.id and m.space_id = ${spaceId}
+      where u.id = ${userId} and u.deactivated_at is null`);
     const role = (r.rows[0] as { role: string } | undefined)?.role;
     if (!role) return null;
     // PJ-11: the role in the project (it can only lower the space role); no access → denied

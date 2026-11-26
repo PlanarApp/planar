@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, ref, watch, type Component } from 'vue'
 import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Check, RotateCcw, Users } from 'lucide-vue-next';
+import { Check, RotateCcw, Users } from '@lucide/vue';
 import { Button } from '../ui';
 import ProjectFilter from './ProjectFilter.vue';
 import { useExtensions } from '../modules/registry';
@@ -173,6 +173,7 @@ const selectTab = (k: string) =>
         :no-me="!!me"
         v-model:filter="draftFilter"
         :space-id="scope.spaceIds.join(',')"
+        :layout="active?.key ?? 'list'"
       >
         <template v-if="active" #layout>
           <ViewLayouts
@@ -182,7 +183,7 @@ const selectTab = (k: string) =>
           />
         </template>
       </OptionsBar>
-      <ViewOptionsPopover v-else v-model:options="options" />
+      <ViewOptionsPopover v-else v-model:options="options" layout="day" />
     </ToolbarRoot>
     <ViewChangesBar
       v-slot="{ hide }"

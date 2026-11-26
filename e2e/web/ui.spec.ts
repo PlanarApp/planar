@@ -7,13 +7,13 @@ test('вход: admin/admin попадает на главную с боково
   await page.goto('/login');
   await page.getByLabel('Логин').fill('admin');
   await page.getByLabel('Пароль').fill('wrong-pass');
-  await page.getByRole('button', { name: 'Войти' }).click();
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
   await expect(page).toHaveURL(/\/login/);
   await expect(page.getByTestId('sidebar')).toHaveCount(0);
   await expect(page.getByText(/парол|неверн/i).first()).toBeVisible();
 
   await page.getByLabel('Пароль').fill('admin');
-  await page.getByRole('button', { name: 'Войти' }).click();
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
   await expect(page).not.toHaveURL(/\/login/);
   await expect(page.getByTestId('sidebar')).toBeVisible();
   await expect(page.getByTestId('nav-workspace')).toBeVisible();

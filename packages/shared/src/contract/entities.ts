@@ -32,6 +32,8 @@ export const entitySchemas = {
     icon: z.string().nullable(),
     /** the space lead (PLANARAPP-3); old replica rows have no field */
     leadId: uuid.nullable().default(null),
+    /** members of the space: mirror of the root space's or its own; old replica rows have no field */
+    membersMode: z.enum(['inherit', 'custom']).default('custom'),
     rank: z.string().min(1),
     createdBy: uuid,
     createdAt: ts,
@@ -98,6 +100,18 @@ export const entitySchemas = {
     rank: z.string().min(1),
     dueDate: z.iso.date().nullable(),
     startDate: z.iso.date().nullable(),
+    // optional time of day 'HH:MM' for the dates; old rows and client cache — without the fields
+    dueTime: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+      .nullable()
+      .default(null),
+    startTime: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+      .nullable()
+      .default(null),
+    dueRemindMin: z.number().int().min(0).max(10080).nullable().default(null),
     createdBy: uuid,
     completedAt: ts.nullable(),
     fields: z.record(z.string(), z.unknown()),
@@ -232,6 +246,8 @@ export const entitySchemas = {
       'label_added',
       'label_removed',
       'commented',
+      'merged_into',
+      'merged_from',
     ]),
     changes: z.record(z.string(), z.unknown()),
     viaTokenId: uuid.nullable(),
@@ -257,6 +273,8 @@ export const entitySchemas = {
       'start_today',
       'doc_comment_assigned',
       'due_changed',
+      'due_soon',
+      'due_now',
     ]),
     taskId: uuid.nullable(),
     url: z.string().nullable(),

@@ -30,7 +30,7 @@ Public `GET /api/setup` → `{ needed: boolean, tokenRequired: boolean, demo: bo
 
 `DEMO_MODE=true` enables in api:
 - a banner in web (by `demo` from `GET /api/setup`): `Demo — data resets every {DEMO_RESET_HOURS} h`;
-- `POST /api/auth/demo-login` (public; with the mode off — `404`): creates a session of the user with login `demo` (role `member`) the same way as a normal login; the login screen shows the "Try the demo" button when `demo`;
+- `POST /api/auth/demo-login` (public; with the mode off — `404`): creates a session of the user with login `demo` (role `admin` — workspace admin) the same way as a normal login; the login screen shows the "Try the demo" button when `demo`;
 - sending email, web push and outgoing webhooks is disabled (no-op, no error); automations make no outgoing requests;
 - `MAX_UPLOAD_MB` defaults to `2` if not set explicitly;
 - changing the password and email of the `demo` user — `403`.

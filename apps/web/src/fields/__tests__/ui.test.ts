@@ -64,9 +64,18 @@ describe('fields-ui', () => {
     await type(w, 'https://example.com');
     expect(emitted(w)).toEqual([['https://example.com']]);
   });
-  it('fields-ui: select очищается кнопкой', async () => {
-    const w = editor(def('select', { choices: [{ id: 'c1', label: 'A' }] }), 'c1');
-    await w.get('button:not([role=combobox])').trigger('click');
+  it('fields-ui: select очищается иконкой-крестиком', async () => {
+    const w = mount(FieldEditor, {
+      props: {
+        def: def('select', { choices: [{ id: 'c1', label: 'A' }] }),
+        value: 'c1',
+        spaceId: ids.space,
+      },
+      // Tooltip needs TooltipProvider, which lives in the app root
+      global: { plugins: [i18n()], stubs: { IconButton: { template: '<button />' } } },
+      attachTo: document.body,
+    });
+    await w.get('[data-testid=field-clear]').trigger('click');
     expect(emitted(w)).toEqual([[null]]);
   });
   it('fields-ui: formatFieldValue для money и удалённого варианта select', () => {

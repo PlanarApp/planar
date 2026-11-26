@@ -29,7 +29,7 @@ async function mobile(browser: import('@playwright/test').Browser): Promise<Page
   await page.goto('/login');
   await page.getByLabel('Логин').fill('alice');
   await page.getByLabel('Пароль').fill('alice');
-  await page.getByRole('button', { name: 'Войти' }).click();
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
   await page.waitForURL((u) => !u.pathname.startsWith('/login'));
   return page;
 }

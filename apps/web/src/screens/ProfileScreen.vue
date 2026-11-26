@@ -1,20 +1,35 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, defineAsyncComponent, reactive, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Avatar, Button, Input, Select, Tabs, useTheme } from '../ui';
+import OptionPicker from '../tasks/fields/OptionPicker.vue';
 import { api } from '../api/http';
 import { uploadFile } from '../api/files';
 import { useAuth, type User } from '../auth/useAuth';
 import { errText } from '../auth/errText';
 import PushToggle from '../inbox/PushToggle.vue';
 import TokensSection from './profile/TokensSection.vue';
+import SecuritySection from './profile/SecuritySection.vue';
 import { setWeekStart } from '../i18n/week';
 import { setLocale, type Locale } from '../i18n';
+import { useExtensions } from '../modules/registry';
 
 const { t, locale } = useI18n();
-const { user } = useAuth();
+const { user, mfaSetup } = useAuth();
 const { theme } = useTheme();
-const tab = ref('profile');
+// the user's own module pages (email notifications, …) — under «Notifications»
+const modPages = useExtensions('settings');
+const personal = computed(() =>
+  modPages.value
+    .filter((p) => p.personal)
+    .map((p) => ({
+      key: p.key,
+      c: defineAsyncComponent(() => p.component().then((m) => m.default)),
+    })),
+);
+// ?tab=security — 2FA required by the policy (router.ts) or a link
+const tab = ref(mfaSetup.value ? 'security' : String(useRoute().query.tab ?? 'profile'));
 const weekPref = ref(readPref());
 function readPref(): string {
   try {
@@ -85,11 +100,13 @@ async function savePassword() {
 }
 
 // IANA zones of the browser; the saved one is kept even if this browser does not list it
-const zones = computed(() =>
-  [...new Set([...Intl.supportedValuesOf('timeZone'), user.value?.timezone ?? 'UTC'])]
+const zones = computed(() => {
+  const cur = user.value?.timezone ?? 'UTC';
+  return [...new Set([...Intl.supportedValuesOf('timeZone'), cur])]
     .sort()
-    .map((z) => ({ value: z, label: z.replace(/_/g, ' ') })),
-);
+    .map((z) => ({ id: z, label: z.replace(/_/g, ' ') }));
+});
+const systemZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 async function onZone(v: string | null) {
   if (!v || v === user.value?.timezone) return;
   err.timezone = '';
@@ -115,10 +132,12 @@ const themes = () => [
       size="md"
       :items="[
         { value: 'profile', label: t('profile.title') },
+        { value: 'security', label: t('security.title') },
         { value: 'mcp', label: t('profile.mcp') },
       ]"
     />
     <TokensSection v-if="tab === 'mcp'" />
+    <SecuritySection v-else-if="tab === 'security'" />
     <template v-else>
       <section class="flex flex-col gap-3" :aria-label="t('profile.title')">
         <h2 class="text-lg font-semibold">{{ t('profile.title') }}</h2>
@@ -200,19 +219,30 @@ const themes = () => [
         </div>
         <div class="flex flex-col gap-1">
           <span class="text-xs text-fg-muted">{{ t('profile.timezone') }}</span>
-          <Select
-            :model-value="user.timezone ?? null"
-            :label="t('profile.timezone')"
-            :options="zones"
-            data-testid="timezone"
-            @update:model-value="onZone"
-          />
+          <div class="flex items-center gap-2">
+            <OptionPicker
+              :options="zones"
+              :selected="user.timezone ? [user.timezone] : []"
+              :title="t('profile.timezone')"
+              field
+              testid="timezone"
+              @pick="onZone"
+            />
+            <Button
+              v-if="systemZone"
+              size="sm"
+              data-testid="timezone-system"
+              @click="onZone(systemZone)"
+              >{{ t('profile.timezoneSystem') }}</Button
+            >
+          </div>
           <p v-if="err.timezone" role="alert" class="text-sm text-danger">{{ err.timezone }}</p>
         </div>
       </section>
       <section class="flex flex-col gap-3" :aria-label="t('profile.notifications')">
         <h2 class="text-lg font-semibold">{{ t('profile.notifications') }}</h2>
         <PushToggle />
+        <component :is="p.c" v-for="p in personal" :key="p.key" />
       </section>
     </template>
     <p v-if="msg" role="status" class="text-sm text-fg-muted">{{ msg }}</p>

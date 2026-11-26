@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MoreHorizontal } from 'lucide-vue-next';
+import { MoreHorizontal } from '@lucide/vue';
 import { TooltipProvider } from 'reka-ui';
 import { useI18n } from 'vue-i18n';
 import { IconButton, Menu, type MenuItem } from '../../ui';

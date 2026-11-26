@@ -2,23 +2,14 @@
 import { computed, defineAsyncComponent, watch, type Component } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import {
-  BarChart3,
-  Briefcase,
-  FolderKanban,
-  LayoutGrid,
-  FileText,
-  ListTodo,
-  MessagesSquare,
-  Settings,
-} from 'lucide-vue-next';
+import { BarChart3, Briefcase, FileText, ListTodo, MessagesSquare, Settings } from '@lucide/vue';
 import { useProject, useRootSpaceId, useSpaces, useWorkspace } from '../tasks';
+import { tabLabelHidden } from '../ui/taskPanelWidth';
 import { EmptyState, Tabs } from '../ui';
 import { useExtensions } from '../modules/registry';
 import type { GroupScope, LocalizedText } from '../modules/types';
 import { groupTab, groupUrl, lastTab, lastView, tabsFor, type GroupLevel } from '../layout/groups';
 import { useGroupTabs } from '../layout/useGroupTabs';
-import GroupList from './GroupList.vue';
 import ProjectScreen from './ProjectScreen.vue';
 import ScopeTasks from '../views/ScopeTasks.vue';
 import SettingsScreen from './SettingsScreen.vue';
@@ -88,14 +79,14 @@ const partComponent = computed(() => {
   return cache.get(p.key);
 });
 const selectPart = (k: string) => void router.replace({ query: { ...route.query, r: k } });
-// the tab and the view are remembered for any node; a tab missing at the level (Spaces, Projects) — "My work".
+// the tab and the view are remembered for any node; a tab missing at the level — "My work".
 // Module tabs are not checked: on a cold start modules are not known yet
 const seg = computed(() => String(route.params.view ?? route.params.tab ?? ''));
 watch(
   [seg, () => route.query.w],
   ([s, w]) => {
     if (!s || route.name === 'savedView') return;
-    if (!tabsFor(level.value).includes(tab.value)) {
+    if (!tabsFor().includes(tab.value)) {
       void router.replace(groupUrl(level.value, id.value, 'work'));
       return;
     }
@@ -106,8 +97,6 @@ watch(
 );
 const icons = {
   work: Briefcase,
-  spaces: LayoutGrid,
-  projects: FolderKanban,
   tasks: ListTodo,
   docs: FileText,
   chats: MessagesSquare,
@@ -134,8 +123,8 @@ const icons = {
           ]"
         >
           <component :is="icons[k]" :size="16" aria-hidden="true" />
-          <!-- мобильная: подпись только у текущей вкладки -->
-          <span :class="tab !== k && 'max-md:sr-only'">{{ t(`groups.tab.${k}`) }}</span>
+          <!-- мобильная и под широкой панелью задачи: подпись только у текущей вкладки -->
+          <span :class="tab !== k && tabLabelHidden()">{{ t(`groups.tab.${k}`) }}</span>
         </RouterLink>
       </template>
     </nav>
@@ -148,11 +137,6 @@ const icons = {
       />
       <SettingsScreen v-else-if="name && scope && tab === 'settings'" :scope="scope" />
       <MyWork v-else-if="name && scope && tab === 'work'" :scope="scope" />
-      <GroupList
-        v-else-if="name && scope && (tab === 'spaces' || tab === 'projects') && level !== 'project'"
-        :scope="scope"
-        :kind="tab"
-      />
       <div v-else-if="name && scope && part" class="flex h-full min-h-0 flex-col">
         <div v-if="parts.length > 1" class="shrink-0 border-b border-border px-2 py-1">
           <Tabs

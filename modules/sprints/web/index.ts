@@ -1,4 +1,4 @@
-import { Zap } from 'lucide-vue-next';
+import { Zap } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import { db, defineWebModule } from '@planar/web/modules';
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useAuth } from './auth/useAuth';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -24,12 +24,26 @@ const busy = computed(() =>
       ? t('pwa.applying')
       : '',
 );
-const { setupInfo } = useAuth();
+const { setupInfo, user, locked } = useAuth();
+// the shell exists only for a known, unlocked user: the lock screen is an overlay, the shell under it would flash
+const shell = computed(() => !!user.value && !locked.value);
 const demoHours = ref(0);
 onMounted(async () => {
   // the banner is optional: a failed /api/setup must not break the app
   const s = await setupInfo().catch(() => null);
   if (s?.demo) demoHours.value = s.demoResetHours;
+});
+// fixed layers below the top bar (the task side panel) add the banner height: it wraps on narrow screens
+const banner = ref<HTMLElement>();
+watch(banner, (el, _, onCleanup) => {
+  const root = document.documentElement.style;
+  if (!el) return;
+  const ro = new ResizeObserver(() => root.setProperty('--banner-h', `${el.offsetHeight}px`));
+  ro.observe(el);
+  onCleanup(() => {
+    ro.disconnect();
+    root.removeProperty('--banner-h');
+  });
 });
 </script>
 
@@ -40,17 +54,19 @@ onMounted(async () => {
     <div class="flex h-full flex-col">
       <div
         v-if="demoHours"
+        ref="banner"
         role="status"
         class="shrink-0 bg-accent px-3 py-1 text-center text-xs text-accent-fg"
       >
         {{ t('auth.demoBanner', { n: demoHours }) }}
       </div>
       <RouterView v-if="bare" />
-      <div v-else class="min-h-0 flex-1">
+      <!-- no user yet (the first navigation is running) or a locked session — no shell: the login/unlock form only -->
+      <div v-else-if="shell" class="min-h-0 flex-1">
         <AppShell />
       </div>
     </div>
-    <CommandHost v-if="!bare" />
+    <CommandHost v-if="!bare && shell" />
     <div
       v-if="dbBlocked"
       data-testid="db-blocked"

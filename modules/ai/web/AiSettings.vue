@@ -66,6 +66,14 @@ watch(
 watch(canMonitor, () => (tab.value = fromQuery()));
 const own = ref<AiConnectionView | null>(null);
 const effective = ref<AiConnectionView | null>(null);
+// workspace: the list of connections (`own` is the one in the form, null — a new one); space/project: what to choose from
+const list = ref<AiConnectionView[]>([]);
+const parents = ref<AiConnectionView[]>([]);
+const choice = ref<string | null>(null);
+// «own» picked in the source select before it is saved
+const wantOwn = ref(false);
+const mode = computed(() => (own.value || wantOwn.value ? 'own' : (choice.value ?? 'inherit')));
+const showForm = computed(() => props.level === 'workspace' || mode.value === 'own');
 const err = ref('');
 const done = ref(false);
 const busy = ref(false);
@@ -94,9 +102,18 @@ const scopeId = computed(() =>
       : props.projectId,
 );
 
+const blank = () =>
+  Object.assign(f, {
+    provider: 'openai',
+    baseUrl: '',
+    apiKey: '',
+    model: '',
+    priceIn: '',
+    priceOut: '',
+  });
 const fill = (c: AiConnectionView | null) => {
   own.value = c;
-  if (!c) return;
+  if (!c) return blank();
   Object.assign(f, {
     provider: c.provider,
     baseUrl: c.baseUrl ?? '',
@@ -109,13 +126,44 @@ const fill = (c: AiConnectionView | null) => {
 async function load() {
   const q = new URLSearchParams({ scope: props.level });
   if (scopeId.value) q.set('scopeId', scopeId.value);
-  const r = await call<{ connection: AiConnectionView | null; effective: AiConnectionView | null }>(
-    'GET',
-    `connections?${q}`,
+  const r = await call<{
+    connection: AiConnectionView | null;
+    connections?: AiConnectionView[];
+    choice?: string | null;
+    effective: AiConnectionView | null;
+    parents?: AiConnectionView[];
+  }>('GET', `connections?${q}`);
+  list.value = r.connections ?? [];
+  parents.value = r.parents ?? [];
+  choice.value = r.choice ?? null;
+  wantOwn.value = false;
+  // workspace: keep the edited connection if it is still there, else the first (default) one
+  fill(
+    props.level === 'workspace'
+      ? (list.value.find((c) => c.id === own.value?.id) ?? list.value[0] ?? null)
+      : r.connection,
   );
-  fill(r.connection);
   effective.value = r.effective;
 }
+async function pick(v: string) {
+  err.value = '';
+  if (v === 'own') {
+    wantOwn.value = true;
+    return;
+  }
+  try {
+    await call('PUT', 'connections/choice', {
+      scope: props.level,
+      scopeId: scopeId.value,
+      connectionId: v === 'inherit' ? null : v,
+    });
+    own.value = null;
+    await load();
+  } catch (e) {
+    err.value = (e as Error).message;
+  }
+}
+const labelOf = (c: AiConnectionView) => `${tr(c.scope)}: ${c.provider}, ${c.model}`;
 const num = (v: string | number) => (v === '' ? null : Number(v));
 async function save() {
   err.value = '';
@@ -125,6 +173,7 @@ async function save() {
     const r = await call<{ connection: AiConnectionView }>('PUT', 'connections', {
       scope: props.level,
       scopeId: scopeId.value,
+      id: props.level === 'workspace' ? own.value?.id : undefined,
       provider: f.provider,
       baseUrl: f.baseUrl.trim() || null,
       apiKey: f.apiKey || undefined,
@@ -147,6 +196,7 @@ async function remove() {
     own.value = null;
     f.apiKey = '';
     await load();
+    done.value = false;
   } catch (e) {
     err.value = (e as Error).message;
   }
@@ -160,14 +210,69 @@ onMounted(() => load().catch((e) => (err.value = (e as Error).message)));
     <p v-if="err" role="alert" class="text-sm text-danger" data-testid="ai-error">{{ err }}</p>
     <Tabs v-if="tabs.length" v-model="tab" :label="tr('title')" :items="tabs" />
     <div v-show="tab === 'connection'" class="flex flex-col gap-4">
-      <p class="text-sm text-fg-muted">{{ tr('intro') }}</p>
-      <p v-if="!own && effective" class="text-sm" data-testid="ai-effective">
+      <p class="text-sm text-fg-muted">{{ tr(level === 'workspace' ? 'intro' : 'introLevel') }}</p>
+      <!-- the workspace is the root: nothing to inherit from -->
+      <p
+        v-if="level !== 'workspace' && !own && effective"
+        class="text-sm"
+        data-testid="ai-effective"
+      >
         {{ tr('inherited') }} {{ tr(effective.scope) }}: {{ effective.provider }},
         {{ effective.model }}
       </p>
-      <h3 class="font-medium">{{ tr('own') }}</h3>
-      <p v-if="!own" class="text-sm text-fg-muted">{{ tr('none') }}</p>
-      <form class="flex flex-col gap-2" data-testid="ai-form" @submit.prevent="save">
+      <label v-if="level !== 'workspace'" class="flex flex-col gap-1 text-sm"
+        >{{ tr('source') }}
+        <select
+          :value="mode"
+          data-testid="ai-source"
+          class="rounded-md border border-border bg-bg px-2 py-1"
+          @change="pick(($event.target as HTMLSelectElement).value)"
+        >
+          <option value="inherit">{{ tr('inherit') }}</option>
+          <option v-for="c in parents" :key="c.id" :value="c.id">{{ labelOf(c) }}</option>
+          <option value="own">{{ tr('ownOption') }}</option>
+        </select>
+      </label>
+      <template v-if="level === 'workspace'">
+        <h3 class="font-medium">{{ tr('connections') }}</h3>
+        <p v-if="!list.length" class="text-sm text-fg-muted">{{ tr('none') }}</p>
+        <ul class="flex flex-col gap-1 text-sm" data-testid="ai-list">
+          <li v-for="(c, i) in list" :key="c.id" class="flex items-center gap-3">
+            <span :class="own?.id === c.id ? 'font-medium' : ''"
+              >{{ c.provider }}, {{ c.model
+              }}<span v-if="i === 0" class="text-fg-muted"> ({{ tr('default') }})</span></span
+            >
+            <button type="button" class="underline" data-testid="ai-edit" @click="fill(c)">
+              {{ tr('edit') }}
+            </button>
+          </li>
+        </ul>
+        <div>
+          <button
+            type="button"
+            class="rounded-md border border-border px-3 py-1"
+            data-testid="ai-add"
+            @click="fill(null)"
+          >
+            {{ tr('add') }}
+          </button>
+        </div>
+      </template>
+      <h3 v-if="showForm" class="font-medium">
+        {{ tr(level === 'workspace' ? (own ? 'edit' : 'add') : 'own') }}
+      </h3>
+      <p
+        v-if="level !== 'workspace' && !own && !showForm && !effective"
+        class="text-sm text-fg-muted"
+      >
+        {{ tr('none') }}
+      </p>
+      <form
+        v-if="showForm"
+        class="flex flex-col gap-2"
+        data-testid="ai-form"
+        @submit.prevent="save"
+      >
         <ConnectionFields :f="f" :scope="level" :scope-id="scopeId" :saved="own">
           <label class="flex flex-col gap-1 text-sm"
             >{{ tr('key') }}

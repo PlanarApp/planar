@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { ref, watch, type Component } from 'vue';
 import { router } from '../router';
+import { primeTask } from '../tasks/queries';
 import { useBreakpoint } from '../ui';
 
 export type TaskOpenMode = 'modal' | 'side' | 'page';
@@ -26,7 +27,14 @@ watch(taskOpenMode, (v) => {
 
 const GROUP_ROUTES = ['project', 'savedView', 'space', 'workspace'];
 
+/** The task is read before navigation: the panel's first frame is complete. A failed read doesn't stop it. */
+const primed = (key: string) => primeTask(key).catch(() => {});
+
 export function openTask(key: string, commentId?: string | null): void {
+  void primed(key).then(() => go(key, commentId));
+}
+
+function go(key: string, commentId?: string | null): void {
   const r = router.currentRoute.value;
   // window/side panel — on any group screen (TaskModal exists in Tasks and in other tabs)
   if (
@@ -49,7 +57,9 @@ export const sideTaskOpen = (): boolean =>
 
 /** Another task in the open panel — replace, so j/k don't pile up history. */
 export function showTask(key: string): void {
-  void router.replace({ query: { ...router.currentRoute.value.query, task: key } });
+  void primed(key).then(() =>
+    router.replace({ query: { ...router.currentRoute.value.query, task: key } }),
+  );
 }
 
 // a task hotkey pressed in the List with no picker column (PLNRAPP-79): the opened task runs it
@@ -73,6 +83,12 @@ export function closeTask(): void {
 /** Task panel (WB-6): no file — undefined, the panel does not open. */
 export const taskPanelLoader = Object.values(import.meta.glob('../task/TaskPanel.vue'))[0] as
   (() => Promise<{ default: Component }>) | undefined;
+
+// the panel chunk is loaded in idle time after start: the first task opens without waiting for it
+if (typeof window !== 'undefined')
+  (window.requestIdleCallback ?? ((f: () => void) => setTimeout(f, 2000)))(() => {
+    void taskPanelLoader?.();
+  });
 
 /** Built-in views (WB-4, WB-5): replaced in tests. */
 export const viewLoaders = (): Record<string, () => Promise<unknown>> =>

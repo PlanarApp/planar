@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { projectKey } from '../sidebarActions';
+import { createSpace, projectKey } from '../sidebarActions';
 
 describe('projectKey', () => {
   it('латиница и цифры, до 6 символов', () => {
@@ -18,5 +18,21 @@ describe('projectKey', () => {
     for (const n of ['', '???', 'Ёжик в тумане', 'Щука']) {
       expect(projectKey(n, new Set())).toMatch(/^[A-Z][A-Z0-9]{1,9}$/);
     }
+  });
+});
+
+describe('createSpace', () => {
+  const spaces = [
+    { id: 's1', projects: [{ id: 'p1' }] },
+    { id: 's2', projects: [{ id: 'p2' }] },
+  ] as never;
+  it('выбран спейс — он', () => {
+    expect(createSpace(spaces, { name: 'space', params: { spaceId: 's2' } })?.id).toBe('s2');
+  });
+  it('выбран проект — его спейс', () => {
+    expect(createSpace(spaces, { name: 'project', params: { projectId: 'p2' } })?.id).toBe('s2');
+  });
+  it('иначе первый', () => {
+    expect(createSpace(spaces, { name: 'home', params: {} })?.id).toBe('s1');
   });
 });

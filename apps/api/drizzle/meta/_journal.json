@@ -614,8 +614,92 @@
     {
       "idx": 87,
       "version": "7",
-      "when": 1796707200000,
-      "tag": "0087_import_plane_api",
+      "when": 1796707200001,
+      "tag": "0087_user_2fa",
+      "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1796793600000,
+      "tag": "0088_lock_on_open",
+      "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1796880000000,
+      "tag": "0089_activity_merged",
+      "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1796966400000,
+      "tag": "0090_task_times",
+      "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1797052800000,
+      "tag": "0091_task_due_remind",
+      "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1797139200000,
+      "tag": "0092_ai_connections_list",
+      "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1797225600000,
+      "tag": "0093_activity_task_created",
+      "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1797312000000,
+      "tag": "0094_gitlab_servers",
+      "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1797398400000,
+      "tag": "0095_space_members_mode",
+      "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1797484800000,
+      "tag": "0096_roles_audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1797571200000,
+      "tag": "0097_sessions_handoff",
+      "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1797657600000,
+      "tag": "0098_due_reminders",
+      "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1797744000000,
+      "tag": "0099_import_plane_api",
       "breakpoints": true
     }
   ]

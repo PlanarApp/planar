@@ -16,8 +16,20 @@ const roles = () =>
   (['admin', 'member', 'guest'] as const).map((r) => ({ value: r, label: t(`auth.roles.${r}`) }));
 
 // «Sign in» as a user (PLNRAPP-129)
-const { impersonate, canImpersonate } = useAuth();
+const { impersonate, canImpersonate, user: me } = useAuth();
 const asUser = ref<User | null>(null);
+const resetFor = ref<User | null>(null);
+// 2FA reset (lost phone): REST v1, the server checks the role rules
+async function reset2fa() {
+  const u = resetFor.value;
+  if (!u) return;
+  error.value = '';
+  try {
+    await api('PATCH', `/api/v1/instance/users/${u.id}`, { reset2fa: true });
+  } catch (e) {
+    error.value = errText(e, t);
+  }
+}
 const signIn = () => {
   const u = asUser.value;
   if (u) impersonate(u.id).catch((e) => (error.value = errText(e, t)));
@@ -89,6 +101,14 @@ async function create() {
             {{ u.deactivatedAt ? t('auth.unblock') : t('auth.block') }}
           </Button>
           <Button
+            v-if="u.role !== 'owner' && u.id !== me?.id"
+            size="sm"
+            variant="ghost"
+            data-testid="user-reset-2fa"
+            @click="resetFor = u"
+            >{{ t('security.reset') }}</Button
+          >
+          <Button
             v-if="canImpersonate(u)"
             size="sm"
             variant="ghost"
@@ -112,6 +132,14 @@ async function create() {
         <Button type="submit" form="user-form" variant="primary">{{ t('auth.create') }}</Button>
       </template>
     </Dialog>
+    <ConfirmDialog
+      :open="!!resetFor"
+      :title="t('security.resetTitle', { name: resetFor?.name ?? '' })"
+      :description="t('security.resetDesc')"
+      :confirm-label="t('security.reset')"
+      @update:open="(v) => !v && (resetFor = null)"
+      @confirm="reset2fa"
+    />
     <ConfirmDialog
       :open="!!asUser"
       :title="t('settings.impersonateTitle', { name: asUser?.name ?? '' })"

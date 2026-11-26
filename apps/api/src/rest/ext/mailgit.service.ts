@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 import { decrypt, secretKey } from '@planar/server-kit';
 import { gitlabConnections as P } from '@planar/module-gitlab/api/schema';
+import { bindingsOf, type Binding } from '@planar/module-gitlab/api/servers';
 import { HttpError } from '../../auth/errors.js';
 import { enabledModules } from '../../modules/enabled.js';
 import { findTask } from './tasks.service.js';
@@ -25,16 +26,12 @@ export async function gitTask(d: ExtDeps, userId: string, ref: string, write: bo
   const { key, role } = r.rows[0] as { key: string; role: string | null };
   if (write && role === 'guest')
     throw new HttpError(403, 'forbidden', 'Нет прав на изменение задачи');
-  const conns = await d.db
-    .select()
-    .from(P)
-    .where(eq(P.projectId, t.projectId))
-    .orderBy(P.createdAt, P.id);
+  const conns = await bindingsOf(d.db, eq(P.projectId, t.projectId));
   return { title: t.title, key, conns };
 }
 
 /** POST/GET to GitLab with the connection's token; the token never leaves this function */
-async function gl(c: typeof P.$inferSelect, token: string, path: string, body?: object) {
+async function gl(c: Binding, token: string, path: string, body?: object) {
   const res = await fetch(
     `${c.baseUrl.replace(/\/+$/, '')}/api/v4/projects/${c.gitlabProjectId}${path}`,
     {

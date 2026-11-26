@@ -96,8 +96,9 @@ async function repoOf(q: Pick<Q, 'execute'>, run: Run) {
   // shortcut: the first connection of the project; when projects with several repositories need agents — pick in the action
   const c = await one(
     q,
-    sql`select base_url as "baseUrl", token_enc as "tokenEnc", path from gitlab_connections
-        where project_id = ${run.task.projectId} order by created_at, id limit 1`,
+    sql`select s.base_url as "baseUrl", s.token_enc as "tokenEnc", c.path from gitlab_connections c
+        join gitlab_servers s on s.id = c.server_id
+        where c.project_id = ${run.task.projectId} order by c.created_at, c.id limit 1`,
   );
   const key = secretKey();
   if (!c || !key) return null;
@@ -133,7 +134,8 @@ export async function runSecretsOf(q: Q, projectId: string) {
     }
   const c = await one(
     q,
-    sql`select token_enc as "tokenEnc" from gitlab_connections where project_id = ${projectId}::uuid order by created_at, id limit 1`,
+    sql`select s.token_enc as "tokenEnc" from gitlab_connections c join gitlab_servers s on s.id = c.server_id
+        where c.project_id = ${projectId}::uuid order by c.created_at, c.id limit 1`,
   ).catch(() => undefined);
   const key = secretKey();
   if (c && key)

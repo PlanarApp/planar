@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from 'vue';
-import { Mic, Paperclip, Send, Smile, X } from 'lucide-vue-next';
+import { Mic, Paperclip, Send, Smile, X } from '@lucide/vue';
 import {
   ApiError,
   Button,

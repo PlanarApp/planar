@@ -2,7 +2,7 @@
 import TaskContextMenu from '../TaskContextMenu.vue';
 import BulkMerge from '../BulkMerge.vue';
 import { useVirtualizer } from '@tanstack/vue-virtual';
-import { ChevronRight, MoreHorizontal } from 'lucide-vue-next';
+import { CalendarDays, ChevronRight, MoreHorizontal } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { VueDraggable } from 'vue-draggable-plus';
 import { useI18n } from 'vue-i18n';
@@ -12,6 +12,7 @@ import {
   LabelPicker,
   PriorityPicker,
   StatusPicker,
+  TaskDatesPicker,
   setAssignees,
   setLabels,
   sortTasks,
@@ -706,7 +707,22 @@ const date = (v: string) => v.slice(0, 10);
           each((x) => setAssignees(x.id, [...new Set([...x.assigneeIds, ...$event])]))
         "
       />
-      <DueDatePicker @update:model-value="each((x) => updateTask(x.id, { dueDate: $event }))" />
+      <!-- the same dates picker as in the task form; the key resets it when the selection changes -->
+      <TaskDatesPicker
+        :key="chosen.map((x) => x.id).join()"
+        @update:start="(v: string | null) => each((x) => updateTask(x.id, { startDate: v }))"
+        @update:due="(v: string | null) => each((x) => updateTask(x.id, { dueDate: v }))"
+        @update:start-time="(v: string | null) => each((x) => updateTask(x.id, { startTime: v }))"
+        @update:due-time="(v: string | null) => each((x) => updateTask(x.id, { dueTime: v }))"
+        @update:due-remind-min="
+          (v: number | null) => each((x) => updateTask(x.id, { dueRemindMin: v }))
+        "
+      >
+        <template #value>
+          <CalendarDays :size="14" aria-hidden="true" />
+          <span>{{ t('tasks.dueDate') }}</span>
+        </template>
+      </TaskDatesPicker>
       <template v-if="defs?.length">
         <select
           v-model="bulkId"

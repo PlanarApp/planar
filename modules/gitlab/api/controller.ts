@@ -29,6 +29,8 @@ import {
   DEFAULT_BRANCH_TEMPLATE,
   gitRefError,
   renderBranch,
+  WORKSPACE_SCOPE_ID,
+  type GitlabScope,
 } from '../shared/index.js';
 import {
   createBranch,
@@ -41,10 +43,20 @@ import {
 } from './poll.js';
 import {
   gitlabBranches as B,
+  gitlabChoices as C,
   gitlabConnections as P,
+  gitlabServers as G,
   gitlabMrs as M,
   gitlabProjectSettings as S,
 } from './schema.js';
+import {
+  availableServers,
+  bindingsOf,
+  choiceOf,
+  resolveServer,
+  viewOf,
+  type Binding,
+} from './servers.js';
 
 const baseUrl = z
   .string()
@@ -58,17 +70,30 @@ const baseUrl = z
     }
   }, 'нужен http(s)-адрес без логина и пароля');
 const token = z.string().min(1).max(500);
-const postBody = z.object({ baseUrl, token, project: z.string().min(1).max(500) });
-const patchBody = z.object({ token });
+const scope = z.enum(['workspace', 'space', 'project']);
+const name = z.string().trim().min(1).max(100);
+const serverBody = z.object({ scope, scopeId: z.uuid(), name, baseUrl, token });
+const serverPatch = z.object({
+  name: name.optional(),
+  baseUrl: baseUrl.optional(),
+  token: token.optional(),
+});
+const choiceBody = z.object({ serverId: z.uuid().nullable() });
+const postBody = z.object({
+  project: z.string().min(1).max(500),
+  // absent — the project's effective connection
+  serverId: z.uuid().optional(),
+});
 const branchBody = z.object({ connectionId: z.uuid().optional(), name: z.string().optional() });
 const mrBody = z.object({ branchId: z.uuid() });
 const templateBody = z.object({ template: z.string().max(200).nullable() });
 const invalid = (m: string) => new HttpError(400, 'invalid_request', m);
 
 const iso = (v: string | null) => (v ? new Date(v).toISOString() : null);
-const view = (r: typeof P.$inferSelect) => ({
+const view = (r: Binding) => ({
   id: r.id,
   projectId: r.projectId,
+  serverId: r.serverId,
   baseUrl: r.baseUrl,
   gitlabProjectId: r.gitlabProjectId,
   path: r.path,
@@ -103,6 +128,156 @@ export class GitlabController {
       throw new HttpError(404, 'module_disabled', 'Модуль gitlab выключен в проекте');
   }
 
+  private tokenOf(sv: { tokenEnc: string }) {
+    const key = secretKey();
+    if (!key) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');
+    try {
+      return decrypt(sv.tokenEnc, key);
+    } catch {
+      throw new HttpError(503, 'unavailable', 'Токен GitLab не расшифровывается');
+    }
+  }
+
+  private async server(id: string) {
+    const [r] = await this.core.db
+      .select()
+      .from(G)
+      .where(eq(G.id, uuidOr404(id)));
+    if (!r) throw new HttpError(404, 'not_found', 'Не найдено');
+    return r;
+  }
+
+  /** The level exists: the workspace (nil uuid), a space or a project. */
+  private async level(sc: GitlabScope, id: string) {
+    if (sc === 'workspace') {
+      if (id !== WORKSPACE_SCOPE_ID) throw new HttpError(404, 'not_found', 'Не найдено');
+      return;
+    }
+    const r = await this.core.db.execute(
+      sql`select 1 from ${sql.raw(sc === 'space' ? 'spaces' : 'projects')} where id = ${uuidOr404(id)}::uuid`,
+    );
+    if (!r.rows.length) throw new HttpError(404, 'not_found', 'Не найдено');
+  }
+
+  /** Connections available to a level, its own choice and the effective connection. */
+  @Get('levels/:scope/:scopeId')
+  async levelView(@Req() req: object, @Param('scope') sc: string, @Param('scopeId') id: string) {
+    this.admin(req);
+    const s = parseBody(scope, sc) as GitlabScope;
+    await this.level(s, id);
+    const db = this.core.db;
+    return {
+      servers: (await availableServers(db, s, id)).map(viewOf),
+      choice: await choiceOf(db, s, id),
+      effective: (await resolveServer(db, s, id))?.id ?? null,
+    };
+  }
+
+  /** null — inherit; otherwise a connection of the level itself or of a level above. */
+  @Put('levels/:scope/:scopeId/choice')
+  async setChoice(
+    @Req() req: object,
+    @Param('scope') sc: string,
+    @Param('scopeId') id: string,
+    @Body() body: unknown,
+  ) {
+    this.admin(req);
+    const s = parseBody(scope, sc) as GitlabScope;
+    const b = parseBody(choiceBody, body);
+    await this.level(s, id);
+    if (b.serverId === null)
+      await this.core.db.delete(C).where(and(eq(C.scope, s), eq(C.scopeId, id)));
+    else {
+      if (!(await availableServers(this.core.db, s, id)).some((x) => x.id === b.serverId))
+        throw invalid('Подключение недоступно этому уровню');
+      await this.core.db
+        .insert(C)
+        .values({ scope: s, scopeId: id, serverId: b.serverId })
+        .onConflictDoUpdate({ target: [C.scope, C.scopeId], set: { serverId: b.serverId } });
+    }
+    return { choice: b.serverId };
+  }
+
+  @Post('servers')
+  async addServer(@Req() req: object, @Body() body: unknown) {
+    this.admin(req);
+    const b = parseBody(serverBody, body);
+    await this.level(b.scope, b.scopeId);
+    const [r] = await this.core.db
+      .insert(G)
+      .values({
+        id: uuidv7(),
+        scope: b.scope,
+        scopeId: b.scopeId,
+        name: b.name,
+        baseUrl: b.baseUrl.replace(/\/+$/, ''),
+        tokenEnc: encToken(b.token),
+      })
+      .returning();
+    // the own connection of a space / project is what that level uses from now on
+    if (b.scope !== 'workspace')
+      await this.core.db
+        .insert(C)
+        .values({ scope: b.scope, scopeId: b.scopeId, serverId: r!.id })
+        .onConflictDoUpdate({ target: [C.scope, C.scopeId], set: { serverId: r!.id } });
+    return { server: viewOf(r!) };
+  }
+
+  @Patch('servers/:id')
+  async patchServer(@Req() req: object, @Param('id') id: string, @Body() body: unknown) {
+    this.admin(req);
+    const b = parseBody(serverPatch, body);
+    const sv = await this.server(id);
+    const url = b.baseUrl?.replace(/\/+$/, '');
+    if (url && url !== sv.baseUrl && (await this.bound(sv.id)))
+      throw new HttpError(
+        409,
+        'conflict',
+        'Адрес нельзя менять: к подключению привязаны репозитории',
+      );
+    const [r] = await this.core.db
+      .update(G)
+      .set({
+        ...(b.name && { name: b.name }),
+        ...(url && { baseUrl: url }),
+        ...(b.token && { tokenEnc: encToken(b.token) }),
+      })
+      .where(eq(G.id, sv.id))
+      .returning();
+    // a new token lifts the stop after a 401
+    if (b.token)
+      await this.core.db
+        .update(P)
+        .set({ lastError: null, lastErrorAt: null })
+        .where(eq(P.serverId, sv.id));
+    return { server: viewOf(r!) };
+  }
+
+  private async bound(serverId: string) {
+    const r = await this.core.db
+      .select({ id: P.id })
+      .from(P)
+      .where(eq(P.serverId, serverId))
+      .limit(1);
+    return r.length > 0;
+  }
+
+  /** Not while repositories are bound through it (409); levels that chose it fall back to inheriting. */
+  @Delete('servers/:id')
+  @HttpCode(204)
+  async removeServer(@Req() req: object, @Param('id') id: string) {
+    this.admin(req);
+    const sv = await this.server(id);
+    if (await this.bound(sv.id))
+      throw new HttpError(
+        409,
+        'conflict',
+        'К подключению привязаны репозитории проектов — сначала отвяжите их',
+      );
+    await this.core.db.delete(C).where(eq(C.serverId, sv.id));
+    await this.core.db.delete(G).where(eq(G.id, sv.id));
+  }
+
   private async conn(id: string) {
     const [r] = await this.core.db
       .select()
@@ -116,11 +291,7 @@ export class GitlabController {
   async list(@Req() req: object, @Param('projectId') projectId: string) {
     this.admin(req);
     await this.moduleOn(uuidOr404(projectId));
-    const rs = await this.core.db
-      .select()
-      .from(P)
-      .where(eq(P.projectId, uuidOr404(projectId)))
-      .orderBy(P.createdAt, P.id);
+    const rs = await bindingsOf(this.core.db, eq(P.projectId, uuidOr404(projectId)));
     return { connections: rs.map(view) };
   }
 
@@ -133,11 +304,20 @@ export class GitlabController {
       sql`select 1 from projects where id = ${uuidOr404(projectId)}`,
     );
     if (!p.rows.length) throw new HttpError(404, 'not_found', 'Проект не найден');
-    const url = b.baseUrl.replace(/\/+$/, '');
-    const tokenEnc = encToken(b.token);
+    const sv = b.serverId
+      ? (await availableServers(this.core.db, 'project', projectId)).find(
+          (x) => x.id === b.serverId,
+        )
+      : await resolveServer(this.core.db, 'project', projectId);
+    if (!sv)
+      throw b.serverId
+        ? new HttpError(404, 'not_found', 'Подключение недоступно проекту')
+        : new HttpError(409, 'conflict', 'Подключение GitLab не настроено');
+    const url = sv.baseUrl;
+    const token = this.tokenOf(sv);
     let found;
     try {
-      found = await fetchProject(url, b.token, b.project);
+      found = await fetchProject(url, token, b.project);
     } catch (e) {
       if (e instanceof HttpFail && e.status === 404)
         throw new HttpError(404, 'not_found', 'Проект не найден в GitLab');
@@ -150,40 +330,24 @@ export class GitlabController {
       );
     }
     const same = and(eq(P.projectId, projectId), eq(P.gitlabProjectId, found.id));
-    const [had] = await this.core.db.select().from(P).where(same);
+    const [had] = await bindingsOf(this.core.db, same);
     if (had && had.baseUrl !== url)
       throw new HttpError(409, 'conflict', 'Репозиторий с таким id уже подключён с другого адреса');
-    // the same repository again — refresh the path and token
+    // the same repository again — refresh the path and the connection
     await this.core.db
       .insert(P)
       .values({
         id: uuidv7(),
         projectId,
-        baseUrl: url,
-        tokenEnc,
+        serverId: sv.id,
         gitlabProjectId: found.id,
         path: found.path,
       })
       .onConflictDoUpdate({
         target: [P.projectId, P.gitlabProjectId],
-        set: { path: found.path, tokenEnc, lastError: null, lastErrorAt: null },
+        set: { path: found.path, serverId: sv.id, lastError: null, lastErrorAt: null },
       });
-    const [r] = await this.core.db.select().from(P).where(same);
-    return { connection: view(r!) };
-  }
-
-  @Patch('connections/:id')
-  async setToken(@Req() req: object, @Param('id') id: string, @Body() body: unknown) {
-    this.admin(req);
-    const b = parseBody(patchBody, body);
-    const c = await this.conn(id);
-    await this.moduleOn(c.projectId);
-    // changing the token lifts the stop after a 401
-    const [r] = await this.core.db
-      .update(P)
-      .set({ tokenEnc: encToken(b.token), lastError: null, lastErrorAt: null })
-      .where(eq(P.id, c.id))
-      .returning();
+    const [r] = await bindingsOf(this.core.db, same);
     return { connection: view(r!) };
   }
 
@@ -280,11 +444,7 @@ export class GitlabController {
     if (write && (t.role === 'guest' || a.tokenScope === 'read'))
       throw new HttpError(403, 'forbidden', 'Нет прав на изменение задачи');
     await this.moduleOn(t.projectId);
-    const conns = await this.core.db
-      .select()
-      .from(P)
-      .where(eq(P.projectId, t.projectId))
-      .orderBy(P.createdAt, P.id);
+    const conns = await bindingsOf(this.core.db, eq(P.projectId, t.projectId));
     return { t, conns, userId: a.userId };
   }
 
@@ -383,7 +543,7 @@ export class GitlabController {
   }
 
   /** A call to GitLab with the connection's token; its errors → HTTP. */
-  private async gitlab<T>(c: typeof P.$inferSelect, f: (token: string) => Promise<T>): Promise<T> {
+  private async gitlab<T>(c: Binding, f: (token: string) => Promise<T>): Promise<T> {
     const key = secretKey();
     if (!key) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');
     let token: string;

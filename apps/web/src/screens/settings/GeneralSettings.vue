@@ -2,16 +2,17 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Row } from '@planar/shared';
-import { Smile } from 'lucide-vue-next';
+import { Smile } from '@lucide/vue';
 import { UserPicker } from '../../pickers';
-import { Button, EmojiPicker, Input, Popover } from '../../ui';
+import { Button, EmojiPicker, Input, Popover, Select } from '../../ui';
 import NodeIcon from '../../ui/NodeIcon.vue';
 import { uploadFile } from '../../api/files';
 import { db, mutate, useQuery } from '../../sync';
-import { useMembers, useWorkspace } from '../../tasks';
+import { useMembers, useProjectAdmin, useWorkspace } from '../../tasks';
+import { useAuth } from '../../auth/useAuth';
 import ColorPicker from './ColorPicker.vue';
 import SectionHeader from './SectionHeader.vue';
-import { firstGrapheme, KEY_RE, useAction } from './shared';
+import { firstGrapheme, KEY_RE, useAction, useAdminSpaces } from './shared';
 
 // the first group settings section — the node's own parameters: name, colour, icon
 const props = defineProps<{
@@ -36,7 +37,7 @@ const node = computed(() =>
       ? { name: row.value.name, color: row.value.color, icon: row.value.icon }
       : undefined,
 );
-function save(patch: { name?: string; color?: string | null; icon?: string | null }) {
+function save(patch: { name?: string; color?: string | null; icon?: string | null; mfa?: string }) {
   const n = node.value;
   if (!n) return;
   if (patch.name !== undefined && !patch.name.trim()) return;
@@ -45,7 +46,10 @@ function save(patch: { name?: string; color?: string | null; icon?: string | nul
       ? mutate('project.update', { id: props.projectId!, ...patch })
       : props.level === 'space'
         ? mutate('space.update', { id: props.spaceId!, ...patch })
-        : mutate('settings.set', { id: 'workspace', value: { ...n, ...patch } }),
+        : mutate('settings.set', {
+            id: 'workspace',
+            value: { ...n, mfa: ws.value.mfa, ...patch },
+          }),
   );
 }
 // lead (space, project) and the default assignee of new tasks (project): a space member or nobody
@@ -94,13 +98,24 @@ function upload(e: Event) {
   input.value = '';
   if (file) void run(async () => save({ icon: `file:${(await uploadFile(file)).sha256}` }));
 }
+// the node's parameters: project.update — an admin of the project, space.update — of the space, the Workspace — an instance admin
+const { isAdmin } = useAuth();
+const isSpaceAdmin = useAdminSpaces();
+const isProjectAdmin = useProjectAdmin();
+const canEdit = computed(() =>
+  props.level === 'project'
+    ? isProjectAdmin(props.spaceId ?? '', props.projectId ?? null)
+    : props.level === 'space'
+      ? isSpaceAdmin(props.spaceId ?? '')
+      : isAdmin.value,
+);
 </script>
 
 <template>
   <section class="flex max-w-xl flex-col gap-4" data-testid="general-settings">
     <SectionHeader :title="t(`settings.general.${level ?? 'workspace'}`)" />
     <p v-if="error" role="alert" class="text-sm text-danger">{{ error }}</p>
-    <template v-if="node">
+    <fieldset v-if="node" :disabled="!canEdit" class="contents">
       <Input
         :model-value="node.name"
         :label="t('settings.general.name')"
@@ -207,6 +222,25 @@ function upload(e: Event) {
           <p class="mt-1 text-xs text-fg-muted">{{ t('settings.general.defaultAssigneeHint') }}</p>
         </div>
       </template>
-    </template>
+      <div
+        v-if="!level || level === 'workspace'"
+        class="flex flex-col gap-1"
+        data-testid="mfa-policy"
+      >
+        <span class="text-sm text-fg-muted">{{ t('security.policy') }}</span>
+        <Select
+          :model-value="ws.mfa"
+          :label="t('security.policy')"
+          :options="
+            (['off', 'admins', 'all'] as const).map((v) => ({
+              value: v,
+              label: t(`security.policy_${v}`),
+            }))
+          "
+          @update:model-value="(v) => v && save({ mfa: v })"
+        />
+        <p class="mt-1 text-xs text-fg-muted">{{ t('security.policyHint') }}</p>
+      </div>
+    </fieldset>
   </section>
 </template>

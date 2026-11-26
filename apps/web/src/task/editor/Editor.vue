@@ -25,7 +25,8 @@ import { PluginKey } from '@tiptap/pm/state';
 import { filterSlash, slashItems } from './slash';
 import { insertRefAt, refTrigger, type RefAt } from './refTrigger';
 import { TO_TASK } from '../thread';
-import { Button } from '../../ui';
+import { ListPlus, ListTree } from '@lucide/vue';
+import { blockItems, linkItem, markItems, selectionGroups, type SelItem } from './selectionMenu';
 import SuggestList from '../../pickers/SuggestList.vue';
 import type { PickUser } from '../../pickers/UserPicker.vue';
 
@@ -66,7 +67,7 @@ const props = withDefaults(
     /** PLNRAPP-372: pasted and dropped files (images too) are the comment's files — emitted as attach */
     files?: boolean;
     editable?: boolean;
-    /** Collaborative editing (P3-ydoc): document name `docs:<id>` | `task:<id>`; modelValue is not used then. */
+    /** Collaborative editing (P3-ydoc): document name `docs:<id>` | `task:<id>`; modelValue is only the static preview until the ydoc is ready. */
     collab?: { name: string };
     /** @@ — link to a task, @@@ — to a document (chat) */
     refs?: boolean;
@@ -106,10 +107,44 @@ const plainBetween = (ed: CoreEditor, from: number, to: number) =>
       n.type.name === 'hardBreak' ? '\n' : (n.type.spec.leafText?.(n) ?? ''),
     )
     .trim();
+// menu content by the editor context (editable: formatting + «/» blocks; read-only: only «to task»)
+const selGroups = () =>
+  selectionGroups({
+    editable: !!editor.value?.isEditable,
+    toTask: !!toTask && (!!editor.value?.isEditable || !!props.linkReadOnly),
+  });
+const selItems: Record<string, SelItem> = {
+  ...Object.fromEntries([...markItems, ...blockItems].map((i) => [i.id, i])),
+  link: linkItem(() => window.prompt(t('task.linkAddress'), 'https://')),
+};
+const selTaskItems = computed(() => [
+  { id: 'task', icon: ListPlus, label: t('task.checklistToTask'), sub: false },
+  { id: 'subtask', icon: ListTree, label: t('task.checklistToSubtask'), sub: true },
+]);
+const selBtn =
+  'inline-flex size-8 items-center justify-center rounded-md text-fg-muted hover:bg-bg-muted hover:text-fg';
+const selActive = (id: string) => {
+  const ed = editor.value;
+  if (!ed) return false;
+  const name =
+    {
+      inlineCode: 'code',
+      strike: 'strike',
+      h1: 'heading',
+      h2: 'heading',
+      h3: 'heading',
+      bullet: 'bulletList',
+      todo: 'taskList',
+      code: 'codeBlock',
+    }[id] ?? id;
+  const attrs = /^h\d$/.test(id) ? { level: +id[1] } : undefined;
+  return ed.isActive(name, attrs);
+};
+const selLabel = (i: SelItem) => i.title[locale.value === 'en' ? 'en' : 'ru'];
 function trackSelection(ed: CoreEditor) {
   const { from, to, empty } = ed.state.selection;
   const text = empty ? '' : plainBetween(ed, from, to);
-  if (!toTask || !text || !(ed.isEditable || props.linkReadOnly)) return void (sel.value = null);
+  if (!text || !selGroups().length) return void (sel.value = null);
   // the menu goes below the selection end: on mobile the OS menu (Copy/Paste/Select all)
   // covers the space above the selection (PLNRAPP-164); no room below (comment field at the
   // bottom edge) — above the selection, otherwise the fixed menu is off screen (PLNRAPP-215)
@@ -316,17 +351,22 @@ if (props.collab) {
     });
     session = c;
     readOnly = c.readOnly;
-    editor.value = new Editor(options(c.extensions, true));
     const sync = () => editor.value?.setEditable(props.editable && !readOnly());
     c.onAuthenticated(sync);
     c.onDenied(() => (unsynced.value = true));
     c.onAuthenticated(() => (unsynced.value = false));
-    sync();
+    // the static text (modelValue — the replica's description) stays until the ydoc has the text
+    void c.ready(!!props.modelValue).then(() => {
+      if (gone || typeof window === 'undefined') return; // unmounted, or the page is torn down
+      editor.value = new Editor(options(c.extensions, true));
+      sync();
+    });
   });
 } else if (!(props.lazy && !props.editable)) editor.value = new Editor(options());
 
 // lazy: static HTML until the pointer comes (hover, touch) — then the real editor, same DOM shape and styles
 const html = computed(() => (editor.value ? '' : staticHtml(props.modelValue)));
+const preview = computed(() => !editor.value && !!html.value && (props.lazy || !!props.collab));
 function activate() {
   if (!editor.value && !props.collab) editor.value = new Editor(options());
 }
@@ -354,11 +394,12 @@ const expanded = ref(false);
 let ro: ResizeObserver | undefined;
 // re-observed when the lazy static content gives way to the editor
 watch(
-  [box, editor],
+  [box, editor, preview],
   ([el]) => {
     ro?.disconnect();
     if (!el || !props.collapsible || typeof ResizeObserver === 'undefined') return;
     const content = el.firstElementChild!;
+    tall.value = content.scrollHeight > CLAMP * 1.25;
     ro = new ResizeObserver(() => (tall.value = content.scrollHeight > CLAMP * 1.25));
     ro.observe(content);
   },
@@ -433,7 +474,7 @@ const sugStyle = (r: DOMRect | null, n: number) => {
       @pointerenter="lazy && activate()"
     >
       <!-- eslint-disable-next-line vue/no-v-html -- serialized by the ProseMirror schema, as the editor itself renders it -->
-      <div v-if="lazy && !editor && html">
+      <div v-if="preview">
         <div
           class="tiptap ProseMirror"
           role="textbox"
@@ -493,17 +534,42 @@ const sugStyle = (r: DOMRect | null, n: number) => {
     <div
       v-if="sel"
       role="toolbar"
-      :aria-label="t('task.selectionToTask')"
-      class="fixed z-50 flex gap-1 rounded-lg border border-border bg-surface p-1 shadow-md"
+      :aria-label="t('task.selectionMenu')"
+      class="fixed z-50 flex w-max max-w-[calc(100vw-1rem)] flex-wrap items-center gap-0.5 rounded-lg border border-border bg-surface p-1 shadow-md"
       :style="selStyle(sel)"
       data-testid="selection-to-task"
     >
-      <Button size="sm" variant="ghost" @mousedown.prevent @click="selToTask(false)">{{
-        t('task.checklistToTask')
-      }}</Button>
-      <Button size="sm" variant="ghost" @mousedown.prevent @click="selToTask(true)">{{
-        t('task.checklistToSubtask')
-      }}</Button>
+      <template v-for="(g, gi) in selGroups()" :key="gi">
+        <span v-if="gi" class="mx-0.5 h-5 w-px bg-border" aria-hidden="true" />
+        <template v-if="g[0] === 'task'">
+          <button
+            v-for="b in selTaskItems"
+            :key="b.id"
+            type="button"
+            :title="b.label"
+            :aria-label="b.label"
+            :class="selBtn"
+            @mousedown.prevent
+            @click="selToTask(b.sub)"
+          >
+            <component :is="b.icon" class="size-4" />
+          </button>
+        </template>
+        <button
+          v-for="id in g.filter((x) => selItems[x])"
+          v-else
+          :key="id"
+          type="button"
+          :title="selLabel(selItems[id])"
+          :aria-label="selLabel(selItems[id])"
+          :aria-pressed="id === 'link' ? undefined : selActive(id)"
+          :class="[selBtn, selActive(id) && 'bg-bg-muted text-accent']"
+          @mousedown.prevent
+          @click="selItems[id].run(editor!)"
+        >
+          <component :is="selItems[id].icon" class="size-4" />
+        </button>
+      </template>
     </div>
   </div>
 </template>

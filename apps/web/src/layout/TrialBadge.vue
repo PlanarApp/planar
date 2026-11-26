@@ -26,7 +26,7 @@ const days = computed(() => {
   <component
     :is="isAdmin ? 'RouterLink' : 'span'"
     v-if="days !== null"
-    :to="isAdmin ? '/settings/cloud' : undefined"
+    :to="isAdmin ? '/w/settings?s=cloud' : undefined"
     class="shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-warning"
     data-testid="trial-badge"
     :title="t('cloud.badge', { n: days })"

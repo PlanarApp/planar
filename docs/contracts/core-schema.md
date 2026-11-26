@@ -43,6 +43,7 @@ scope: space · write: admin · bootstrap: yes · indexes: —
 | `color` | text? | |
 | `icon` | text? | |
 | `leadId` | uuid? | v18: the space lead (PLANARAPP-3); replica rows before v18 have no such field (treated as null) |
+| `membersMode` | enum(inherit,custom) | v32: `inherit` — the members of the space mirror the members of the root space (Workspace) with their roles; `custom` — the space's own list. Default `custom` (existing spaces keep their lists); replica rows before v32 have no such field (treated as `custom`). The root space is always `custom` (it is the source) |
 | `rank` | rank | |
 | `createdBy` | uuid | |
 | `createdAt` | ts | |
@@ -130,6 +131,9 @@ scope: space · write: member · bootstrap: yes · indexes: spaceId, projectId, 
 | `rank` | rank | manual order |
 | `dueDate` | date? | |
 | `startDate` | date? | |
+| `dueTime` | text? | time of day `HH:MM`, optional, only with `dueDate` |
+| `startTime` | text? | time of day `HH:MM`, optional, only with `startDate` |
+| `dueRemindMin` | int? | 0..10080: remind this many minutes before `dueDate`+`dueTime`; null with a `dueTime` — 10; 0 — only at the due time; meaningless without `dueTime` |
 | `createdBy` | uuid | |
 | `completedAt` | ts? | set by the mutator on a move to the done/cancelled category, cleared on leaving it |
 | `fields` | obj | `{<fieldDefs.id>: value}` — fields of the task's project, no `null`; format — features.md §F-fields; default `{}` |
@@ -314,7 +318,7 @@ scope: user · write: self · bootstrap: yes · indexes: taskId, userId
 | `id` | uuid | |
 | `userId` | uuid | recipient |
 | `spaceId` | uuid? | for grouping; does not affect visibility; null — a personal chat dialog |
-| `kind` | enum(assigned,mentioned,commented,status_changed,chat_mention,chat_dm,chat_reply,comment_assigned,doc_mention,trial_ending,checklist_assigned,due_today,start_today,doc_comment_assigned,due_changed) | `chat_*` is created by the chat module (collab.md §CH); `doc_mention`, `doc_comment_assigned` — by the docs module (collab.md §DC-schema); `trial_ending` — by the cloud link (cloud-link.md); `checklist_assigned` — `body` is the item text; `due_today` / `start_today` — by the core job `core.due.remind` (core.md v27) |
+| `kind` | enum(assigned,mentioned,commented,status_changed,chat_mention,chat_dm,chat_reply,comment_assigned,doc_mention,trial_ending,checklist_assigned,due_today,start_today,doc_comment_assigned,due_changed,due_soon,due_now) | `chat_*` is created by the chat module (collab.md §CH); `doc_mention`, `doc_comment_assigned` — by the docs module (collab.md §DC-schema); `trial_ending` — by the cloud link (cloud-link.md); `checklist_assigned` — `body` is the item text; `due_today` / `start_today` — by the core job `core.due.remind` (core.md v27); `due_soon` (at `dueAt − dueRemindMin`, not with 0) / `due_now` (at `dueAt`) — by the core job `core.due.time` every minute to the assignees of open, not archived tasks with `dueTime`, `dueAt` = `dueDate`+`dueTime` in the assignee's zone (`users.timezone`, empty — UTC); once per firing moment (no notification of the kind created since it), a moved time or changed `dueRemindMin` fires again; a missed run is made up within 10 minutes |
 | `taskId` | uuid? | no FK; null for `chat_*` |
 | `url` | text? | in-app path for notifications without a task (the `url` rules from "Web Push") |
 | `body` | text? | ≤ 140 characters, "Name: text"; for notifications without a task |

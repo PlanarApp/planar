@@ -132,24 +132,41 @@ describe('tasks:pickers', () => {
       const res = {
         text: v.exists() ? v.text() : '',
         alarm: w.find('[data-testid=task-dates-due]').exists(),
-        danger: w.get('[data-testid=task-dates]').classes().includes('text-due-overdue'),
+        // the color of each date: start, due (the separator is not a date)
+        tones: v.exists()
+          ? v
+              .findAll(':scope > span:not(.text-fg-muted)')
+              .map((x) => x.classes().find((c) => c.startsWith('text-')))
+          : [],
       };
       w.unmount();
       return res;
     };
     const y = new Date().getFullYear();
     it('без дат — только иконка', () => {
-      expect(value(null, null)).toEqual({ text: '', alarm: false, danger: false });
+      expect(value(null, null)).toEqual({ text: '', alarm: false, tones: [] });
     });
     it('период, только начало, только срок', () => {
-      expect(value(`${y}-11-12`, `${y}-11-19`).text).toBe('12–19 нояб.');
-      expect(value(`${y}-11-12`, null).text).toBe('с 12 нояб.');
-      expect(value(null, `${y + 1}-11-20`)).toMatchObject({ alarm: true, danger: false });
+      expect(value(`${y + 1}-11-12`, `${y + 1}-11-19`).text).toBe(
+        `12 нояб. ${y + 1} – 19 нояб. ${y + 1}`,
+      );
+      expect(value(`${y + 1}-11-12`, null).text).toBe(`с 12 нояб. ${y + 1}`);
+      expect(value(null, `${y + 1}-11-20`)).toMatchObject({
+        alarm: true,
+        tones: ['text-due-future'],
+      });
     });
-    it('просроченный срок — danger', () => {
-      expect(value(null, localToday(-1))).toMatchObject({ alarm: true, danger: true });
-      expect(value(localToday(-5), localToday(-1)).danger).toBe(true);
-      expect(value(localToday(-5), localToday()).danger).toBe(false);
+    it('каждая дата своим цветом: прошлое — красным, сегодня — зелёным, будущее — цветом текста', () => {
+      expect(value(null, localToday(-1)).tones).toEqual(['text-due-overdue']);
+      expect(value(localToday(-5), localToday()).tones).toEqual([
+        'text-due-overdue',
+        'text-due-today',
+      ]);
+      expect(value(localToday(), localToday(3)).tones).toEqual([
+        'text-due-today',
+        'text-due-future',
+      ]);
+      expect(value(localToday(2), null).tones).toEqual(['text-due-future']);
     });
     it('диалог: начало и срок, очистка обеих', async () => {
       const w = mount(TaskDatesPicker, { ...opts, props: { start: null, due: '2026-11-20' } });
@@ -166,6 +183,38 @@ describe('tasks:pickers', () => {
       await flushPromises();
       expect(w.emitted('update:due')?.at(-1)).toEqual([null]);
       w.unmount();
+    });
+    it('время — необязательное, поле появляется только у заданной даты; в значении — после даты', async () => {
+      const w = mount(TaskDatesPicker, {
+        ...opts,
+        props: { start: null, due: '2026-11-20', dueTime: '14:30' },
+      });
+      expect(w.get('[data-testid=task-dates-value]').text()).toContain('14:30');
+      await open(w);
+      const times = document.body.querySelectorAll<HTMLInputElement>('input[type="time"]');
+      expect(times).toHaveLength(1); // no start date — no start time
+      expect(times[0]!.value).toBe('14:30');
+      times[0]!.value = '09:00';
+      times[0]!.dispatchEvent(new Event('input'));
+      expect(w.emitted('update:dueTime')?.[0]).toEqual(['09:00']);
+      w.unmount();
+    });
+    it('«Напомнить за» — только при времени срока, по умолчанию 10 минут', async () => {
+      const w = mount(TaskDatesPicker, { ...opts, props: { start: null, due: '2026-11-20' } });
+      await open(w);
+      expect(document.body.querySelector('[data-testid=task-due-remind]')).toBeNull();
+      w.unmount();
+      const w2 = mount(TaskDatesPicker, {
+        ...opts,
+        props: { start: null, due: '2026-11-20', dueTime: '14:30' },
+      });
+      await open(w2);
+      const sel = document.body.querySelector<HTMLSelectElement>('[data-testid=task-due-remind]')!;
+      expect(sel.value).toBe('10');
+      sel.value = '60';
+      sel.dispatchEvent(new Event('change'));
+      expect(w2.emitted('update:dueRemindMin')?.[0]).toEqual([60]);
+      w2.unmount();
     });
   });
 });

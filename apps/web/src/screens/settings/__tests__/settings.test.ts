@@ -4,7 +4,6 @@ import { uuidv7 } from '@planar/shared';
 import { useAuth, type User } from '../../../auth/useAuth';
 import * as http from '../../../api/http';
 import { db, ids, menuAct, pick, setup, show, wait } from './setup';
-import SpacesSettings from '../SpacesSettings.vue';
 import MembersSettings from '../MembersSettings.vue';
 import ProjectsSettings from '../ProjectsSettings.vue';
 import StatusesSettings from '../StatusesSettings.vue';
@@ -15,37 +14,6 @@ import { UserPicker } from '../../../pickers';
 
 setup();
 const rows = (t: string) => db.table(t).toArray();
-
-describe('settings:spaces', () => {
-  it('создаёт пространство с участником (статусы — у проектов, C-mutators v11)', async () => {
-    const w = await show(SpacesSettings, {});
-    await w.find('input[data-testid=space-new]').setValue('Новое');
-    await w.find('form').trigger('submit');
-    await wait();
-    const s = (await rows('spaces')).find((x) => x.name === 'Новое');
-    expect(s).toBeTruthy();
-    expect(await db.table('statuses').where('spaceId').equals(s.id).count()).toBe(0);
-    expect(await db.table('spaceMembers').where('spaceId').equals(s.id).count()).toBe(1);
-  });
-  it('переименовывает', async () => {
-    const w = await show(SpacesSettings, {});
-    const input = w.find('[data-testid=space-row] input:not([type=checkbox])');
-    await input.setValue('Другое');
-    await input.trigger('change');
-    await wait();
-    expect((await db.table('spaces').get(ids.space)).name).toBe('Другое');
-  });
-  it('удаление пространства с проектами — conflict, текст показан', async () => {
-    const w = await show(SpacesSettings, {});
-    await menuAct(
-      w.find('[data-testid=space-row] [data-testid=row-menu]').element,
-      'Удалить',
-      true,
-    );
-    await vi.waitFor(() => expect(w.find('[role=alert]').text()).toContain('есть проекты'));
-    expect(await db.table('spaces').get(ids.space)).toBeTruthy();
-  });
-});
 
 describe('settings:members', () => {
   it('добавляет участника', async () => {
@@ -86,6 +54,22 @@ describe('settings:members', () => {
   });
 });
 
+describe('settings:members mode', () => {
+  it('режим inherit: нет добавления и «Убрать», роли заблокированы; переключатель шлёт space.setMembersMode', async () => {
+    await db.table('spaces').update(ids.space, { membersMode: 'inherit' });
+    const w = await show(MembersSettings);
+    await vi.waitFor(() => expect(w.findAll('[data-testid=member-row]').length).toBeGreaterThan(0));
+    expect(w.find('form').exists()).toBe(false);
+    expect((w.find('[data-testid=space-mode-inherit]').element as HTMLInputElement).checked).toBe(
+      true,
+    );
+    expect(w.find('button[role=combobox]').attributes('disabled')).toBeDefined();
+    await w.find('[data-testid=space-mode-custom]').setValue(true);
+    await vi.waitFor(async () => expect(await db._queue.count()).toBe(1));
+    expect((await db._queue.toArray())[0].name).toBe('space.setMembersMode');
+  });
+});
+
 describe('settings:projects', () => {
   it('неверный ключ не отправляется', async () => {
     const w = await show(ProjectsSettings);
@@ -108,9 +92,12 @@ describe('settings:projects', () => {
     );
     const p = (await rows('projects')).find((x) => x.key === 'NEW');
     expect(await db.table('statuses').where('projectId').equals(p.id).count()).toBe(5);
-    const i = (await w.findAll('[data-testid=project-row]')).findIndex((r) =>
-      r.text().includes('NEW'),
-    );
+    // the screen catches up with the replica asynchronously: wait for the row, not only the write
+    const i = await vi.waitFor(() => {
+      const n = w.findAll('[data-testid=project-row]').findIndex((r) => r.text().includes('NEW'));
+      expect(n).toBeGreaterThanOrEqual(0);
+      return n;
+    });
     await menuAct(
       w.findAll('[data-testid=project-row] [data-testid=row-menu]')[i].element,
       'В архив',

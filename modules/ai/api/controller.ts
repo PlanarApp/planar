@@ -11,7 +11,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { eq, sql, type SQL } from 'drizzle-orm';
+import { and, eq, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import {
   CORE,
@@ -58,9 +58,9 @@ import {
   type AiRunData,
 } from './run.js';
 import { stopAgent } from './agent.js';
-import { resolveConnection, secretOf, viewOf } from './connections.js';
+import { levelConnection, resolveConnection, secretOf, viewOf } from './connections.js';
 import { checkConnection, ConnectionCheckFailed, listModels, type LlmConnection } from './llm.js';
-import { aiConnections as C } from './schema.js';
+import { aiConnectionChoices as Ch, aiConnections as C } from './schema.js';
 
 const baseUrl = z
   .string()
@@ -81,6 +81,8 @@ const connBody = z.object({
   baseUrl: baseUrl.nullish(),
   /** omitted on an update: the saved key stays */
   apiKey: z.string().min(1).max(500).optional(),
+  /** workspace level: which connection of the list to update / take the saved key from; none — a new one */
+  id: z.uuid().optional(),
 });
 const connRules = <T extends z.ZodType<z.output<typeof connBody>>>(s: T) =>
   s
@@ -101,6 +103,12 @@ const putBody = connRules(
     priceOut: price.nullish(),
   }),
 );
+const choiceBody = z.object({
+  scope: z.enum(['space', 'project']),
+  scopeId: z.uuid(),
+  /** a connection of a parent level; null — inherit (the own connection is removed too) */
+  connectionId: z.uuid().nullable(),
+});
 const listQuery = z.object({ scope: z.enum(AI_SCOPES), scopeId: z.uuid().optional() });
 
 const nf = () => new HttpError(404, 'not_found', 'Не найдено');
@@ -111,7 +119,7 @@ const iso = (c: string) =>
   sql.raw(`to_char(${c} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`);
 const runCols = sql`r.id, r.task_id as "taskId", r.page_id as "pageId", r.project_id as "projectId", r.kind, r.action_id as "actionId",
   (select a.name from ai_actions a where a.id = r.action_id) as "actionName", r.state, r.chain_depth as "chainDepth",
-  r.restart_of as "restartOf", r.input_tokens as "inputTokens", r.output_tokens as "outputTokens", r.cost,
+  r.restart_of as "restartOf", r.model, r.input_tokens as "inputTokens", r.output_tokens as "outputTokens", r.cost,
   ${iso('r.created_at')} as "createdAt", ${iso('r.updated_at')} as "updatedAt"`;
 const runView = (r: Row) => r as unknown as AiRunView;
 /** PLNRAPP-202: the run as the indicator sees it; agent — its container started (agent.ts sets the secret) */
@@ -905,26 +913,60 @@ export class AiController {
     return this.retroView(projectId);
   }
 
+  /**
+   * The level's settings: `connection` (own; workspace — its default, the first of the list), `connections`
+   * (the workspace list), `choice` (the parent's connection chosen instead of an own one), `effective`
+   * (the one in force for a space/project without an own one) and `parents` (what the level may choose from).
+   */
   @Get('connections')
   async list(@Req() req: object, @Query() query: unknown) {
     const q = parseBody(listQuery, query);
     const scopeId = q.scope === 'workspace' ? WORKSPACE_SCOPE_ID : q.scopeId;
     if (!scopeId) throw new HttpError(400, 'invalid_request', 'scopeId обязателен');
     await this.admin(req, q.scope, scopeId);
-    const [own] = await this.core.db.select().from(C).where(eqScope(q.scope, scopeId));
-    let effective: Awaited<ReturnType<typeof resolveConnection>> = null;
-    if (!own && q.scope === 'project') effective = await resolveConnection(this.core.db, scopeId);
-    else if (!own && q.scope === 'space')
-      effective =
-        (await this.core.db.select().from(C).where(eqScope('workspace', WORKSPACE_SCOPE_ID)))[0] ??
-        null;
+    const db = this.core.db;
+    const ws = await db.select().from(C).where(eq(C.scope, 'workspace')).orderBy(C.createdAt, C.id);
+    if (q.scope === 'workspace')
+      return {
+        connection: ws[0] ? viewOf(ws[0]) : null,
+        connections: ws.map(viewOf),
+        choice: null,
+        effective: null,
+        parents: [],
+      };
+    const [own] = await db.select().from(C).where(eqScope(q.scope, scopeId));
+    const [ch] = await db.select().from(Ch).where(eqChoice(q.scope, scopeId));
+    let parents = ws;
+    if (q.scope === 'project') {
+      const space = (
+        await db.execute(sql`select space_id as s from projects where id = ${scopeId}::uuid`)
+      ).rows[0]?.s as string | undefined;
+      if (space) {
+        const [sc] = await db.select().from(C).where(eqScope('space', space));
+        if (sc) parents = [sc, ...ws];
+      }
+    }
+    const effective = own
+      ? null
+      : await resolveConnection(
+          db,
+          q.scope === 'project' ? scopeId : null,
+          q.scope === 'space' ? scopeId : null,
+        );
     return {
       connection: own ? viewOf(own) : null,
+      connections: [],
+      choice: ch?.connectionId ?? null,
       effective: effective ? viewOf(effective) : null,
+      parents: parents.map(viewOf),
     };
   }
 
-  /** Create or replace the level's connection; the test call goes first — a failed check saves nothing. */
+  /**
+   * Create or replace the level's connection; the test call goes first — a failed check saves nothing.
+   * Workspace: `id` updates a connection of the list, without it a new one is added. An own connection
+   * of a space/project replaces its choice of a parent's one.
+   */
   @Put('connections')
   async save(@Req() req: object, @Body() body: unknown): Promise<{ connection: AiConnectionView }> {
     const b = parseBody(putBody, body);
@@ -933,11 +975,11 @@ export class AiController {
     await this.publicBaseUrl(req, b.scope, b.baseUrl);
     const key = secretKey();
     if (!key) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');
-    const [had] = await this.core.db.select().from(C).where(eqScope(b.scope, scopeId));
+    const had = await this.savedOf(b);
     const conn: LlmConnection = {
       provider: b.provider,
       baseUrl: b.baseUrl ?? null,
-      apiKey: apiKeyOf(b.apiKey, had),
+      apiKey: apiKeyOf(b.apiKey, had, b),
       model: b.model,
       priceIn: b.priceIn ?? null,
       priceOut: b.priceOut ?? null,
@@ -951,12 +993,81 @@ export class AiController {
       priceOut: conn.priceOut,
       keyEnc: b.apiKey ? encrypt(b.apiKey, key) : had!.keyEnc,
     };
-    const [r] = await this.core.db
-      .insert(C)
-      .values({ id: uuidv7(), scope: b.scope, scopeId, ...v })
-      .onConflictDoUpdate({ target: [C.scope, C.scopeId], set: { ...v, updatedAt: sql`now()` } })
-      .returning();
-    return { connection: viewOf(r!) };
+    const r = await this.core.db.transaction(async (tx) => {
+      const [row] =
+        b.scope === 'workspace'
+          ? had
+            ? await tx
+                .update(C)
+                .set({ ...v, updatedAt: sql`now()` })
+                .where(eq(C.id, had.id))
+                .returning()
+            : await tx
+                .insert(C)
+                .values({ id: uuidv7(), scope: b.scope, scopeId, ...v })
+                .returning()
+          : await tx
+              .insert(C)
+              .values({ id: uuidv7(), scope: b.scope, scopeId, ...v })
+              .onConflictDoUpdate({
+                target: [C.scope, C.scopeId],
+                targetWhere: sql`${C.scope} <> 'workspace'`,
+                set: { ...v, updatedAt: sql`now()` },
+              })
+              .returning();
+      if (b.scope !== 'workspace') await tx.delete(Ch).where(eqChoice(b.scope, scopeId));
+      return row!;
+    });
+    return { connection: viewOf(r) };
+  }
+
+  /** The saved connection a form edits: workspace — by `id` (404 on a foreign one), space/project — the level's own. */
+  private async savedOf(b: { scope: AiScope; scopeId?: string; id?: string }) {
+    const scopeId = b.scope === 'workspace' ? WORKSPACE_SCOPE_ID : b.scopeId!;
+    if (b.scope !== 'workspace' || !b.id) {
+      if (b.scope === 'workspace') return undefined;
+      return (await this.core.db.select().from(C).where(eqScope(b.scope, scopeId)))[0];
+    }
+    const [c] = await this.core.db
+      .select()
+      .from(C)
+      .where(and(eq(C.id, b.id), eqScope('workspace', scopeId)));
+    if (!c) throw nf();
+    return c;
+  }
+
+  /** A space/project uses a connection of a parent level (workspace; for a project — also its space's) or inherits (null). */
+  @Put('connections/choice')
+  async choose(@Req() req: object, @Body() body: unknown) {
+    const b = parseBody(choiceBody, body);
+    await this.admin(req, b.scope, b.scopeId);
+    const db = this.core.db;
+    await db.transaction(async (tx) => {
+      await tx.delete(Ch).where(eqChoice(b.scope, b.scopeId));
+      await tx.delete(C).where(eqScope(b.scope, b.scopeId));
+      if (!b.connectionId) return;
+      const [c] = await tx.select().from(C).where(eq(C.id, b.connectionId));
+      const space =
+        b.scope === 'project'
+          ? ((
+              await tx.execute(
+                sql`select space_id as s from projects where id = ${b.scopeId}::uuid`,
+              )
+            ).rows[0]?.s as string | undefined)
+          : undefined;
+      const ok =
+        c &&
+        (c.scope === 'workspace' ||
+          (b.scope === 'project' && c.scope === 'space' && c.scopeId === space));
+      if (!ok)
+        throw new HttpError(
+          400,
+          'invalid_request',
+          'Подключение не принадлежит родительскому уровню',
+        );
+      await tx.insert(Ch).values({ scope: b.scope, scopeId: b.scopeId, connectionId: c.id });
+    });
+    return { ok: true };
   }
 
   /** PLNRAPP-189: the provider's models for the form; without apiKey — with the level's saved key. */
@@ -970,12 +1081,13 @@ export class AiController {
     let had: typeof C.$inferSelect | undefined;
     if (!b.apiKey) {
       if (!secretKey()) throw new HttpError(503, 'unavailable', 'PLANAR_SECRET_KEY не задан');
-      [had] = await this.core.db.select().from(C).where(eqScope(b.scope, scopeId));
-      // the saved key goes only to the host it was saved for
-      if (had && (had.provider !== b.provider || had.baseUrl !== (b.baseUrl ?? null)))
-        had = undefined;
+      // a new workspace connection (no id): the default one's key, if the host is the same
+      had =
+        (await (b.scope === 'workspace' && !b.id
+          ? levelConnection(this.core.db, 'workspace', WORKSPACE_SCOPE_ID)
+          : this.savedOf(b))) ?? undefined;
     }
-    const apiKey = apiKeyOf(b.apiKey, had);
+    const apiKey = apiKeyOf(b.apiKey, had, b);
     return {
       models: await providerCall(() =>
         listModels({ provider: b.provider, baseUrl: b.baseUrl ?? null, apiKey }),
@@ -995,9 +1107,15 @@ export class AiController {
 }
 
 /** The key given in the form, else the level's saved one. */
-const apiKeyOf = (given: string | undefined, had: typeof C.$inferSelect | undefined) => {
+const apiKeyOf = (
+  given: string | undefined,
+  had: typeof C.$inferSelect | undefined,
+  to: { provider: string; baseUrl?: string | null },
+) => {
   if (given) return given;
-  if (!had) throw new HttpError(400, 'invalid_request', 'apiKey обязателен');
+  // the saved key goes only to the host it was saved for
+  if (!had || had.provider !== to.provider || had.baseUrl !== (to.baseUrl ?? null))
+    throw new HttpError(400, 'invalid_request', 'apiKey обязателен');
   return secretOf(had).apiKey;
 };
 
@@ -1014,3 +1132,5 @@ async function providerCall<T>(f: () => Promise<T>): Promise<T> {
 
 const eqScope = (scope: AiScope, scopeId: string) =>
   sql`${C.scope} = ${scope} and ${C.scopeId} = ${scopeId}::uuid`;
+const eqChoice = (scope: AiScope, scopeId: string) =>
+  sql`${Ch.scope} = ${scope} and ${Ch.scopeId} = ${scopeId}::uuid`;

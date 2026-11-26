@@ -15,6 +15,15 @@ export const syncBootstrapSchema = z.object({
   data: z.record(z.string(), z.array(row)),
   /** v3: tasks whose details (detail entities) are in `data`; the client creates `_held` rows for them */
   held: z.array(z.uuid()).optional(),
+  /** `?lean=1`: tasks come with `description: null`, the real ones — `GET /sync/bootstrap-heavy` */
+  lean: z.boolean().optional(),
+});
+
+/** `GET /sync/bootstrap-heavy`: a page of task descriptions (id order); `next` — the `after` of the next page. */
+export const syncHeavySchema = z.object({
+  cursor: int,
+  items: z.array(z.object({ id: z.uuid(), updatedAt: z.string(), description: z.unknown() })),
+  next: z.uuid().optional(),
 });
 
 export const syncPullSchema = z.object({
@@ -32,6 +41,8 @@ export const syncPullSchema = z.object({
     }),
   ),
   reset: z.boolean().optional(),
+  /** `?page=1` only: a page of the journal — `cursor` is the last returned seq, the client pulls again at once */
+  more: z.boolean().optional(),
 });
 
 export const syncPushRequestSchema = z.object({
@@ -100,6 +111,7 @@ export const wsTypingClientSchema = z.object({
 export const wsTypingServerSchema = wsTypingClientSchema.extend({ userId: z.string() });
 
 export type SyncBootstrap = z.infer<typeof syncBootstrapSchema>;
+export type SyncHeavy = z.infer<typeof syncHeavySchema>;
 export type SyncPull = z.infer<typeof syncPullSchema>;
 export type SyncPushRequest = z.infer<typeof syncPushRequestSchema>;
 export type SyncPushResponse = z.infer<typeof syncPushResponseSchema>;

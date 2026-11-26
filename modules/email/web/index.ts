@@ -34,6 +34,7 @@ export const web = defineWebModule({
     },
     {
       id: 'prefs',
+      personal: true,
       label: { ru: 'Email', en: 'Email' },
       icon: Mail,
       component: () => import('./EmailPrefs.vue'),

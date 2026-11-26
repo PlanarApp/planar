@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ChevronDown, FolderKanban } from 'lucide-vue-next';
+import { ChevronDown, FolderKanban } from '@lucide/vue';
 import { Button, Popover } from '../ui';
 
 // project filter of the summary: empty — "All projects", several can be selected and cleared

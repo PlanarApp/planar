@@ -105,6 +105,28 @@ describe('sync', () => {
     await c.stopSync();
   });
 
+  it('квота: нет места под реплику — статус full, очередь всё равно уходит на сервер', async () => {
+    const s = setup();
+    const c = s.mk();
+    await s.start(c);
+    s.server.mode = 'offline';
+    await c.mutate('test.label.put', args('a'));
+    // after the push every replica write fails like a full disk (Dexie: AbortError with an inner quota error)
+    const tx = s.db.transaction.bind(s.db) as (...a: unknown[]) => unknown;
+    const quota = Object.assign(new Error('aborted'), {
+      name: 'AbortError',
+      inner: new DOMException('full', 'QuotaExceededError'),
+    });
+    vi.spyOn(s.db, 'transaction').mockImplementation(((...a: unknown[]) =>
+      s.server.pushes > 0 ? Promise.reject(quota) : tx(...a)) as never);
+    s.server.mode = 'ok';
+    await c.syncNow().catch(() => {});
+    await until(() => c.syncState.value.status === 'full');
+    expect(s.server.rows.get('labels')!.size).toBe(1);
+    vi.restoreAllMocks();
+    await c.stopSync();
+  });
+
   it('sync:confirm — после push+pull мутация уходит из очереди, состояние серверное', async () => {
     const s = setup();
     const c = s.mk();
@@ -273,6 +295,20 @@ describe('sync', () => {
     expect(s.server.bootstraps).toBe(2);
     expect((await labels(s.db)).map((x) => x.name)).toEqual(['mine']);
     expect(await s.db._queue.count()).toBe(1);
+    await c.stopSync();
+  });
+
+  it('sync:pull-more — длинный хвост тянется страницами за один цикл, без bootstrap', async () => {
+    const s = setup();
+    const c = s.mk();
+    await s.start(c);
+    s.server.pageSize = 2;
+    s.server.seed('labels', [label('a'), label('b'), label('c'), label('d'), label('e')]);
+    const pulls = s.server.pulls;
+    await c.syncNow();
+    expect((await labels(s.db)).map((l) => l.name).sort()).toEqual(['a', 'b', 'c', 'd', 'e']);
+    expect(s.server.pulls).toBe(pulls + 3);
+    expect(s.server.bootstraps).toBe(1);
     await c.stopSync();
   });
 

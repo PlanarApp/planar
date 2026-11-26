@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useHotkey } from '../../command/hotkeys';
 import { useI18n } from 'vue-i18n';
-import { Filter as FilterIcon, Search } from 'lucide-vue-next';
+import { Filter as FilterIcon, Search } from '@lucide/vue';
 import { Button, IconButton, Input, Popover } from '../../ui';
 import type { Filter } from '../filter';
 import type { ViewOptions } from '../options';
@@ -11,7 +11,13 @@ import { useFilterSummary } from './useFilterSummary';
 import ViewOptionsPopover from './ViewOptionsPopover.vue';
 
 // noMe — Me Mode is set from outside ("My work")
-const props = defineProps<{ spaceId: string; projectId?: string; noMe?: boolean }>();
+// layout — the current view: the «View» menu shows only its settings
+const props = defineProps<{
+  spaceId: string;
+  projectId?: string;
+  noMe?: boolean;
+  layout: string;
+}>();
 const options = defineModel<ViewOptions>('options', { required: true });
 const filter = defineModel<Filter | null>('filter', { default: null });
 const { t } = useI18n();
@@ -103,6 +109,8 @@ import MeMode from './MeMode.vue';
       />
     </div>
   </Popover>
-  <ViewOptionsPopover v-model:options="options"><slot name="layout" /></ViewOptionsPopover>
+  <ViewOptionsPopover v-model:options="options" :layout="layout"
+    ><slot name="layout"
+  /></ViewOptionsPopover>
   <slot />
 </template>

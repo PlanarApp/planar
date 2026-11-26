@@ -12,9 +12,11 @@ export const ROOT_SPACE = 'root_space';
 /**
  * Root space: created on first start; all active users except guests are
  * members (instance owners and admins are space admins). Idempotent: call on start
- * and after a user is created or a role changes.
+ * and after a user is created or a role changes. `changed` — a user whose instance role was just changed:
+ * their Workspace role is set to the one their instance role gives (admin / member / guest), so a demoted
+ * admin does not stay an admin of the Workspace; instance admins are always promoted to admin.
  */
-export async function ensureRootSpace(db: Db): Promise<string> {
+export async function ensureRootSpace(db: Db, changed?: string): Promise<string> {
   const sys = await ensureSystemUser(db);
   const [row] = await db.select().from(settings).where(eq(settings.id, ROOT_SPACE));
   let id = typeof row?.value === 'string' ? row.value : undefined;
@@ -59,6 +61,7 @@ export async function ensureRootSpace(db: Db): Promise<string> {
         .where(eq(spaceMembers.spaceId, id))
     ).map((m) => m.userId),
   );
+  await syncRoles(db, sys, id, changed);
   const add = people.filter((p) => !have.has(p.id));
   if (add.length)
     await executeMutations(
@@ -78,4 +81,95 @@ export async function ensureRootSpace(db: Db): Promise<string> {
       { system: true },
     );
   return id;
+}
+
+const canonical = (role: string) =>
+  role === 'owner' || role === 'admin' ? 'admin' : role === 'guest' ? 'guest' : 'member';
+
+/** Existing Workspace members: instance admins → admin; the `changed` user → exactly their instance role. */
+async function syncRoles(db: Db, sys: string, root: string, changed?: string) {
+  const rows = await db
+    .select({
+      id: spaceMembers.id,
+      userId: spaceMembers.userId,
+      role: spaceMembers.role,
+      u: users.role,
+    })
+    .from(spaceMembers)
+    .innerJoin(users, eq(users.id, spaceMembers.userId))
+    .where(and(eq(spaceMembers.spaceId, root), isNull(users.deactivatedAt)));
+  const upd = rows
+    .map((r) => ({
+      id: r.id,
+      role: r.userId === changed ? canonical(r.u) : canonical(r.u) === 'admin' ? 'admin' : r.role,
+      was: r.role,
+    }))
+    .filter((r) => r.role !== r.was)
+    // promotions first: the last admin stays one while the others are demoted
+    .sort((a, b) => Number(b.role === 'admin') - Number(a.role === 'admin'));
+  if (upd.length)
+    await executeMutations(
+      db,
+      sys,
+      upd.map((r) => ({ name: 'member.update', args: { id: r.id, role: r.role } })),
+      undefined,
+      undefined,
+      { system: true },
+    );
+}
+
+/**
+ * An instance guest is at most a guest in every space (and, through setRole, in its projects): their roles in the spaces with
+ * their own members are lowered; `inherit` spaces follow the Workspace (member.update of the root row mirrors them).
+ */
+export async function capSpaceRoles(db: Db, userId: string): Promise<void> {
+  const sys = await ensureSystemUser(db);
+  const [row] = await db.select().from(settings).where(eq(settings.id, ROOT_SPACE));
+  const root = typeof row?.value === 'string' ? row.value : undefined;
+  const rows = await db
+    .select({ id: spaceMembers.id, spaceId: spaceMembers.spaceId, mode: spaces.membersMode })
+    .from(spaceMembers)
+    .innerJoin(spaces, eq(spaces.id, spaceMembers.spaceId))
+    .where(and(eq(spaceMembers.userId, userId), ne(spaceMembers.role, 'guest')));
+  const todo = rows
+    .filter((r) => r.spaceId === root || r.mode === 'custom')
+    .sort((a, b) => Number(b.spaceId === root) - Number(a.spaceId === root));
+  if (todo.length)
+    await executeMutations(
+      db,
+      sys,
+      todo.map((r) => ({ name: 'member.update', args: { id: r.id, role: 'guest' } })),
+      undefined,
+      undefined,
+      { system: true },
+    );
+}
+
+/**
+ * A deactivated user leaves the Workspace and with it every space with its own members and every project with its own
+ * members (member.remove of the root row cascades; the rest — spaces the user was in without the Workspace, e.g. a guest).
+ */
+export async function leaveAllSpaces(db: Db, userId: string): Promise<void> {
+  const sys = await ensureSystemUser(db);
+  const [row] = await db.select().from(settings).where(eq(settings.id, ROOT_SPACE));
+  const root = typeof row?.value === 'string' ? row.value : undefined;
+  const mine = () =>
+    db
+      .select({ id: spaceMembers.id, spaceId: spaceMembers.spaceId, mode: spaces.membersMode })
+      .from(spaceMembers)
+      .innerJoin(spaces, eq(spaces.id, spaceMembers.spaceId))
+      .where(eq(spaceMembers.userId, userId));
+  const run = (ids: string[]) =>
+    ids.length
+      ? executeMutations(
+          db,
+          sys,
+          ids.map((id) => ({ name: 'member.remove', args: { id } })),
+          undefined,
+          undefined,
+          { system: true },
+        )
+      : undefined;
+  await run((await mine()).filter((r) => r.spaceId === root).map((r) => r.id));
+  await run((await mine()).filter((r) => r.mode === 'custom').map((r) => r.id));
 }

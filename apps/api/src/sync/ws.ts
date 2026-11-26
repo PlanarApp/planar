@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { sql } from 'drizzle-orm';
+import { mySpaceIds } from './my-spaces.js';
 import { wsOpened } from '../metrics/metrics.js';
 import { WebSocket, WebSocketServer } from 'ws';
 import { wsClientSchema, wsTypingClientSchema } from '@planar/shared';
@@ -15,7 +16,7 @@ import { AUTH_OPTS, authenticateRaw, type AuthOpts } from '../auth/auth.js';
 import type { Db } from '../db/index.js';
 import { HttpError } from '../auth/errors.js';
 import { DB } from '../tokens.js';
-import { ChangeNotifier } from './notify.js';
+import { ChangeNotifier, type PokeTarget } from './notify.js';
 import { viewersOf } from './viewers.js';
 
 const PING_MS = 30_000;
@@ -27,6 +28,10 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
   private wss = new WebSocketServer({ noServer: true });
   private alive = new WeakSet<WebSocket>();
   private users = new WeakMap<WebSocket, string>();
+  /** The user's spaces for addressed pokes; absent (not loaded yet / dropped) — poke and load. */
+  private spaces = new WeakMap<WebSocket, Set<string>>();
+  /** Bumped on a membership change: a load that started before it must not store its stale result. */
+  private spacesGen = 0;
   /** (userId, id) -> time of the last typing broadcast */
   private typed = new Map<string, number>();
   private server?: Server;
@@ -43,7 +48,7 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
   onApplicationBootstrap() {
     this.server = this.host.httpAdapter.getHttpServer() as Server;
     this.server.on('upgrade', this.onUpgrade);
-    this.off = this.notifier.subscribe((seq) => this.broadcast(seq));
+    this.off = this.notifier.subscribe((seq, t) => this.broadcast(seq, t));
     this.ping = setInterval(() => {
       for (const ws of this.wss.clients) {
         if (!this.alive.has(ws)) ws.terminate();
@@ -139,7 +144,28 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
     if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: 'poke', seq }));
   }
 
-  private broadcast(seq: number) {
-    for (const ws of this.wss.clients) this.poke(ws, seq);
+  private async loadSpaces(ws: WebSocket, userId: string) {
+    const gen = this.spacesGen;
+    try {
+      const ids = await mySpaceIds(this.db, userId);
+      if (gen === this.spacesGen) this.spaces.set(ws, new Set(ids));
+    } catch {
+      // not cached: the next poke goes out unaddressed and loads again
+    }
+  }
+
+  /** Only to those the change concerns; in doubt (spaces not loaded) — poke: an extra poke is harmless, a missed one is not. */
+  private broadcast(seq: number, t: PokeTarget) {
+    if (t.membership) {
+      this.spacesGen++;
+      for (const ws of this.wss.clients) this.spaces.delete(ws);
+    }
+    for (const ws of this.wss.clients) {
+      const u = this.users.get(ws);
+      const mine = u ? this.spaces.get(ws) : undefined;
+      if (u && !mine) void this.loadSpaces(ws, u);
+      if (t.all || !u || !mine || t.users.has(u) || [...t.spaces].some((s) => mine.has(s)))
+        this.poke(ws, seq);
+    }
   }
 }

@@ -171,8 +171,22 @@ describe('инстанс (ext/instance)', () => {
       role: 'member',
     });
     expect(s1).toBe(201);
+    // making an admin — the owner only
     expect(
       (await rest(admin, 'PATCH', `/instance/users/${b1.data.id}`, { role: 'admin' }))[0],
+    ).toBe(403);
+    expect(
+      (
+        await rest(admin, 'POST', '/instance/users', {
+          login: 'viarest2',
+          name: 'R2',
+          password: 'secret-pass-2',
+          role: 'admin',
+        })
+      )[0],
+    ).toBe(403);
+    expect(
+      (await rest(owner, 'PATCH', `/instance/users/${b1.data.id}`, { role: 'admin' }))[0],
     ).toBe(200);
     // an admin cannot touch another admin, the owner can
     expect(

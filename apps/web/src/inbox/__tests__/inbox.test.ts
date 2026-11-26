@@ -421,19 +421,21 @@ describe('PLNRAPP-137 меню «Срок»: мой день', () => {
   };
   const dueOf = async (id: string) => (await db.table('tasks').get(id))?.dueDate;
   const pick = async (taskId: string, id: string) => {
-    const o = mount(DayOptions, { props: { taskId }, global: { plugins: [i18n] } });
+    const o = mount(DayOptions, { props: { taskIds: [taskId] }, global: { plugins: [i18n] } });
     await vi.waitFor(() => expect(o.find(`[data-testid=${id}]`).exists()).toBe(true));
     await o.get(`[data-testid=${id}]`).trigger('click');
     await flushPromises();
     return o;
   };
 
-  it('«в мой день» и «на завтра» ставят dueDate; кнопки «убрать из моего дня» нет', async () => {
+  it('«на сегодня» и «на завтра» ставят dueDate и видны всегда, текущая отмечена; «убрать из моего дня» нет', async () => {
     const t1 = await add(1);
     const o = await pick(t1, 'day-options-today');
     await vi.waitFor(async () => expect(await dueOf(t1)).toBe(day(0)));
-    await vi.waitFor(() => expect(o.find('[data-testid=day-options-today]').exists()).toBe(false));
-    expect(o.find('[data-testid=day-options-tomorrow]').exists()).toBe(true);
+    await vi.waitFor(() =>
+      expect(o.get('[data-testid=day-options-today]').attributes('aria-pressed')).toBe('true'),
+    );
+    expect(o.get('[data-testid=day-options-tomorrow]').attributes('aria-pressed')).toBe('false');
     expect(o.text()).not.toMatch(/убрать/i);
     await pick(t1, 'day-options-tomorrow');
     await vi.waitFor(async () => expect(await dueOf(t1)).toBe(day(1)));

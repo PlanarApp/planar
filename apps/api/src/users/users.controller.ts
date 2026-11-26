@@ -9,7 +9,7 @@ import type { FastifyRequest } from 'fastify';
 import { parseBody } from '../auth/validate.js';
 import type { Db } from '../db/index.js';
 import { DB } from '../tokens.js';
-import { ensureRootSpace } from '../spaces/root.js';
+import { capSpaceRoles, ensureRootSpace, leaveAllSpaces } from '../spaces/root.js';
 import { findUser, hasFileUpload, insertUser, listUsers, updateUser } from './users.repo.js';
 
 export const loginSchema = z
@@ -51,6 +51,8 @@ export function isTimeZone(tz: string): boolean {
 }
 
 const forbidden = (m = 'Недостаточно прав') => new HttpError(403, 'forbidden', m);
+/** Admin users are created and appointed by the instance owner only (roles audit 2026-11-26). */
+export const ADMIN_BY_OWNER = 'Админа создаёт и назначает только владелец';
 const isAdmin = (role: string) => role === 'owner' || role === 'admin';
 
 @Controller('api/users')
@@ -68,8 +70,10 @@ export class UsersController {
 
   @Post()
   async create(@Req() req: object, @Body() body: unknown) {
-    if (!isAdmin(getAuth(req).role)) throw forbidden();
+    const actor = getAuth(req);
+    if (!isAdmin(actor.role)) throw forbidden();
     const { password, ...v } = parseBody(createSchema, body);
+    if (v.role === 'admin' && actor.role !== 'owner') throw forbidden(ADMIN_BY_OWNER);
     const passwordHash = await hashPassword(password);
     const row = await this.db.transaction((q) => insertUser(q, { ...v, passwordHash }));
     await ensureRootSpace(this.db); // a new user is a member of "General" (Workspace)
@@ -93,6 +97,8 @@ export class UsersController {
     if (!self && (target.role === 'owner' || (target.role === 'admin' && actor.role !== 'owner'))) {
       throw forbidden();
     }
+    if (p.role === 'admin' && target.role !== 'admin' && actor.role !== 'owner')
+      throw forbidden(ADMIN_BY_OWNER);
     if (p.avatarFile && !(await hasFileUpload(this.db, p.avatarFile, id))) {
       throw new HttpError(400, 'invalid_request', 'avatarFile не загружен этим пользователем');
     }
@@ -116,9 +122,13 @@ export class UsersController {
         ...(passwordHash && { passwordHash }),
       }),
     );
-    if (p.role !== undefined || p.deactivated === false) await ensureRootSpace(this.db);
-    if (p.deactivated) await deleteUserSessions(this.db, id);
-    else if (p.password !== undefined) {
+    if (p.role !== undefined || p.deactivated === false)
+      await ensureRootSpace(this.db, p.role !== undefined ? id : undefined);
+    if (p.role === 'guest') await capSpaceRoles(this.db, id);
+    if (p.deactivated) {
+      await leaveAllSpaces(this.db, id);
+      await deleteUserSessions(this.db, id);
+    } else if (p.password !== undefined) {
       // own — all sessions except the current one; someone else's — all
       const keep = self ? readCookie((req as FastifyRequest).headers.cookie, SESSION_COOKIE) : null;
       await deleteOtherSessions(this.db, id, keep);

@@ -1,6 +1,8 @@
 import { computed, type Ref } from 'vue';
+import { FolderKanban, LayoutGrid } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import type { SubItem } from '../ui/Menu.vue';
+import NodeGlyph from '../ui/NodeGlyph.vue';
 import { useAuth } from '../auth/useAuth';
 import { db, useQuery } from '../sync';
 import { useRootSpaceId } from './queries';
@@ -9,8 +11,10 @@ import { useRootSpaceId } from './queries';
 export interface MoveSpace {
   id: string;
   name: string;
+  icon?: string | null;
+  color?: string | null;
   writable: boolean;
-  projects: { id: string; name: string }[];
+  projects: { id: string; name: string; icon?: string | null; color?: string | null }[];
 }
 
 type Role = 'admin' | 'member' | 'guest' | null;
@@ -58,10 +62,12 @@ export function moveSpaces(d: {
     .map((s) => ({
       id: s.id,
       name: s.name,
+      icon: s.icon,
+      color: s.color,
       writable: boss || canWrite(spaceRole.get(s.id)),
       projects: live
         .filter((p) => p.spaceId === s.id && canWrite(roleIn(p)))
-        .map((p) => ({ id: p.id, name: p.name })),
+        .map((p) => ({ id: p.id, name: p.name, icon: p.icon, color: p.color })),
     }))
     .filter((s) => s.projects.length > 0 || s.writable);
 }
@@ -105,20 +111,28 @@ export function moveMenu(
   let count = 0;
   const items = spaces
     .map((s) => {
-      const places = [
-        ...(noProject && s.writable ? [{ id: null, name: noProject }] : []),
-        ...s.projects,
-      ];
+      const places: {
+        id: string | null;
+        name: string;
+        icon?: string | null;
+        color?: string | null;
+      }[] = [...(noProject && s.writable ? [{ id: null, name: noProject }] : []), ...s.projects];
       count += places.length;
       return {
         id: s.id,
         label: s.name,
+        icon: NodeGlyph,
+        iconProps: { icon: s.icon, color: s.color, fallback: LayoutGrid },
         checked: s.id === at.spaceId,
         children: places.map((p) => {
           const here = s.id === at.spaceId && p.id === at.projectId;
           return {
             id: p.id ?? `${s.id}:none`,
             label: p.name,
+            ...(p.id && {
+              icon: NodeGlyph,
+              iconProps: { icon: p.icon, color: p.color, fallback: FolderKanban },
+            }),
             checked: here,
             onSelect: () => here || pick(s.id, p.id),
           };

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CloudOff, RefreshCw, TriangleAlert, Check } from 'lucide-vue-next';
+import { CloudOff, HardDrive, RefreshCw, TriangleAlert, Check } from '@lucide/vue';
 import { syncState } from '../sync';
 
 // connection and sync status (PWA): offline and how many edits are waiting, sending, error; afterwards — "synced"
@@ -16,8 +16,9 @@ onBeforeUnmount(() => {
   removeEventListener('online', setNet);
   removeEventListener('offline', setNet);
 });
-const state = computed<'offline' | 'error' | 'sync' | 'ok'>(() => {
+const state = computed<'offline' | 'full' | 'error' | 'sync' | 'ok'>(() => {
   const s = syncState.value;
+  if (s.status === 'full') return 'full';
   if (!net.value || s.status === 'offline') return 'offline';
   if (s.status === 'error') return 'error';
   if (s.status === 'bootstrapping' || s.pending > 0) return 'sync';
@@ -43,7 +44,13 @@ const pending = computed(() => syncState.value.pending);
     role="status"
     data-testid="sync-status"
     :data-state="state"
-    :title="state === 'offline' ? t('pwa.offlineHint') : undefined"
+    :title="
+      state === 'offline'
+        ? t('pwa.offlineHint')
+        : state === 'full'
+          ? t('pwa.storageFullHint')
+          : undefined
+    "
     :class="[
       'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-2 text-xs',
       state === 'offline'
@@ -54,6 +61,7 @@ const pending = computed(() => syncState.value.pending);
     ]"
   >
     <CloudOff v-if="state === 'offline'" :size="14" aria-hidden="true" />
+    <HardDrive v-else-if="state === 'full'" :size="14" aria-hidden="true" />
     <TriangleAlert v-else-if="state === 'error'" :size="14" aria-hidden="true" />
     <RefreshCw v-else-if="state === 'sync'" :size="14" class="animate-spin" aria-hidden="true" />
     <Check v-else :size="14" aria-hidden="true" />
@@ -62,11 +70,13 @@ const pending = computed(() => syncState.value.pending);
         ? pending
           ? t('pwa.offlinePending', { n: pending })
           : t('pwa.offline')
-        : state === 'error'
-          ? t('pwa.syncError')
-          : state === 'sync'
-            ? t('pwa.syncing')
-            : t('pwa.synced')
+        : state === 'full'
+          ? t('pwa.storageFull')
+          : state === 'error'
+            ? t('pwa.syncError')
+            : state === 'sync'
+              ? t('pwa.syncing')
+              : t('pwa.synced')
     }}</span>
   </span>
 </template>

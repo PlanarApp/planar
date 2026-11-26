@@ -61,6 +61,18 @@ describe('auto update', () => {
     await Promise.resolve();
     expect(updateServiceWorker).toHaveBeenCalledWith(true);
   });
+  it('not while a draft is typed in the hidden tab: the reload would lose it', async () => {
+    await load();
+    const ta = document.createElement('textarea');
+    document.body.append(ta);
+    ta.value = 'черновик';
+    ta.focus();
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    needRefresh.value = true;
+    await Promise.resolve();
+    expect(updateServiceWorker).not.toHaveBeenCalled();
+    ta.remove();
+  });
 });
 
 describe('PJ-7 apply', () => {

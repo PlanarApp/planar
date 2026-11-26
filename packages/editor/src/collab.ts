@@ -17,11 +17,17 @@ export type Collab = {
   /** A new series of connection attempts. */
   retry: () => void;
   readOnly: () => boolean;
+  /**
+   * The text is ready to show: loaded from IndexedDB (non-empty, or `expectText` false) or from the server;
+   * after `READY_MS` anyway. Until then an empty ydoc would flash a placeholder.
+   */
+  ready: (expectText: boolean) => Promise<void>;
   destroy: () => void;
 };
 
 const RETRIES = 5;
 const RETRY_MS = 2000;
+const READY_MS = 1500;
 
 /** Connects document `name` to /collab of the same origin + offline storage (P3-ydoc «Client»). A separate module: yjs/hocuspocus are loaded lazily. */
 export function openCollab(name: string, user: { id: string; name: string }): Collab {
@@ -79,6 +85,15 @@ export function openCollab(name: string, user: { id: string; name: string }): Co
       connect();
     },
     readOnly: () => provider.authorizedScope === 'readonly',
+    ready: (expectText) =>
+      new Promise<void>((done) => {
+        const t = setTimeout(done, READY_MS);
+        const fin = () => (clearTimeout(t), done());
+        void idb.whenSynced.then(
+          () => (!expectText || ydoc.getXmlFragment('default').length) && fin(),
+        );
+        provider.on('synced', fin);
+      }),
     destroy: () => {
       gone = true;
       clearTimeout(timer);

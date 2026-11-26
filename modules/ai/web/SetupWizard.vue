@@ -12,6 +12,7 @@ import {
   aiBotOf,
   assignmentBody,
   canAdvance,
+  modelsHint,
   nextStep,
   prevStep,
   type WizardStep,
@@ -126,7 +127,11 @@ const adapt = () =>
     await mutate('docs.comment.create', {
       id: newId(),
       pageId: rootPageId.value!,
-      body: assignmentBody(prompt.value),
+      body: assignmentBody(
+        f.provider
+          ? `${prompt.value}\n${modelsHint({ provider: f.provider, model: f.model })}`
+          : prompt.value,
+      ),
       assigneeId: bot.id,
     });
     assigned.value = true;
@@ -289,8 +294,7 @@ onMounted(() =>
           <h4 class="font-medium">{{ tr(g.kind) }}</h4>
           <ul data-testid="wizard-ops">
             <li v-for="o in g.ops" :key="o.op + o.key">
-              <span class="mr-2 rounded bg-bg-muted px-1.5 text-xs">{{ tr(o.op) }}</span
-              >{{ o.key }}
+              <span class="mr-2 rounded bg-bg-muted px-1.5 text-xs">{{ tr(o.op) }}</span>{{ o.key }}
             </li>
           </ul>
         </section>

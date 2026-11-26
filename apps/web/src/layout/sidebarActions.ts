@@ -1,8 +1,10 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { generateKeyBetween, generateNKeysBetween } from 'fractional-indexing';
 import {
   Archive,
+  ArrowRightLeft,
   Copy,
   FolderPlus,
   Link,
@@ -11,12 +13,14 @@ import {
   Star,
   StarOff,
   Trash2,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import type { MenuItem } from '../ui/Menu.vue';
 import { toast } from '../ui/toast';
 import { db, mutate, newId, rankBetween } from '../sync';
 import { defaultModules } from '../api/defaultModules';
+import { useAdminSpaces } from '../screens/settings/shared';
+import { useProjectAdmin, useRoleIn } from '../tasks/admin';
 import { favorites, type NavSpace } from './nav';
 
 const STATUSES = ['backlog', 'todo', 'in_progress', 'done', 'cancelled'] as const;
@@ -26,6 +30,20 @@ const TRANSLIT: Record<string, string> = Object.fromEntries(
     .split(' ')
     .map((p) => p.split(':') as [string, string]),
 );
+
+/** Space for "Create → Project": the selected space; else the selected project's; else the first. */
+export function createSpace(
+  spaces: NavSpace[],
+  route: { name?: unknown; params: Record<string, unknown> },
+): NavSpace | undefined {
+  const { name, params } = route;
+  if (name === 'space') {
+    const s = spaces.find((x) => x.id === params.spaceId);
+    if (s) return s;
+  }
+  const pid = name === 'project' || name === 'savedView' ? String(params.projectId) : '';
+  return spaces.find((s) => s.projects.some((p) => p.id === pid)) ?? spaces[0];
+}
 
 /** Project key from the name: Latin (Cyrillic — transliterated) and digits, 2–6 chars, no collisions. */
 export function projectKey(name: string, taken: Set<string>): string {
@@ -44,10 +62,34 @@ export function projectKey(name: string, taken: Set<string>): string {
   }
 }
 
+/**
+ * New ranks after dragging item `from` to `to` in a list sorted by rank: only the moved one, unless its
+ * neighbours share a rank (old data) — then the whole list is ranked anew.
+ */
+export function reorder<T extends { rank: string }>(
+  list: T[],
+  from: number,
+  to: number,
+): [T, string][] {
+  const next = [...list];
+  const [it] = next.splice(from, 1);
+  next.splice(to, 0, it!);
+  const lo = next[to - 1]?.rank ?? null;
+  const hi = next[to + 1]?.rank ?? null;
+  if (lo === null || hi === null || lo < hi) return [[it!, generateKeyBetween(lo, hi)]];
+  const keys = generateNKeysBetween(null, null, next.length);
+  return next.flatMap((x, i) => (x.rank === keys[i] ? [] : [[x, keys[i]!] as [T, string]]));
+}
+
 /** Sidebar actions: "…" menu / right click, inline creation and renaming. */
 export function useSidebarActions() {
   const { t } = useI18n();
   const router = useRouter();
+  const isSpaceAdmin = useAdminSpaces();
+  const isProjectAdmin = useProjectAdmin();
+  const roleIn = useRoleIn();
+  // a guest creates nothing and has no settings to change
+  const notGuest = (id: string) => ['admin', 'member'].includes(roleIn(id) ?? '');
   /** id of the entity being renamed now, or "new:<spaceId>" / "new-space" for creation */
   const editing = ref<string | null>(null);
   const draft = ref('');
@@ -117,55 +159,91 @@ export function useSidebarActions() {
       ?.writeText(new URL(path, location.origin).href)
       .then(() => toast(t('sidebar.linkCopied'), 2500));
 
+  // renaming and deleting a space — its admin only (spaces.write: admin): the server refuses the rest
   const spaceItems = (s: NavSpace): MenuItem[] => [
-    {
-      id: 'new',
-      label: t('sidebar.newProject'),
-      icon: FolderPlus,
-      onSelect: () => start(`new:${s.id}`),
-    },
+    ...(notGuest(s.id)
+      ? [
+          {
+            id: 'new',
+            label: t('sidebar.newProject'),
+            icon: FolderPlus,
+            onSelect: () => start(`new:${s.id}`),
+          },
+        ]
+      : []),
     {
       id: 'fav',
       label: t(favorites.has('space', s.id) ? 'sidebar.unfavorite' : 'sidebar.favorite'),
       icon: favorites.has('space', s.id) ? StarOff : Star,
       onSelect: () => favorites.toggle({ kind: 'space', id: s.id, name: s.name, to: `/s/${s.id}` }),
     },
-    {
-      id: 'rename',
-      label: t('sidebar.rename'),
-      icon: Pencil,
-      onSelect: () => start(`space:${s.id}`, s.name),
-    },
-    {
-      id: 'settings',
-      label: t('sidebar.spaceSettings'),
-      icon: Settings,
-      onSelect: () => void router.push(`/s/${s.id}/settings`),
-    },
-    { separator: true },
-    {
-      id: 'delete',
-      label: t('sidebar.delete'),
-      icon: Trash2,
-      danger: true,
-      confirm: {
-        title: t('sidebar.deleteSpace', { name: s.name }),
-        description: t('sidebar.deleteSpaceHint'),
-        confirmLabel: t('sidebar.delete'),
-      },
-      onSelect: () => void mutate('space.delete', { id: s.id }),
-    },
+    ...(isSpaceAdmin(s.id)
+      ? [
+          {
+            id: 'rename',
+            label: t('sidebar.rename'),
+            icon: Pencil,
+            onSelect: () => start(`space:${s.id}`, s.name),
+          },
+        ]
+      : []),
+    ...(notGuest(s.id)
+      ? [
+          {
+            id: 'settings',
+            label: t('sidebar.spaceSettings'),
+            icon: Settings,
+            onSelect: () => void router.push(`/s/${s.id}/settings`),
+          },
+        ]
+      : []),
+    ...(isSpaceAdmin(s.id)
+      ? [
+          { separator: true as const },
+          {
+            id: 'delete',
+            label: t('sidebar.delete'),
+            icon: Trash2,
+            danger: true,
+            confirm: {
+              title: t('sidebar.deleteSpace', { name: s.name }),
+              description: t('sidebar.deleteSpaceHint'),
+              confirmLabel: t('sidebar.delete'),
+            },
+            onSelect: () => void mutate('space.delete', { id: s.id }),
+          },
+        ]
+      : []),
   ];
 
-  const projectItems = (p: NavSpace['projects'][number]): MenuItem[] => {
+  // to the end of the target space's list; people who are not members there lose assignments (project.move)
+  const moveProject = async (p: NavSpace['projects'][number], to: NavSpace) => {
+    const rank = generateKeyBetween(to.projects.at(-1)?.rank ?? null, null);
+    await mutate('project.move', { id: p.id, spaceId: to.id, rank });
+    toast(t('sidebar.movedToSpace', { name: p.name, to: to.name }), 3000);
+  };
+
+  /** `spaces` — the sidebar spaces (without the root one) to move to, `from` — the project's own */
+  const projectItems = (
+    p: NavSpace['projects'][number],
+    from?: NavSpace,
+    spaces: NavSpace[] = [],
+  ): MenuItem[] => {
     const fav = favorites.has('project', p.id);
+    // rename, archive, delete — admin of the project (project.update/delete); settings — not for a guest
+    const admin = isProjectAdmin('', p.id);
+    const targets = admin ? spaces.filter((s) => s.id !== from?.id && notGuest(s.id)) : [];
     return [
-      {
-        id: 'rename',
-        label: t('sidebar.rename'),
-        icon: Pencil,
-        onSelect: () => start(p.id, p.name),
-      },
+      ...(admin
+        ? [
+            {
+              id: 'rename',
+              label: t('sidebar.rename'),
+              icon: Pencil,
+              onSelect: () => start(p.id, p.name),
+            },
+          ]
+        : []),
       {
         id: 'fav',
         label: t(fav ? 'sidebar.unfavorite' : 'sidebar.favorite'),
@@ -190,34 +268,68 @@ export function useSidebarActions() {
         icon: Copy,
         onSelect: () => void window.open(`/p/${p.id}`, '_blank'),
       },
-      {
-        id: 'settings',
-        label: t('sidebar.projectSettings'),
-        icon: Settings,
-        onSelect: () => void router.push(`/p/${p.id}/settings`),
-      },
-      { separator: true },
-      {
-        id: 'archive',
-        label: t('sidebar.archive'),
-        icon: Archive,
-        onSelect: () =>
-          void mutate('project.update', { id: p.id, archivedAt: new Date().toISOString() }),
-      },
-      {
-        id: 'delete',
-        label: t('sidebar.delete'),
-        icon: Trash2,
-        danger: true,
-        confirm: {
-          title: t('sidebar.deleteProject', { name: p.name }),
-          description: t('sidebar.deleteProjectHint'),
-          confirmLabel: t('sidebar.delete'),
-        },
-        onSelect: () => void mutate('project.delete', { id: p.id }),
-      },
+      ...(targets.length
+        ? [
+            {
+              id: 'moveSpace',
+              label: t('sidebar.moveToSpace'),
+              icon: ArrowRightLeft,
+              children: targets.map((s) => ({
+                id: s.id,
+                label: s.name,
+                onSelect: () => void moveProject(p, s),
+              })),
+            },
+          ]
+        : []),
+      ...(notGuest(p.id)
+        ? [
+            {
+              id: 'settings',
+              label: t('sidebar.projectSettings'),
+              icon: Settings,
+              onSelect: () => void router.push(`/p/${p.id}/settings`),
+            },
+          ]
+        : []),
+      ...(admin
+        ? [
+            { separator: true as const },
+            {
+              id: 'archive',
+              label: t('sidebar.archive'),
+              icon: Archive,
+              onSelect: () =>
+                void mutate('project.update', { id: p.id, archivedAt: new Date().toISOString() }),
+            },
+            {
+              id: 'delete',
+              label: t('sidebar.delete'),
+              icon: Trash2,
+              danger: true,
+              confirm: {
+                title: t('sidebar.deleteProject', { name: p.name }),
+                description: t('sidebar.deleteProjectHint'),
+                confirmLabel: t('sidebar.delete'),
+              },
+              onSelect: () => void mutate('project.delete', { id: p.id }),
+            },
+          ]
+        : []),
     ];
   };
 
-  return { editing, draft, start, cancel, blurNew, commit, spaceItems, projectItems };
+  return {
+    editing,
+    draft,
+    start,
+    cancel,
+    blurNew,
+    commit,
+    spaceItems,
+    projectItems,
+    // dragging in the sidebar changes the shared order: a space — its admin, a project — its admin
+    canMoveSpace: isSpaceAdmin,
+    canMoveProject: (id: string) => isProjectAdmin('', id),
+  };
 }

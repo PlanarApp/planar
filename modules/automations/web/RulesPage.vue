@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { X } from 'lucide-vue-next';
+import { X } from '@lucide/vue';
 import type { Filter, Row } from '@planar/shared';
 import {
   AssigneePicker,
@@ -24,6 +24,7 @@ import {
 import {
   actionSchema,
   EMPTY_FILTER,
+  isIncomplete,
   PIPELINE_STATUSES,
   triggerSchema,
   type Action,
@@ -43,33 +44,22 @@ import {
   text,
   type HookSub,
 } from './data';
+import {
+  ImportError,
+  exportRules,
+  importRules,
+  parseExport,
+  type Dict,
+  type ImportedRule,
+} from './transfer';
 
 const tx = computed(text);
 const subs = ref<HookSub[]>([]);
 onMounted(async () => (subs.value = await fetchSubscriptions().catch(() => [])));
 const spaces = useSpaces();
 const projects = computed(() => (spaces.value ?? []).flatMap((s) => s.projects));
-// the selected project — in the address (?project=): after a reload, the rules of the same project are shown
-const router = useRouter();
-// without a router (page tests) — the selection is simply not remembered
-const query = () => router?.currentRoute.value.query ?? {};
-// projectId — settings of the project group: the project is set, no choice
-const props = defineProps<{ projectId?: string }>();
-const projectId = ref(
-  props.projectId ?? (typeof query().project === 'string' ? (query().project as string) : ''),
-);
-watch(
-  projects,
-  (p) => {
-    if (!p.length || props.projectId) return; // the replica is still loading — do not reset the selection from the address
-    if (!projectId.value || !p.some((x) => x.id === projectId.value)) projectId.value = p[0]!.id;
-  },
-  { immediate: true },
-);
-watch(projectId, (id) => {
-  if (id && !props.projectId && query().project !== id)
-    void router?.replace({ query: { ...query(), project: id } });
-});
+const props = defineProps<{ projectId: string }>();
+const projectId = computed(() => props.projectId);
 const spaceId = computed(() => projects.value.find((p) => p.id === projectId.value)?.spaceId ?? '');
 const statuses = useStatuses(spaceId);
 const members = useMembers(spaceId);
@@ -84,6 +74,63 @@ const allAi = useQuery(() =>
 const aiActions = computed(() =>
   (allAi.value ?? []).filter((x) => x.projectId === projectId.value),
 );
+
+const allUsers = useQuery(() =>
+  db.table<{ id: string; login: string; email: string | null }>('users').toArray(),
+);
+const allFields = useQuery(() =>
+  db.table<{ id: string; projectId: string; name: string; type: string }>('fieldDefs').toArray(),
+);
+const dict = (target: boolean): Dict => ({
+  statuses: (statuses.value ?? []).filter((s) => s.projectId === projectId.value),
+  labels: (labels.value ?? []).filter((l) => l.projectId === projectId.value),
+  fields: (allFields.value ?? []).filter((f) => f.projectId === projectId.value),
+  // the source may hold users who left the project; the target binds only to its members
+  users: target ? (members.value ?? []) : (allUsers.value ?? []),
+  aiActions: aiActions.value,
+  projects: projects.value.filter((p) => !target || p.spaceId === spaceId.value),
+  subscriptions: subs.value,
+});
+const download = (list: Rule[], file: string) => {
+  const blob = new Blob([JSON.stringify(exportRules(list, dict(false)), null, 2)], {
+    type: 'application/json',
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${file.replace(/[^\p{L}\p{N}_-]+/gu, '_') || 'automations'}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+const fileInput = ref<HTMLInputElement | null>(null);
+const imported = ref<ImportedRule[] | null>(null);
+const importError = ref('');
+const onFile = async (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+  importError.value = '';
+  try {
+    imported.value = importRules(parseExport(await file.text()), dict(true));
+  } catch (err) {
+    imported.value = null;
+    importError.value =
+      err instanceof ImportError
+        ? [tx.value.importErrors[err.code], err.detail].filter(Boolean).join(': ')
+        : String(err);
+  }
+};
+const applyImport = async () => {
+  try {
+    for (const r of imported.value!) {
+      const { missing: _missing, ...body } = r;
+      await run('automations.create', { id: newId(), projectId: projectId.value, ...body });
+    }
+    imported.value = null;
+  } catch (err) {
+    importError.value = String(err instanceof Error ? err.message : err);
+  }
+};
 
 interface Draft {
   id: string;
@@ -132,7 +179,7 @@ const save = async () => {
     triggerSchema.safeParse(d.trigger).success &&
     d.actions.length > 0 &&
     d.actions.every((a) => actionSchema.safeParse(a).success);
-  if (!ok) return void (error.value = tx.value.invalid);
+  if (!ok || (d.enabled && isIncomplete(d))) return void (error.value = tx.value.invalid);
   const body = {
     name: d.name.trim(),
     description: d.description.trim() || null,
@@ -199,20 +246,61 @@ const setValue = (i: number, raw: string) => {
     <header class="flex flex-col gap-0.5">
       <h1 class="text-lg font-semibold">{{ tx.title }}</h1>
     </header>
-    <div class="flex items-center gap-2 text-sm" data-role="project">
-      {{ tx.project }}
-      <Select
-        v-if="!props.projectId"
-        v-model="projectId"
-        :label="tx.project"
-        :options="opts(pickers.projectId)"
-      />
-    </div>
-
     <div v-if="!draft" class="flex flex-col gap-2">
       <div class="flex items-center justify-between">
         <h2 class="font-medium">{{ tx.rules }}</h2>
-        <Button variant="primary" size="sm" data-role="new" @click="startNew">{{ tx.add }}</Button>
+        <span class="flex items-center gap-1">
+          <Button
+            size="sm"
+            :disabled="!mine.length"
+            data-role="export-all"
+            @click="download(mine, 'automations')"
+            >{{ tx.exportAll }}</Button
+          >
+          <Button size="sm" data-role="import" @click="fileInput?.click()">{{
+            tx.importFile
+          }}</Button>
+          <input
+            ref="fileInput"
+            type="file"
+            accept="application/json,.json"
+            class="hidden"
+            data-role="import-file"
+            @change="onFile"
+          />
+          <Button variant="primary" size="sm" data-role="new" @click="startNew">{{
+            tx.add
+          }}</Button>
+        </span>
+      </div>
+      <p v-if="importError" class="text-sm text-danger" role="alert" data-role="import-error">
+        {{ importError }}
+      </p>
+      <div
+        v-if="imported"
+        class="flex flex-col gap-1 rounded border border-border p-2 text-sm"
+        data-testid="import-preview"
+      >
+        <h3 class="font-medium">{{ tx.importTitle }}</h3>
+        <p>
+          {{ tx.importSummary(imported.length, imported.filter((r) => r.missing.length).length) }}
+        </p>
+        <ul>
+          <li v-for="(r, i) in imported" :key="i" data-role="import-rule">
+            {{ r.name }}
+            <span v-if="r.missing.length" class="text-warning">
+              — {{ tx.unbound }}: {{ r.missing.join(', ') }}
+            </span>
+          </li>
+        </ul>
+        <div class="flex gap-2">
+          <Button size="sm" variant="primary" data-role="import-apply" @click="applyImport">{{
+            tx.importApply
+          }}</Button>
+          <Button size="sm" data-role="import-cancel" @click="imported = null">{{
+            tx.cancel
+          }}</Button>
+        </div>
       </div>
       <EmptyState v-if="!mine.length" :title="tx.none" />
       <ul class="flex flex-col divide-y divide-border">
@@ -225,6 +313,7 @@ const setValue = (i: number, raw: string) => {
           <input
             type="checkbox"
             :checked="r.enabled"
+            :disabled="!r.enabled && isIncomplete(r)"
             :aria-label="tx.enabled"
             @change="toggle(r)"
           />
@@ -232,6 +321,13 @@ const setValue = (i: number, raw: string) => {
           <span class="text-sm text-fg-muted">
             {{ tx.triggers[r.trigger.type] }} → {{ r.actions.length }}
           </span>
+          <span
+            v-if="isIncomplete(r)"
+            class="text-sm text-warning"
+            :title="tx.unboundHint"
+            data-role="unbound"
+            >{{ tx.unbound }}</span
+          >
           <span v-if="r.description" class="basis-full text-sm text-fg-muted" data-role="desc">{{
             r.description
           }}</span>
@@ -246,6 +342,11 @@ const setValue = (i: number, raw: string) => {
               align="end"
               :label="tx.more"
               :items="[
+                {
+                  id: 'export',
+                  label: tx.exportOne,
+                  onSelect: () => download([r], r.name),
+                },
                 {
                   id: 'delete',
                   label: tx.delete,
@@ -503,7 +604,7 @@ const setValue = (i: number, raw: string) => {
                 @update:model-value="(v) => (a.subscriptionId = v ?? '')"
               />
             </div>
-            <a v-else href="/settings/webhooks:webhooks" class="text-sm underline">{{
+            <a v-else href="/w/settings?s=webhooks:webhooks" class="text-sm underline">{{
               tx.noSubscriptions
             }}</a>
           </template>
@@ -541,6 +642,9 @@ const setValue = (i: number, raw: string) => {
         </div>
       </fieldset>
 
+      <p v-if="isIncomplete(draft)" class="text-sm text-warning" data-role="unbound-edit">
+        {{ tx.unboundEdit }}
+      </p>
       <p v-if="error" class="text-sm text-danger" role="alert" data-role="error">{{ error }}</p>
       <div class="flex gap-2">
         <Button type="submit" variant="primary" data-role="save">{{ tx.save }}</Button>

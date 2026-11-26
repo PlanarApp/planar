@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
-import { BadgeDollarSign, MessageSquare } from 'lucide-vue-next';
+import { BadgeDollarSign, MessageSquare } from '@lucide/vue';
 import { Button, Input, Menu } from '@planar/web/modules';
 import type { TimeEntry } from '../shared/index.js';
 import {
@@ -15,7 +15,7 @@ import {
   useTaskEntries,
   useUserNames,
 } from './data';
-import { clock, dayKey, hm, parseHm, sumSec } from './lib';
+import { clock, dayKey, hm, parseHm, sumSec, timeTone } from './lib';
 
 // menu — inside TimeControl: start/stop is next to the time, not here
 const props = defineProps<{ taskId: string; menu?: boolean }>();
@@ -36,7 +36,7 @@ const list = computed(() =>
   [...(taskEntries.value ?? [])].sort((a, b) => b.startedAt.localeCompare(a.startedAt)),
 );
 const estSec = computed(() => (estimate.value?.minutes ?? 0) * 60);
-const over = computed(() => estSec.value > 0 && total.value > estSec.value);
+const tone = computed(() => timeTone(total.value, estSec.value));
 
 const toggle = () =>
   runningHere.value
@@ -127,7 +127,9 @@ const submit = async () => {
       <small>({{ tr('withSub') }})</small>
       <template v-if="estSec">
         / {{ tr('estimate') }} {{ hm(estSec) }}
-        <span :class="{ over }" data-test="vs">{{ Math.round((total / estSec) * 100) }}%</span>
+        <span :class="tone && `tone-${tone}`" data-test="vs"
+          >{{ Math.round((total / estSec) * 100) }}%</span
+        >
       </template>
     </p>
     <Input
@@ -288,9 +290,14 @@ const submit = async () => {
 .muted {
   color: var(--color-fg-subtle);
 }
-.err,
-.over {
+.err {
   color: var(--color-danger);
+}
+.tone-near {
+  color: var(--color-time-near);
+}
+.tone-over {
+  color: var(--color-time-over);
 }
 ul {
   list-style: none;

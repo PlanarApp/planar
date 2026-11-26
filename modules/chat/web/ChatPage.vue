@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ArrowLeft, MessageSquare } from 'lucide-vue-next';
+import { ArrowLeft, MessageSquare } from '@lucide/vue';
 import { EmptyState, db, groupUrl, useBreakpoint, useMembers, useQuery } from '@planar/web/modules';
 import ChannelView from './ChannelView.vue';
 import Section from './Section.vue';

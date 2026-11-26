@@ -5,6 +5,8 @@ import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router'
 // without the showcase: DevUiScreen is connected separately and only in dev
 const screens = import.meta.glob(['./screens/*Screen.vue', '!./screens/DevUiScreen.vue']);
 const screen = (name: string) => screens[`./screens/${name}Screen.vue`];
+/** warm the chunk of a screen before the first navigation asks for it */
+export const preloadScreen = (name: string) => void screen(name)?.();
 
 const MOVED_VIEWS = ['sprints:sprint', 'goals:milestones'];
 const CARDS = 'cards';
@@ -28,9 +30,18 @@ export const router = createRouter({
     // :view — group tab (docs, chats, …) or Tasks view key (list, board, …)
     { path: '/p/:projectId/:view?', name: 'project', component: screen('Group') },
     { path: '/t/:key', name: 'task', component: screen('Task') },
-    { path: '/settings/:section?', name: 'settings', component: screen('Settings') },
+    { path: '/about', name: 'about', component: screen('About') },
+    // workspace settings — the «Settings» tab of «All» (/w/settings?s=…); the old address leads there
+    {
+      path: '/settings/:section?',
+      name: 'settings',
+      redirect: (to) => ({
+        path: '/w/settings',
+        query: { ...to.query, ...(to.params.section && { s: String(to.params.section) }) },
+      }),
+    },
     // shared modules of the instance (PJ-3) — now a section of the Workspace settings (admin only)
-    { path: '/admin/modules', redirect: { path: '/w/settings', query: { s: 'instanceModules' } } },
+    { path: '/admin/modules', redirect: '/settings/instanceModules' },
     { path: '/m/:moduleId/:rest(.*)*', name: 'module', component: screen('Module') },
   ],
 });
@@ -43,9 +54,25 @@ if (import.meta.env.DEV)
     meta: { layout: 'none' },
   });
 
+// a warm start (known user, cached /setup) doesn't wait for the network: both are revalidated once in the background
+let revalidated = false;
+
 router.beforeEach(async (to) => {
   const { user, ready, refresh, setupNeeded, setupInfo, lastSetupInfo } = useAuth();
+  const warm = ready.value && !revalidated;
   if (!ready.value) await refresh();
+  else if (warm)
+    void refresh().then(() => {
+      if (!user.value)
+        void router.push({
+          path: '/login',
+          query: { redirect: router.currentRoute.value.fullPath },
+        });
+      // the policy started requiring 2FA since the last start
+      else if (useAuth().mfaSetup.value)
+        void router.push({ path: '/profile', query: { tab: 'security' } });
+    });
+  revalidated = true;
   const bare = to.meta.layout === 'none';
   if (!user.value) {
     if (to.name === 'setup') return (await setupNeeded()) ? true : '/login';
@@ -53,9 +80,20 @@ router.beforeEach(async (to) => {
     return (await setupNeeded()) ? '/setup' : { path: '/login', query: { redirect: to.fullPath } };
   }
   if (!lastSetupInfo.value) await setupInfo().catch(() => null);
+  else if (warm)
+    void setupInfo()
+      .then((s) => {
+        const now = !!s.cloud?.expired;
+        if (user.value && now !== (router.currentRoute.value.name === 'paywall'))
+          void router.push(now ? '/paywall' : '/');
+      })
+      .catch(() => {});
   const expired = !!lastSetupInfo.value?.cloud?.expired;
   if (expired !== (to.name === 'paywall')) return expired ? '/paywall' : '/';
   if (to.name === 'login' || to.name === 'setup') return '/';
+  // 2FA is required by the instance policy: only the security settings until it is set up
+  if (useAuth().mfaSetup.value && to.name !== 'profile')
+    return { path: '/profile', query: { tab: 'security' } };
   // former group tab "Inbox" — "My work › Activity"
   const seg = String((to.name === 'project' ? to.params.view : to.params.tab) ?? '');
   // bare node address — the last opened tab (by default "My work")
@@ -63,6 +101,11 @@ router.beforeEach(async (to) => {
     const l = nodeLanding(to.path, lastTab.get());
     return { path: l.path, query: { ...l.query, ...to.query }, hash: to.hash, replace: true };
   }
+  // workspace settings — admins only; the rest have everything personal in the profile
+  if (seg === 'settings' && to.name === 'workspace' && !useAuth().isAdmin.value) return '/profile';
+  // the removed space tab «Projects» (also remembered as the last tab) — "My work"
+  if (seg === 'projects' && to.name === 'space')
+    return { path: to.path.replace(/\/projects$/, '/work'), query: to.query, replace: true };
   if (seg === 'inbox' && ['project', 'space', 'workspace'].includes(String(to.name)))
     return {
       path: to.path.replace(/\/inbox$/, '/work'),
@@ -87,13 +130,6 @@ router.beforeEach(async (to) => {
     };
   if (node && seg === 'work' && to.query.v === CARDS)
     return { path: to.path, query: { ...to.query, v: 'list' }, hash: to.hash, replace: true };
-  // the former section «AI tasks» (?s=ai:tasks) is the tab of the workspace AI settings (PLNRAPP-568)
-  if (to.name === 'workspace' && seg === 'settings' && to.query.s === 'ai:tasks')
-    return {
-      path: to.path,
-      query: { ...to.query, s: 'ai:workspace', tab: 'tasks' },
-      replace: true,
-    };
   if (to.name === 'module') {
     // module routes are added lazily — wait and repeat the navigation.
     // Settings are not known yet (cold entry) — don't hold the transition: ModuleScreen shows a skeleton and repeats the navigation itself.

@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch, type Compo
 import { ToolbarRoot } from 'reka-ui';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { BookmarkPlus, Check, MoreHorizontal, RotateCcw, Users } from 'lucide-vue-next';
+import { BookmarkPlus, Check, MoreHorizontal, RotateCcw, Users } from '@lucide/vue';
 import { useProject } from '../tasks';
 import { Button, IconButton, Menu } from '../ui';
 import { useAuth } from '../auth/useAuth';
@@ -135,6 +135,7 @@ const headerMenu = computed<MenuItem[]>(() => [
         id: project.value.id,
         name: project.value.name,
         prefix: project.value.key,
+        rank: project.value.rank,
         color: project.value.color ?? null,
         icon: project.value.icon ?? null,
       }).filter((it) => !('id' in it) || it.id !== 'rename')
@@ -243,6 +244,7 @@ onBeforeUnmount(() => ro?.disconnect());
               v-model:filter="draftFilter"
               :space-id="spaceId"
               :project-id="projectId"
+              :layout="active.key"
             >
               <!-- in a saved view a pick changes its layout (draft, «Save» keeps it) — PLNRAPP-113 -->
               <template #layout>

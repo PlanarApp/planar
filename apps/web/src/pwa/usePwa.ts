@@ -27,6 +27,14 @@ const check = () => void reg?.update().catch(() => {});
 
 const FORCE_MS = 4000;
 
+/** Focus stays in a non-empty field or editor while the tab is hidden: a reload would lose the draft (kept in memory). */
+function typing(): boolean {
+  const el = document.activeElement as HTMLElement | null;
+  if (!el) return false;
+  if (el.isContentEditable) return !!el.textContent?.trim();
+  return (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) && !!el.value;
+}
+
 async function apply() {
   applying.value = true;
   // the reload itself is done by vite-plugin-pwa when the new worker takes control
@@ -35,6 +43,8 @@ async function apply() {
   // e2e/web/pwa-update.spec.ts): the click then did nothing. If the page is still here, drop the registration and
   // caches and reload — the next load installs the new version from the network.
   setTimeout(async () => {
+    // offline the next load cannot fetch the new version: dropping the caches would leave no app at all
+    if (!navigator.onLine) return;
     try {
       await reg?.unregister();
       for (const k of await caches.keys()) await caches.delete(k);
@@ -63,7 +73,7 @@ function init(): ReturnType<typeof useRegisterSW> {
   });
   const { needRefresh } = s;
   const applyIfHidden = () => {
-    if (needRefresh.value && document.visibilityState === 'hidden') void apply();
+    if (needRefresh.value && document.visibilityState === 'hidden' && !typing()) void apply();
   };
   watch(needRefresh, applyIfHidden);
   document.addEventListener('visibilitychange', () => {

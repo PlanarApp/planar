@@ -2,7 +2,7 @@
 // PLNRAPP-372: a composer with files — drag & drop onto it, the files being uploaded (progress, cancel) and ready ones
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { File as FileIcon, X } from 'lucide-vue-next';
+import { File as FileIcon, X } from '@lucide/vue';
 import { fileSize, type DraftFiles } from './commentFiles';
 
 const props = defineProps<{ draft: DraftFiles }>();

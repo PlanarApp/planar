@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui';
 import { useI18n } from 'vue-i18n';
@@ -9,8 +9,9 @@ import { useBreakpoint } from '../ui/useBreakpoint';
 import Sidebar from './Sidebar.vue';
 import TopBar from './TopBar.vue';
 import InstallSheet from '../pwa/InstallSheet.vue';
+import PushSheet from '../inbox/PushSheet.vue';
 import { mobileNav } from './nav';
-import { sidePanels, taskPanelWidth } from '../ui/taskPanelWidth';
+import { contentWidth, sidePanels, taskPanelWidth } from '../ui/taskPanelWidth';
 import {
   RAIL_WIDTH,
   SIDEBAR_MAX,
@@ -21,6 +22,15 @@ import {
 } from './sidebarWidth';
 
 const { isMobile } = useBreakpoint();
+// the content area width: a wide side panel switches the section tabs to the mobile look
+const main = ref<HTMLElement>();
+let ro: ResizeObserver | undefined;
+onMounted(() => {
+  if (!main.value || typeof ResizeObserver === 'undefined') return;
+  ro = new ResizeObserver(() => (contentWidth.value = main.value?.clientWidth ?? Infinity));
+  ro.observe(main.value);
+});
+onBeforeUnmount(() => ro?.disconnect());
 const { t } = useI18n();
 const route = useRoute();
 // following a link closes the panel; a click on a link to the current route doesn't change route — we catch the click
@@ -103,6 +113,7 @@ watch(
       <!-- an open task side panel takes its width from the screen instead of covering it;
            relative: absolute content (sr-only labels) is clipped by main and does not stretch the document (PLNRAPP-382) -->
       <main
+        ref="main"
         class="relative min-h-0 flex-1 overflow-auto"
         :style="sidePanels > 0 && !isMobile ? { paddingRight: `${taskPanelWidth}px` } : undefined"
       >
@@ -110,5 +121,6 @@ watch(
       </main>
     </div>
     <InstallSheet />
+    <PushSheet />
   </div>
 </template>

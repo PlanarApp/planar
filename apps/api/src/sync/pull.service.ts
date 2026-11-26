@@ -7,6 +7,7 @@ import {
   getTableColumns,
   gt,
   inArray,
+  isNotNull,
   isNull,
   notInArray,
   or,
@@ -17,6 +18,7 @@ import {
   SYNC_PROTOCOL,
   type EntityName,
   type SyncBootstrap,
+  type SyncHeavy,
   type SyncPull,
   type SyncTasksResponse,
 } from '@planar/shared';
@@ -28,19 +30,21 @@ import {
   commentReactions,
   comments,
   notifications,
-  spaceMembers,
+  users,
   statuses,
   taskAssignees,
   tasks,
 } from '../db/schema.js';
 import { DB } from '../tokens.js';
 import { hiddenProjectIds, notHidden, projectAccess } from './project-access.js';
+import { mySpaceIds } from './my-spaces.js';
 import { visibleEntities } from './registry.js';
-import { tableOf, toWire } from './rows.js';
+import { tableOf, toIso, toWire } from './rows.js';
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 const PULL_LIMIT = 5000;
 const NOTIFICATIONS_LIMIT = 200;
+const HEAVY_LIMIT = 200;
 
 @Injectable()
 export class PullService {
@@ -51,11 +55,16 @@ export class PullService {
   }
 
   private async mySpaces(tx: Tx, userId: string): Promise<string[]> {
-    const rows = await tx
-      .select({ id: spaceMembers.spaceId })
-      .from(spaceMembers)
-      .where(eq(spaceMembers.userId, userId));
-    return rows.map((r) => r.id);
+    return mySpaceIds(tx, userId);
+  }
+
+  /** An instance guest does not see other users' emails (roles audit 2026-11-26). */
+  private async hideEmails(
+    tx: Tx,
+    userId: string,
+  ): Promise<(w: Record<string, unknown>) => Record<string, unknown>> {
+    const [u] = await tx.select({ role: users.role }).from(users).where(eq(users.id, userId));
+    return u?.role === 'guest' ? (w) => (w.id === userId ? w : { ...w, email: null }) : (w) => w;
   }
 
   private async lastMutationId(tx: Tx, userId: string, clientId: string): Promise<number> {
@@ -109,7 +118,12 @@ export class PullService {
    * `protocol` — the client's C-sync version (header `X-Sync-Protocol`); from v3 the detail entities
    * carry only rows of «my» tasks and `held` lists these tasks; older — details in full, no `held` (v2).
    */
-  async bootstrap(userId: string, clientId: string, protocol = 2): Promise<SyncBootstrap> {
+  async bootstrap(
+    userId: string,
+    clientId: string,
+    protocol = 2,
+    lean = false,
+  ): Promise<SyncBootstrap> {
     return this.snapshot(async (tx) => {
       const my = await this.mySpaces(tx, userId);
       const [{ max }] = await tx
@@ -117,6 +131,7 @@ export class PullService {
         .from(changes);
       const data: SyncBootstrap['data'] = {};
       const hidden = await hiddenProjectIds(tx, userId);
+      const mask = await this.hideEmails(tx, userId);
       const held =
         protocol >= SYNC_PROTOCOL ? await this.myTasks(tx, userId, my, hidden) : undefined;
       for (const [name, meta] of Object.entries(await visibleEntities(tx))) {
@@ -160,18 +175,59 @@ export class PullService {
         const rows = await (name === 'notifications'
           ? q.orderBy(desc(c.createdAt)).limit(NOTIFICATIONS_LIMIT)
           : q);
-        data[name] = rows.map((r) => toWire(name as EntityName, r));
+        data[name] = rows.map((r) => {
+          const w = toWire(name as EntityName, r);
+          if (name === 'users') return mask(w);
+          // lean: the description is the heaviest part of a task; it comes in bootstrapHeavy()
+          return lean && name === 'tasks' ? { ...w, description: null } : w;
+        });
       }
       return {
         cursor: Number(max),
         lastMutationId: await this.lastMutationId(tx, userId, clientId),
         data,
         ...(held ? { held } : {}),
+        ...(lean ? { lean } : {}),
       };
     });
   }
 
-  async pull(userId: string, clientId: string, cursor: number): Promise<SyncPull> {
+  /** Descriptions of the tasks visible to the user (as in bootstrap) after the id `after`, with the snapshot cursor. */
+  async bootstrapHeavy(userId: string, after?: string): Promise<SyncHeavy> {
+    return this.snapshot(async (tx) => {
+      const my = await this.mySpaces(tx, userId);
+      const hidden = await hiddenProjectIds(tx, userId);
+      const [{ max }] = await tx
+        .select({ max: sql<string>`coalesce(max(${changes.seq}), 0)` })
+        .from(changes);
+      const rows = await tx
+        .select({ id: tasks.id, updatedAt: tasks.updatedAt, description: tasks.description })
+        .from(tasks)
+        .where(
+          and(
+            inArray(tasks.spaceId, my),
+            after ? gt(tasks.id, after) : undefined,
+            isNotNull(tasks.description),
+            notHidden('tasks', hidden),
+          ),
+        )
+        .orderBy(asc(tasks.id))
+        .limit(HEAVY_LIMIT + 1);
+      const page = rows.slice(0, HEAVY_LIMIT);
+      return {
+        cursor: Number(max),
+        items: page.map((r) => ({
+          id: r.id,
+          updatedAt: toIso(r.updatedAt),
+          description: r.description,
+        })),
+        ...(rows.length > HEAVY_LIMIT ? { next: page[page.length - 1].id } : {}),
+      };
+    });
+  }
+
+  /** page — the client understands `more` (`?page=1`): a long tail goes in pages, not as a reset. */
+  async pull(userId: string, clientId: string, cursor: number, page = false): Promise<SyncPull> {
     return this.snapshot(async (tx) => {
       const my = await this.mySpaces(tx, userId);
       const [{ max, min }] = await tx
@@ -187,6 +243,7 @@ export class PullService {
 
       const visible = Object.keys(await visibleEntities(tx));
       const hidden = await hiddenProjectIds(tx, userId);
+      const mask = await this.hideEmails(tx, userId);
       const rows = await tx
         .select()
         .from(changes)
@@ -206,7 +263,10 @@ export class PullService {
         )
         .orderBy(asc(changes.seq))
         .limit(PULL_LIMIT + 1);
-      if (rows.length > PULL_LIMIT || rows.some((r) => r.entity === '_reset')) return reset;
+      const more = page && rows.length > PULL_LIMIT;
+      if (more) rows.length = PULL_LIMIT;
+      if ((!page && rows.length > PULL_LIMIT) || rows.some((r) => r.entity === '_reset'))
+        return reset;
       // C-sync v3: a detail put carries its task — the client drops those of tasks it does not hold
       const data = (r: (typeof rows)[number]) => (r.data ?? {}) as Record<string, unknown>;
       const reacted = [
@@ -236,6 +296,7 @@ export class PullService {
               : undefined;
       return {
         ...head,
+        ...(more ? { cursor: rows[rows.length - 1].seq, more } : {}),
         changes: rows.map((r) => {
           const taskId = taskOf(r);
           return {
@@ -243,7 +304,11 @@ export class PullService {
             entity: r.entity,
             id: r.id,
             op: r.op as 'put' | 'del',
-            ...(r.op === 'put' ? { data: r.data as Record<string, unknown> } : {}),
+            ...(r.op === 'put'
+              ? {
+                  data: (r.entity === 'users' ? mask(data(r)) : r.data) as Record<string, unknown>,
+                }
+              : {}),
             ...(taskId ? { taskId } : {}),
           };
         }),
@@ -261,18 +326,14 @@ export class PullService {
         .where(eq(activity.taskId, taskId))
         .orderBy(asc(activity.createdAt));
       const [task] = await tx
-        .select({ spaceId: tasks.spaceId })
+        .select({ spaceId: tasks.spaceId, projectId: tasks.projectId })
         .from(tasks)
         .where(eq(tasks.id, taskId));
       const spaceId = task?.spaceId ?? rows[0]?.spaceId;
       if (!spaceId || !my.includes(spaceId)) throw new NotFoundException('задача не найдена');
       // PJ-11: the history of a task of a hidden project is hidden too
       if (task) {
-        const [{ projectId }] = await tx
-          .select({ projectId: tasks.projectId })
-          .from(tasks)
-          .where(eq(tasks.id, taskId));
-        if (!(await projectAccess(tx, userId, projectId)))
+        if (!(await projectAccess(tx, userId, task.projectId)))
           throw new NotFoundException('задача не найдена');
       }
       return { rows: rows.map((r) => toWire('activity', r)) };

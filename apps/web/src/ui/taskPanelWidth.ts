@@ -1,4 +1,4 @@
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const KEY = 'planar.taskPanelWidth';
 export const TASK_PANEL_MIN = 400;
@@ -25,6 +25,15 @@ export const taskPanelWidth = ref(read());
 
 /** Open side panels (TaskModal instances in side mode): the app shell moves its content aside by the width. */
 export const sidePanels = ref(0);
+
+/** The app shell's content area width in px (measured by the shell). */
+export const contentWidth = ref(Infinity);
+/** A side panel covers more than half the content area: the section tabs switch to the mobile look (icons). */
+export const panelCompact = computed(
+  () => sidePanels.value > 0 && taskPanelWidth.value * 2 > contentWidth.value,
+);
+/** The label of an inactive icon tab: hidden on mobile and under a wide side panel. */
+export const tabLabelHidden = () => (panelCompact.value ? 'sr-only' : 'max-md:sr-only');
 
 const PIN_KEY = 'planar.taskPanelPinned';
 const readPin = (): boolean => {

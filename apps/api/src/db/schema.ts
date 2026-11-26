@@ -59,20 +59,26 @@ export const users = pgTable(
   ],
 );
 
-export const spaces = pgTable('spaces', {
-  id: id(),
-  name: text().notNull(),
-  description: text(),
-  color: text(),
-  icon: text(),
-  leadId: uuid().references(() => users.id),
-  rank: rank().notNull(),
-  createdBy: uuid()
-    .notNull()
-    .references(() => users.id),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
+export const spaces = pgTable(
+  'spaces',
+  {
+    id: id(),
+    name: text().notNull(),
+    description: text(),
+    color: text(),
+    icon: text(),
+    leadId: uuid().references(() => users.id),
+    rank: rank().notNull(),
+    /** members: mirror of the root space (inherit) or own list (custom); existing spaces keep theirs */
+    membersMode: text().notNull().default('custom'),
+    createdBy: uuid()
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [check('spaces_members_mode_check', inList(t.membersMode, ['inherit', 'custom']))],
+);
 
 const spaceId = () =>
   uuid()
@@ -191,6 +197,10 @@ export const tasks = pgTable(
     rank: rank().notNull(),
     dueDate: date({ mode: 'string' }),
     startDate: date({ mode: 'string' }),
+    dueTime: text(),
+    startTime: text(),
+    // remind this many minutes before dueDate+dueTime; null with a dueTime — 10, 0 — only at the due time
+    dueRemindMin: integer(),
     createdBy: userRef().notNull(),
     completedAt: ts(),
     fields: obj().notNull().default({}),
@@ -415,7 +425,7 @@ export const activity = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
-    index().on(t.taskId),
+    index().on(t.taskId, t.createdAt),
     check(
       'activity_kind_check',
       inList(t.kind, [
@@ -427,6 +437,8 @@ export const activity = pgTable(
         'label_added',
         'label_removed',
         'commented',
+        'merged_into',
+        'merged_from',
       ]),
     ),
   ],
@@ -492,6 +504,8 @@ export const notifications = pgTable(
         'start_today',
         'doc_comment_assigned',
         'due_changed',
+        'due_soon',
+        'due_now',
       ]),
     ),
   ],
@@ -538,9 +552,67 @@ export const sessions = pgTable(
     expiresAt: ts().notNull(),
     lastSeenAt: ts().notNull().defaultNow(),
     userAgent: text(),
+    /** null — full session; 'mfa' — password accepted, waiting for the second factor; 'setup' — 2FA is required by policy, not set up yet; 'handoff' — one-time sign-in token, not a cookie */
+    state: text(),
+    /** app lock: set — the session is locked until unlock (passkey/TOTP) */
+    lockedAt: ts(),
+  },
+  (t) => [
+    index().on(t.userId),
+    check(
+      'sessions_state_check',
+      sql`${t.state} is null or ${t.state} in ('mfa', 'setup', 'handoff')`,
+    ),
+  ],
+);
+
+/** 2FA and app lock settings of a user (secrets — not in users: users is synced to clients). */
+export const userSecurity = pgTable('user_security', {
+  userId: uuid()
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  /** base32 TOTP secret; totpEnabled false — set up, not confirmed with a code yet */
+  totpSecret: text(),
+  totpEnabled: boolean().notNull().default(false),
+  /** last accepted TOTP time step: a code is not accepted twice */
+  totpStep: bigint({ mode: 'number' }),
+  /** sha256 of unused recovery codes */
+  recoveryCodes: text()
+    .array()
+    .notNull()
+    .default(sql`'{}'::text[]`),
+  /** app lock on every open of the app */
+  lockOnOpen: boolean().notNull().default(false),
+  /** app lock after N minutes of inactivity; null — off */
+  lockMinutes: integer(),
+  /** on lock the client clears its local replica */
+  lockWipe: boolean().notNull().default(false),
+  updatedAt: updatedAt(),
+});
+
+export const passkeys = pgTable(
+  'passkeys',
+  {
+    /** credential id, base64url */
+    id: text().primaryKey(),
+    userId: cascadeUser(),
+    name: text().notNull(),
+    publicKey: text().notNull(),
+    counter: bigint({ mode: 'number' }).notNull().default(0),
+    transports: text().array(),
+    createdAt: createdAt(),
+    lastUsedAt: ts(),
   },
   (t) => [index().on(t.userId)],
 );
+
+/** WebAuthn challenges (5 minutes, one use); userId null — passwordless sign-in. */
+export const authChallenges = pgTable('auth_challenges', {
+  id: text().primaryKey(),
+  challenge: text().notNull(),
+  userId: uuid().references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: ts().notNull(),
+});
 
 /** Y.Doc state of collaborative editing (P3-ydoc): doc_id = `docs:<uuid>` | `task:<uuid>`. */
 const bytea = customType<{ data: Buffer }>({ dataType: () => 'bytea' });
@@ -579,6 +651,22 @@ export const filesDeleted = pgTable('files_deleted', {
   sha256: text().primaryKey(),
   deletedAt: ts().notNull().defaultNow(),
 });
+
+/** Due reminders already sent (jobs/due.ts): deleting the notification does not make it fire again. */
+export const dueReminders = pgTable(
+  'due_reminders',
+  {
+    userId: cascadeUser(),
+    taskId: uuid()
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    kind: text().notNull(),
+    /** the firing: the local day (due_today/start_today) or the moment (due_soon/due_now) */
+    mark: text().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.taskId, t.kind, t.mark] })],
+);
 
 export const loginAttempts = pgTable('login_attempts', {
   key: text().primaryKey(),

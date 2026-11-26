@@ -7,7 +7,18 @@ import {
   withModuleDeps,
   type Tx,
 } from '../contract/index.js';
-import { bad, changes, color, delWhere, doc, name, need, rank, uuid } from './util.js';
+import {
+  bad,
+  changes,
+  color,
+  delWhere,
+  doc,
+  name,
+  need,
+  needProjectAdmin,
+  rank,
+  uuid,
+} from './util.js';
 
 const key = z.string().regex(/^[A-Z][A-Z0-9]{1,9}$/);
 
@@ -166,8 +177,33 @@ export const projectMutators = [
       archivedAt: z.iso.datetime().nullable().optional(),
     }),
     async run(tx, a, ctx) {
-      await need(tx, 'projects', a.id);
+      // rename, archive, lead...: admin of the project (create stays for space members)
+      const p = await need(tx, 'projects', a.id);
+      await needProjectAdmin(tx, p.spaceId, p.id, ctx.userId);
       await tx.patch('projects', a.id, changes('projects', a, ctx));
+    },
+  }),
+  defineMutator({
+    // the project with all its rows goes to another space (server tx relocate); people who
+    // are not members there lose their project role, assignments and watching, as on a task move
+    name: 'project.move',
+    args: z.object({ id: uuid, spaceId: uuid, rank }),
+    async run(tx, a, ctx) {
+      const p = await need(tx, 'projects', a.id);
+      await need(tx, 'spaces', a.spaceId);
+      await needProjectAdmin(tx, p.spaceId, p.id, ctx.userId);
+      if (p.spaceId !== a.spaceId) {
+        if ((await tx.get('settings', 'root_space'))?.value === a.spaceId)
+          throw new MutatorError('invalid_args', 'в корневом пространстве нельзя создать проект');
+        const members = await spaceRoles(tx, a.spaceId);
+        for (const m of await tx.scan('projectMembers', { index: 'projectId', eq: p.id }))
+          if (!members.has(m.userId)) await tx.del('projectMembers', m.id);
+        for (const t of await tx.scan('tasks', { index: 'projectId', eq: p.id }))
+          for (const e of ['taskAssignees', 'taskWatchers'] as const)
+            for (const x of await tx.scan(e, { index: 'taskId', eq: t.id }))
+              if (!members.has(x.userId)) await tx.del(e, x.id);
+      }
+      await tx.patch('projects', p.id, { spaceId: a.spaceId, rank: a.rank, updatedAt: ctx.now });
     },
   }),
   defineMutator({
@@ -280,8 +316,9 @@ export const projectMutators = [
   defineMutator({
     name: 'project.delete',
     args: z.object({ id: uuid }),
-    async run(tx, a) {
-      await need(tx, 'projects', a.id);
+    async run(tx, a, ctx) {
+      const p = await need(tx, 'projects', a.id);
+      await needProjectAdmin(tx, p.spaceId, p.id, ctx.userId);
       if ((await tx.scan('tasks', { index: 'projectId', eq: a.id })).length)
         throw new MutatorError('conflict', 'есть задачи');
       await delWhere(tx, 'fieldDefs', 'projectId', a.id);

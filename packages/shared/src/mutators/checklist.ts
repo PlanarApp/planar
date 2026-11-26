@@ -38,7 +38,13 @@ export const checklistMutators = [
     async run(tx, a, ctx) {
       const item = await need(tx, 'checklistItems', a.id);
       // assigned item (PLNRAPP-140): to a space member, as a comment
-      if (a.assigneeId) await checkAssignee(tx, item.spaceId, a.assigneeId);
+      if (a.assigneeId)
+        await checkAssignee(
+          tx,
+          item.spaceId,
+          (await tx.get('tasks', item.taskId))?.projectId ?? null,
+          a.assigneeId,
+        );
       // the item turned into a task (PLNRAPP-142): a task of the same space
       if (a.linkedTaskId && (await need(tx, 'tasks', a.linkedTaskId)).spaceId !== item.spaceId)
         throw new MutatorError('invalid_args', 'linkedTaskId: task of another space');

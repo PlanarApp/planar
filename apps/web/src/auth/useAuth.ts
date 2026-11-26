@@ -1,7 +1,8 @@
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { Row } from '@planar/shared';
 import { api, ApiError } from '../api/http';
-import { clearLocal, syncState } from '../sync';
+import { passkeyProof, type Proof } from '../api/security';
+import { clearLocal, localOwner, syncState } from '../sync';
 
 /** timezone — only in the own profile (/api/auth/me), not in the users replica */
 export type User = Row<'users'> & { timezone?: string | null };
@@ -10,7 +11,10 @@ const KEY = 'planar.user';
 const store = (u: User | null) => {
   try {
     if (u) localStorage.setItem(KEY, JSON.stringify(u));
-    else localStorage.removeItem(KEY);
+    else {
+      localStorage.removeItem(KEY);
+      localStorage.removeItem('planar.warm');
+    }
   } catch {
     /* storage unavailable */
   }
@@ -22,9 +26,69 @@ const known = (): User | null => {
     return null;
   }
 };
+/** the last /me allowed a warm start: no app lock and no required 2FA — they must not show the replica before /me */
+const WARM_KEY = 'planar.warm'; // also cleared by store(null)
+const warmAllowed = () => {
+  try {
+    return localStorage.getItem(WARM_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
 
-const user = ref<User | null>(null);
-const ready = ref(false);
+// a known user opens the app at once (warm start): /me is revalidated in the background (router.ts)
+const user = ref<User | null>(warmAllowed() ? known() : null);
+const ready = ref(!!user.value);
+/** startup requests must not hang the screen on a dead network */
+const BOOT_TIMEOUT = 8000;
+/** the password is accepted, the second factor is pending: which factors the user has */
+const mfaPending = ref<{ totp: boolean; passkey: boolean } | null>(null);
+/** 2FA is required by the instance policy and not set up: only the security settings */
+const mfaSetup = ref(false);
+/** app lock (auth/lock.ts): settings and the current state */
+const lockPrefs = ref<{ onOpen: boolean; minutes: number | null; wipe: boolean }>({
+  onOpen: false,
+  minutes: null,
+  wipe: false,
+});
+const locked = ref(false);
+/** a factor is set up: «Lock» in the user menu */
+const canLock = ref(false);
+
+function saveWarm() {
+  const p = lockPrefs.value;
+  const ok = !!user.value && !mfaSetup.value && !locked.value && !p.onOpen && p.minutes === null;
+  try {
+    if (ok) localStorage.setItem(WARM_KEY, '1');
+    else localStorage.removeItem(WARM_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
+// the lock settings are also changed in the profile (SecuritySection)
+watch(lockPrefs, saveWarm);
+
+type Me = {
+  user: User;
+  mfaSetup?: boolean;
+  locked?: boolean;
+  lockOnOpen?: boolean;
+  lockMinutes?: number | null;
+  lockWipe?: boolean;
+  canLock?: boolean;
+};
+function signedIn(r: Me) {
+  mfaPending.value = null;
+  user.value = r.user;
+  store(r.user);
+  mfaSetup.value = !!r.mfaSetup;
+  if (r.lockMinutes !== undefined)
+    lockPrefs.value = { onOpen: !!r.lockOnOpen, minutes: r.lockMinutes, wipe: !!r.lockWipe };
+  locked.value = !!r.locked;
+  if (r.canLock !== undefined) canLock.value = r.canLock;
+  saveWarm();
+  adoptBrowserZone(r.user);
+}
 
 /** PLNRAPP-160: the profile has no zone yet — save the browser's one (in the background, no error shown) */
 function adoptBrowserZone(u: User) {
@@ -41,9 +105,8 @@ function adoptBrowserZone(u: User) {
 
 async function refresh(): Promise<void> {
   try {
-    user.value = (await api<{ user: User }>('GET', '/api/auth/me')).user;
-    store(user.value);
-    adoptBrowserZone(user.value);
+    if (!(await adopt(await api<Me>('GET', '/api/auth/me', undefined, undefined, BOOT_TIMEOUT))))
+      user.value = null;
   } catch (e) {
     if (!(e instanceof ApiError)) throw e;
     // offline/5xx: stay with the last known user
@@ -54,29 +117,65 @@ async function refresh(): Promise<void> {
   }
 }
 
+/** With 2FA set up — fills mfaPending, then verifyMfa finishes the sign-in. */
 async function login(login: string, password: string): Promise<void> {
-  user.value = (await api<{ user: User }>('POST', '/api/auth/login', { login, password })).user;
-  store(user.value);
-  adoptBrowserZone(user.value);
+  const r = await api<Me & { mfa?: { totp: boolean; passkey: boolean } }>(
+    'POST',
+    '/api/auth/login',
+    { login, password },
+  );
+  if (r.mfa) mfaPending.value = r.mfa;
+  else await adopt(r);
+}
+
+async function verifyMfa(p: Proof): Promise<void> {
+  if (await adopt(await api<Me>('POST', '/api/auth/mfa/verify', p))) await refresh(); // lock settings
+}
+
+async function passkeyLogin(): Promise<void> {
+  if (await adopt(await api<Me>('POST', '/api/auth/passkey/login', await passkeyProof())))
+    await refresh();
 }
 
 // logout confirmation when there are unsent changes (dialog — sync/LogoutDialog.vue)
 const promptOpen = ref(false);
+/** logout — this user's edits; switch — the previous user's edits on this device */
+const promptKind = ref<'logout' | 'switch'>('logout');
 let promptResolve: ((ok: boolean) => void) | null = null;
 const logoutPrompt = {
   open: promptOpen,
+  kind: promptKind,
   answer(ok: boolean) {
     promptOpen.value = false;
     promptResolve?.(ok);
     promptResolve = null;
   },
 };
-const confirmLoss = () =>
+const confirmLoss = (kind: 'logout' | 'switch' = 'logout') =>
   new Promise<boolean>((resolve) => {
     promptResolve?.(false);
     promptResolve = resolve;
+    promptKind.value = kind;
     promptOpen.value = true;
   });
+
+/**
+ * Sign-in on a device with another user's replica: it is cleared before any screen reads it; the previous user's
+ * unsent edits — only after confirmation (cancel signs the new user out, the edits stay). false — cancelled.
+ */
+async function adopt(r: Me): Promise<boolean> {
+  // no IndexedDB (private mode, broken storage): nothing to clear, sign-in goes on
+  const o = await localOwner().catch(() => ({ userId: undefined, pending: 0 }));
+  if (o.userId && o.userId !== r.user.id) {
+    if (o.pending > 0 && !(await confirmLoss('switch'))) {
+      await api('POST', '/api/auth/logout').catch(() => {});
+      return false;
+    }
+    await clearLocal();
+  }
+  signedIn(r);
+  return true;
+}
 
 /** true — logged out; false — cancelled or no network (then nothing is cleared) */
 async function logout(): Promise<boolean> {
@@ -90,6 +189,8 @@ async function logout(): Promise<boolean> {
   }
   user.value = null;
   store(null);
+  locked.value = false;
+  mfaSetup.value = false;
   await clearLocal();
   return true;
 }
@@ -139,11 +240,38 @@ export type SetupInfo = {
 };
 
 /** last GET /api/setup answer (the router guard fetches it before the setup screen and once per session) */
-const lastSetupInfo = ref<SetupInfo | null>(null);
+const SETUP_KEY = 'planar.setup';
+const lastSetupInfo = ref<SetupInfo | null>(
+  (() => {
+    try {
+      return JSON.parse(localStorage.getItem(SETUP_KEY) ?? 'null');
+    } catch {
+      return null;
+    }
+  })(),
+);
+let setupFlight: Promise<SetupInfo> | null = null;
 
-async function setupInfo(): Promise<SetupInfo> {
+/** concurrent callers (router guard, App.vue) share one request */
+function setupInfo(): Promise<SetupInfo> {
+  return (setupFlight ??= fetchSetup().finally(() => (setupFlight = null)));
+}
+
+async function fetchSetup(): Promise<SetupInfo> {
   try {
-    return (lastSetupInfo.value = await api<SetupInfo>('GET', '/api/setup'));
+    const s = (lastSetupInfo.value = await api<SetupInfo>(
+      'GET',
+      '/api/setup',
+      undefined,
+      undefined,
+      BOOT_TIMEOUT,
+    ));
+    try {
+      localStorage.setItem(SETUP_KEY, JSON.stringify(s));
+    } catch {
+      /* storage unavailable */
+    }
+    return s;
   } catch (e) {
     if (e instanceof ApiError && e.status === 0)
       return { needed: false, tokenRequired: false, demo: false, demoResetHours: 24 };
@@ -156,8 +284,7 @@ async function setupNeeded(): Promise<boolean> {
 }
 
 async function demoLogin(): Promise<void> {
-  user.value = (await api<{ user: User }>('POST', '/api/auth/demo-login')).user;
-  store(user.value);
+  await adopt(await api<Me>('POST', '/api/auth/demo-login'));
 }
 
 const isAdmin = computed(() => user.value?.role === 'owner' || user.value?.role === 'admin');
@@ -169,6 +296,13 @@ export function useAuth() {
     isAdmin,
     refresh,
     login,
+    verifyMfa,
+    passkeyLogin,
+    mfaPending,
+    mfaSetup,
+    lockPrefs,
+    locked,
+    canLock,
     logout,
     impersonate,
     canImpersonate,

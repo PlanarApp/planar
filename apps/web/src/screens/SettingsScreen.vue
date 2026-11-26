@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { enabledForProject, useExtensions } from '../modules/registry';
 import type { GroupScope, LocalizedText } from '../modules/types';
 import { useAuth } from '../auth/useAuth';
 import { onMutationError } from '../sync';
-import { useSpaces } from '../tasks';
-import { Select, Tabs, useBreakpoint } from '../ui';
+import { useRootSpaceId, useSpaces } from '../tasks';
+import { Tabs, useBreakpoint } from '../ui';
 import UsersSettings from './settings/UsersSettings.vue';
 import { IMPORT_PAGE } from './settings/data';
 
@@ -15,9 +15,8 @@ const lazy = (n: string) => defineAsyncComponent(() => import(`./settings/${n}Se
 type Level = GroupScope['level'];
 const SECTIONS = {
   general: { c: lazy('General'), level: 'any' },
-  spaces: { c: lazy('Spaces'), level: 'workspace' },
-  members: { c: lazy('Members'), space: true, level: 'space' },
-  projects: { c: lazy('Projects'), space: true, level: 'space' },
+  members: { c: lazy('Members'), level: 'space' },
+  projects: { c: lazy('Projects'), level: 'space' },
   statuses: { c: lazy('Statuses'), level: 'project' },
   labels: { c: lazy('Labels'), level: 'project' },
   fields: { c: lazy('Fields'), level: 'project' },
@@ -28,22 +27,36 @@ const SECTIONS = {
   users: { c: UsersSettings, admin: true, level: 'workspace' },
   // without projectId — the shared modules of the instance
   instanceModules: { c: lazy('Modules'), admin: true, level: 'workspace' },
-  // the import module's page and the cloud data export/import (PLNRAPP-86)
+  // the import module's page and the cloud data export/import (PLNRAPP-86); only in the global settings
   data: { c: lazy('Data'), level: 'workspace' },
   // cloud-link: only on an instance hosted in the cloud
   cloud: { c: lazy('Cloud'), admin: true, cloud: true, level: 'workspace' },
-  about: { c: lazy('About'), level: 'workspace' },
 } as const satisfies Record<
   string,
-  { level: Level | 'any'; c: unknown; space?: true; admin?: true; cloud?: true }
+  { level: Level | 'any'; c: unknown; admin?: true; cloud?: true }
 >;
 type Id = keyof typeof SECTIONS;
 
-// scope — the group's "Settings" tab: sections of its level, the section — in ?s; without scope — the former /settings screen
+// scope — the group's "Settings" tab: sections of its level, the section — in ?s; without scope — the global /settings:
+// everything but the project level and GLOBAL_HIDDEN (they live in the space / project settings)
 const props = defineProps<{ scope?: GroupScope }>();
-const level = computed<Level | undefined>(() => props.scope?.level);
+// the Workspace tab is the instance settings: the same set as the bare /settings had
+const global = computed(() => !props.scope || props.scope.level === 'workspace');
+const level = computed<Level | undefined>(() => (global.value ? undefined : props.scope?.level));
 const atLevel = (l: Level | 'any' | undefined) =>
   !level.value || l === 'any' || (l ?? 'workspace') === level.value;
+const GLOBAL_HIDDEN = [
+  'members',
+  'projects',
+  'ai:space',
+  'ai:project',
+  'gitlab:space',
+  'gitlab:project',
+  'automations:rules',
+  'templates:templates',
+  'forms:forms',
+];
+const shown = (key: string) => !global.value || !GLOBAL_HIDDEN.includes(key);
 
 const { t, te, locale } = useI18n();
 const route = useRoute();
@@ -65,7 +78,8 @@ const builtin = computed(() =>
       (s !== 'data' || hasData.value) &&
       (isAdmin.value || !('admin' in SECTIONS[s])) &&
       (!!lastSetupInfo.value?.cloud || !('cloud' in SECTIONS[s])) &&
-      (props.scope ? atLevel(SECTIONS[s].level) : SECTIONS[s].level !== 'project'),
+      shown(s) &&
+      (global.value ? SECTIONS[s].level !== 'project' : atLevel(SECTIONS[s].level)),
   ),
 );
 // C-schema v16: a data module's page shows if the module is on in the project / in a project of the space / anywhere (Workspace)
@@ -79,6 +93,8 @@ const pages = computed(() =>
   modPages.value.filter(
     (p) =>
       p.key !== IMPORT_PAGE &&
+      !p.personal &&
+      shown(p.key) &&
       (isAdmin.value || !p.adminOnly) &&
       atLevel(p.level) &&
       enabledForProject(p.moduleId, scopeProjects(p.level)),
@@ -87,7 +103,7 @@ const pages = computed(() =>
 const label = (l: LocalizedText) =>
   typeof l === 'object' ? l[locale.value as 'ru' | 'en'] : te(l) ? t(l) : l;
 // about the instance, not its content — at the very bottom, after module pages, behind a divider
-const TAIL: Id[] = ['cloud', 'about'];
+const TAIL: Id[] = ['cloud'];
 const item = (s: Id) => ({
   key: s as string,
   label: t(s === 'general' ? 'settings.general.title' : `settings.${s}`),
@@ -120,18 +136,8 @@ const sec = computed(() =>
 const comp = computed(() => modComp.value ?? (page.value ? undefined : sec.value?.c));
 
 const spaces = useSpaces();
-const spaceId = ref('');
-watch(
-  spaces,
-  (all) => {
-    if (props.scope) spaceId.value = props.scope.spaceId;
-    else if (!all?.some((s) => s.id === spaceId.value)) spaceId.value = all?.[0]?.id ?? '';
-  },
-  { immediate: true },
-);
-const spaceOptions = computed(() =>
-  (spaces.value ?? []).map((s) => ({ value: s.id, label: s.name })),
-);
+const rootId = useRootSpaceId();
+const spaceId = computed(() => props.scope?.spaceId ?? rootId.value ?? '');
 
 // an error that came from the server after the local apply
 const serverError = ref('');
@@ -180,18 +186,15 @@ onMutationError((e) => (serverError.value = e.message || t('auth.failed')));
     </nav>
     <div class="flex min-w-0 flex-1 flex-col gap-3 max-md:p-4">
       <p v-if="serverError" role="alert" class="text-sm text-danger">{{ serverError }}</p>
-      <Select
-        v-if="sec && 'space' in sec && !scope"
-        v-model="spaceId"
-        :label="t('settings.space')"
-        :options="spaceOptions"
-      />
       <component
         :is="comp"
         v-if="comp"
         :space-id="spaceId"
-        :level="scope?.level"
-        v-bind="scope?.projectId ? { projectId: scope.projectId } : {}"
+        v-bind="{
+          // global: no level at all — an undefined attr would fall through and override a module page's own level
+          ...(!global && scope && { level: scope.level }),
+          ...(scope?.projectId && { projectId: scope.projectId }),
+        }"
       />
     </div>
   </div>

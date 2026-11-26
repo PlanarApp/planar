@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Search } from 'lucide-vue-next';
+import { Search } from '@lucide/vue';
 import { AvatarStack, useBreakpoint } from '../ui';
 import { PriorityIcon, StatusIcon, useMembers, useStatuses, type TaskView } from '../tasks';
 import { openTask } from './open';

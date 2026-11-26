@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { AlertCircle, Clock } from 'lucide-vue-next';
+import { AlertCircle, Clock } from '@lucide/vue';
 import { minutesSince, useNow, type Activity } from '../modules/activity';
 
 // PLNRAPP-202: the line of a module's background work (an AI run): «работает», «агент работает N мин»,

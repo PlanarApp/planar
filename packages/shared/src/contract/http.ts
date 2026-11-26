@@ -12,6 +12,8 @@ export const HTTP_ERROR_CODES = [
   'payload_too_large',
   'rate_limited',
   'upgrade_required',
+  'mfa_setup_required',
+  'locked',
   'internal',
   'unavailable',
 ] as const;
@@ -42,6 +44,8 @@ export const pushPayloadSchema = z.object({
     'chat_dm',
     'chat_reply',
     'due_changed',
+    'due_soon',
+    'due_now',
   ]),
 });
 

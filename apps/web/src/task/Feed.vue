@@ -1,10 +1,20 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, provide, ref, shallowRef, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  provide,
+  ref,
+  shallowRef,
+  watch,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { JSONContent } from '@tiptap/vue-3';
 import type { Row } from '@planar/shared';
 import { api } from '../api/http';
 import { useAuth } from '../auth/useAuth';
+import { useAdminSpaces } from '../screens/settings/shared';
 import { mutate, newId } from '../sync';
 import { useLabels, useMembers, useStatuses, type TaskView } from '../tasks';
 import { useSpaces } from '../tasks/queries';
@@ -15,7 +25,7 @@ import {
   ArrowUpNarrowWide,
   ChevronsDownUp,
   ChevronsUpDown,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { Button, IconButton, Select } from '../ui';
 import { avatarSrc } from '../pickers';
 import CommentThread from './CommentThread.vue';
@@ -33,7 +43,9 @@ import { router } from '../router';
 
 const props = defineProps<{ task: TaskView }>();
 const { t, te, locale } = useI18n();
-const { user, isAdmin } = useAuth();
+const { user } = useAuth();
+// comment.resolve: the assignee, the author or an admin of the comment's space (the mutator's rule)
+const isSpaceAdmin = useAdminSpaces();
 const comments = useComments(props.task.id);
 // C-sync v3 (PLNRAPP-487): comments are loaded on open when the task is not held
 const details = useTaskDetails(props.task.id);
@@ -69,10 +81,20 @@ async function load() {
   }
 }
 onMounted(load);
+// the description is saved by collab every few seconds while typing: it (and updatedAt) doesn't reload the
+// history, the other fields do — debounced
+let loadTimer: ReturnType<typeof setTimeout> | undefined;
 watch(
-  () => [props.task.updatedAt, props.task.assigneeIds.join(), props.task.labelIds.join()],
-  load,
+  () =>
+    JSON.stringify(props.task, (k, v) =>
+      k === 'description' || k === 'updatedAt' ? undefined : v,
+    ),
+  () => {
+    clearTimeout(loadTimer);
+    loadTimer = setTimeout(load, 1500);
+  },
 );
+onBeforeUnmount(() => clearTimeout(loadTimer));
 
 const userOf = (id: string) => users.value?.find((u) => u.id === id);
 const nameOf = (id: string) => userOf(id)?.name ?? '—';
@@ -108,6 +130,7 @@ function describe(acts: Row<'activity'>[]): string {
   }
   const whats = acts.map((x) => {
     const ch = x.changes as Record<string, unknown>;
+    if (x.kind.startsWith('merged_')) return `«${String(ch.title)}»`;
     return x.kind.startsWith('assignee_')
       ? nameOf(String(ch.userId))
       : (labels.value?.find((l) => l.id === ch.labelId)?.name ?? '—');
@@ -208,7 +231,8 @@ async function sendReply() {
   });
 }
 const canResolve = (c: Row<'comments'>) =>
-  !!user.value && (c.assigneeId === user.value.id || c.authorId === user.value.id || isAdmin.value);
+  !!user.value &&
+  (c.assigneeId === user.value.id || c.authorId === user.value.id || isSpaceAdmin(c.spaceId));
 const avatarOf = (id: string) => avatarSrc(userOf(id));
 const memberList = computed(() =>
   (members.value ?? []).map((m) => ({ id: m.id, name: m.name, avatar: avatarOf(m.id) })),
@@ -403,7 +427,7 @@ defineExpose({ focusComposer: () => composer.value?.focus() });
       data-testid="feed"
     >
       <div
-        v-if="details === 'loading' && show !== 'history'"
+        v-if="details === 'loading' && show !== 'history' && !feed.length"
         role="status"
         :aria-label="t('task.detailsLoading')"
         class="flex flex-col gap-3"

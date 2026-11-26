@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { ArrowRightLeft, CalendarDays } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
-import { Button, Dialog } from '../ui';
+import { Button, Dialog, Menu } from '../ui';
 import BulkMerge from './BulkMerge.vue';
 import {
   BulkAssigneePicker,
-  DueDatePicker,
   PriorityPicker,
+  TaskDatesPicker,
   StatusPicker,
   archiveTask,
   deleteTask,
   setAssignees,
   updateTask,
+  moveMenu,
+  useMoveSpaces,
   useProjectAdmin,
   useStatuses,
   type TaskView,
@@ -40,6 +43,42 @@ const projectIds = computed(() => [...new Set(chosen.value.map((x) => x.projectI
 async function setStatus(id: string | undefined) {
   const skipped = await setStatusesByName(statuses.value ?? [], chosen.value, id);
   if (skipped) toast(t('list.statusSkipped', { n: skipped }));
+}
+// the picker's own values: the time fields open once a date is chosen, as in the task form
+const dates = ref({
+  start: null as string | null,
+  due: null as string | null,
+  startTime: null as string | null,
+  dueTime: null as string | null,
+  dueRemindMin: null as number | null,
+});
+const setDates = (patch: Parameters<typeof updateTask>[1], local: Partial<typeof dates.value>) => {
+  Object.assign(dates.value, local);
+  return each((x) => updateTask(x.id, patch));
+};
+watch(
+  () => sel.selected.value,
+  () =>
+    (dates.value = { start: null, due: null, startTime: null, dueTime: null, dueRemindMin: null }),
+);
+// bulk move to a project of any space: the status of the same name/category, subtasks go along (task.update)
+const moveSpaces = useMoveSpaces();
+const moveItems = computed(
+  () =>
+    moveMenu(moveSpaces.value, { spaceId: '', projectId: null }, (spaceId, projectId) => {
+      const s = moveSpaces.value.find((x) => x.id === spaceId);
+      const p = s?.projects.find((x) => x.id === projectId);
+      if (s && p) void moveSelected(p.id, `${s.name} / ${p.name}`);
+    }).items,
+);
+async function moveSelected(projectId: string, to: string) {
+  const list = chosen.value.filter((x) => x.projectId !== projectId);
+  // a selected subtask goes with its selected parent: moved on its own first, it would be cut off
+  const ids = new Set(list.map((x) => x.id));
+  const roots = list.filter((x) => !x.parentId || !ids.has(x.parentId));
+  await Promise.all(roots.map((x) => updateTask(x.id, { projectId })));
+  toast(t('moveTask.bulkDone', { n: list.length, to }), 3000);
+  sel.clear();
 }
 const confirmDelete = ref(false);
 // PLNRAPP-155: archive — any member; delete — an admin of every selected task's project
@@ -82,7 +121,36 @@ async function removeSelected() {
       @apply="assign"
     />
     <PriorityPicker @update:model-value="each((x) => updateTask(x.id, { priority: $event }))" />
+    <!-- the same dates picker as in the task form; the key resets it when the selection changes -->
+    <TaskDatesPicker
+      :key="chosen.map((x) => x.id).join()"
+      :task-ids="chosen.map((x) => x.id)"
+      :start="dates.start"
+      :due="dates.due"
+      :start-time="dates.startTime"
+      :due-time="dates.dueTime"
+      :due-remind-min="dates.dueRemindMin"
+      @update:start="(v: string | null) => setDates({ startDate: v }, { start: v })"
+      @update:due="(v: string | null) => setDates({ dueDate: v }, { due: v })"
+      @update:start-time="(v: string | null) => setDates({ startTime: v }, { startTime: v })"
+      @update:due-time="(v: string | null) => setDates({ dueTime: v }, { dueTime: v })"
+      @update:due-remind-min="
+        (v: number | null) => setDates({ dueRemindMin: v }, { dueRemindMin: v })
+      "
+    >
+      <template #value>
+        <CalendarDays :size="14" aria-hidden="true" />
+        <span>{{ t('tasks.dueDate') }}</span>
+      </template>
+    </TaskDatesPicker>
     <DueDatePicker @update:model-value="each((x) => updateTask(x.id, { dueDate: $event }))" />
+    <Menu v-if="moveItems.length" :items="moveItems">
+      <template #trigger>
+        <Button size="sm" data-testid="bulk-move"
+          ><ArrowRightLeft :size="14" aria-hidden="true" />{{ t('moveTask.bulk') }}</Button
+        >
+      </template>
+    </Menu>
     <Button size="sm" data-testid="bulk-archive" @click="archiveSelected">{{
       t('archive.toArchive')
     }}</Button>

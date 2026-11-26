@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { ArrowRight, Bell, Check } from 'lucide-vue-next';
+import { ArrowRight, Bell, Check } from '@lucide/vue';
 import { Button, EmptyState, IconButton, Popover } from '../ui';
 import { mutate } from '../sync';
 import { openTask } from '../views/open';

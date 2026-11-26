@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Logger } from '@nestjs/common';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { textToDoc, uuidv7 } from '@planar/shared';
 import {
   decrypt,
@@ -11,7 +11,8 @@ import {
   type ModuleHookApi,
   type MutationWrite,
 } from '@planar/server-kit';
-import { gitlabConnections as P } from './schema.js';
+import { gitlabChoices as C, gitlabConnections as P, gitlabServers as S } from './schema.js';
+import { bindingsOf, type Binding } from './servers.js';
 
 const log = new Logger('gitlab');
 const KEY_SRC = '\\b([A-Z][A-Z0-9]{1,9})-(\\d+)\\b';
@@ -131,7 +132,7 @@ export { Unauthorized, HttpFail, Deferred };
 
 const apiBase = (baseUrl: string) => `${baseUrl.replace(/\/+$/, '')}/api/v4`;
 
-const repoOf = async (token: string, c: typeof P.$inferSelect) => {
+const repoOf = async (token: string, c: Binding) => {
   const repo = `${apiBase(c.baseUrl)}/projects/${c.gitlabProjectId}`;
   const p = (await (await get(repo, token)).json()) as { default_branch: string; web_url: string };
   return { repo, ...p };
@@ -143,7 +144,7 @@ const repoOf = async (token: string, c: typeof P.$inferSelect) => {
  */
 export async function createBranch(
   token: string,
-  c: typeof P.$inferSelect,
+  c: Binding,
   branch: string,
 ): Promise<{ webUrl: string }> {
   const p = await repoOf(token, c);
@@ -159,7 +160,7 @@ export async function createBranch(
 export async function createMr(
   api: JobApi,
   token: string,
-  c: typeof P.$inferSelect,
+  c: Binding,
   branch: string,
   title: string,
 ): Promise<{ webUrl: string }> {
@@ -208,11 +209,7 @@ async function ciOf(token: string, repo: string, p: GlPipeline | null | undefine
  * branch pipeline with the merge commit (deploy): cancelled by a newer commit (auto_cancel) — of the newest one
  * on the branch; none for DEPLOY_WAIT_MS after the merge — `skipped`. undefined — not tracked (closed, old).
  */
-async function pipelineOf(
-  token: string,
-  c: typeof P.$inferSelect,
-  mr: GlMr,
-): Promise<Ci | undefined> {
+async function pipelineOf(token: string, c: Binding, mr: GlMr): Promise<Ci | undefined> {
   const repo = `${apiBase(c.baseUrl)}/projects/${c.gitlabProjectId}`;
   if (mr.state === 'opened') {
     const full =
@@ -237,7 +234,7 @@ async function pipelineOf(
 }
 
 /** With `token`: the pipeline status of an MR linked to tasks is fetched too (PLNRAPP-205). */
-async function syncMr(api: JobApi, c: typeof P.$inferSelect, mr: GlMr, token?: string) {
+async function syncMr(api: JobApi, c: Binding, mr: GlMr, token?: string) {
   const { projectId, gitlabProjectId } = c;
   const found = new Map<string, string>();
   for (const group of keysOf(mr)) {
@@ -350,7 +347,7 @@ async function ciFailed(api: JobApi, taskIds: string[], gitlabProjectId: number,
   return muts;
 }
 
-async function pollProject(api: JobApi, token: string, p: typeof P.$inferSelect) {
+async function pollProject(api: JobApi, token: string, p: Binding) {
   const base = apiBase(p.baseUrl);
   const after = p.cursor
     ? new Date(p.cursor).toISOString()
@@ -412,7 +409,7 @@ async function pollProject(api: JobApi, token: string, p: typeof P.$inferSelect)
  * Its jobs are fetched again only when the pipeline or its status changed, or it is not finished. A branch merged
  * more than a day ago with a finished pipeline is not polled.
  */
-async function pollBranches(api: JobApi, token: string, p: typeof P.$inferSelect) {
+async function pollBranches(api: JobApi, token: string, p: Binding) {
   const repo = `${apiBase(p.baseUrl)}/projects/${p.gitlabProjectId}`;
   const final = sql.join(
     FINAL.map((x) => sql`${x}`),
@@ -465,7 +462,7 @@ async function pollBranches(api: JobApi, token: string, p: typeof P.$inferSelect
 /** One pass over the connections. Does not throw: errors go to the connection's last_error. */
 export async function pollAll(api: JobApi): Promise<void> {
   if (isDemo()) return; // demo: no outgoing requests
-  const conns = await api.db.select().from(P).orderBy(P.createdAt, P.id);
+  const conns = await bindingsOf(api.db);
   if (!conns.length) return;
   // C-schema v16: projects where the module is off are not polled (connections stay)
   const on = new Set(
@@ -480,7 +477,7 @@ export async function pollAll(api: JobApi): Promise<void> {
 }
 
 /** Poll of the given connections (PLNRAPP-153: of one project — from the task's GitLab tab). */
-export async function pollConnections(api: JobApi, conns: (typeof P.$inferSelect)[]) {
+export async function pollConnections(api: JobApi, conns: Binding[]) {
   if (isDemo()) return;
   const key = secretKey();
   for (const p of conns) {
@@ -535,12 +532,24 @@ export const jobs: JobDef<Record<string, unknown>>[] = [
   },
 ];
 
+/** The level is gone: its own connections and its choice go too (the bindings of its projects went with them). */
+async function dropLevel(api: ModuleHookApi, scope: string, id: string) {
+  await api.q.delete(C).where(and(eq(C.scope, scope), eq(C.scopeId, id)));
+  await api.q.delete(S).where(and(eq(S.scope, scope), eq(S.scopeId, id)));
+}
+
 /** Deleting a task takes its gitlabMrs and gitlabBranches rows with it, deleting a project — its connections. */
 export async function afterMutation(writes: MutationWrite[], _ctx: unknown, api: ModuleHookApi) {
   for (const w of writes) {
     if (w.op !== 'del' || !w.before) continue;
     if (w.entity === 'projects') {
-      await api.q.delete(P).where(eq(P.projectId, w.before.id as string));
+      const id = w.before.id as string;
+      await api.q.delete(P).where(eq(P.projectId, id));
+      await dropLevel(api, 'project', id);
+      continue;
+    }
+    if (w.entity === 'spaces') {
+      await dropLevel(api, 'space', w.before.id as string);
       continue;
     }
     if (w.entity !== 'tasks') continue;

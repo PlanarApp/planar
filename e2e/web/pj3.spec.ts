@@ -94,7 +94,7 @@ test('PJ-3: общие модули — на странице админа эк�
   browser,
 }) => {
   const admin = await loginAs(browser, 'admin');
-  await admin.goto('/w/settings');
+  await admin.goto('/settings');
   await expect(admin.getByTestId('nav-general')).toBeVisible();
   await expect(admin.getByTestId('nav-modules')).toHaveCount(0);
   await admin.goto('/admin/modules');

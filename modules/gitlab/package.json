@@ -14,6 +14,11 @@
       "types": "./dist/api/index.d.ts",
       "default": "./dist/api/index.js"
     },
+    "./api/servers": {
+      "source": "./api/servers.ts",
+      "types": "./dist/api/servers.d.ts",
+      "default": "./dist/api/servers.js"
+    },
     "./api/schema": {
       "source": "./api/schema.ts",
       "types": "./dist/api/schema.d.ts",
@@ -24,12 +29,12 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@nestjs/common": "^11.2.7",
+    "@nestjs/common": "^12.0.0",
     "@planar/server-kit": "workspace:*",
     "@planar/shared": "workspace:*",
     "@planar/web": "workspace:*",
     "drizzle-orm": "^0.45.4",
-    "vue": "~3.5.44",
+    "vue": "~3.5.45",
     "zod": "^4.6.7"
   }
 }

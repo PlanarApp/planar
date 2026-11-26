@@ -1,7 +1,7 @@
 import type { IncomingHttpHeaders } from 'node:http';
 import { and, eq, gt, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Db } from '../db/index.js';
-import { apiTokens, sessions, users } from '../db/schema.js';
+import { apiTokens, sessions, users, userSecurity } from '../db/schema.js';
 import { cloudExpired, cloudPublic } from '../cloud/cloud.js';
 import { HttpError } from './errors.js';
 import {
@@ -18,6 +18,8 @@ export type AuthCtx = {
   via: 'session' | 'token';
   tokenScope?: 'read' | 'write';
   tokenId?: string;
+  /** session only: 'mfa' — second factor pending; 'setup' — 2FA required, not set up; 'locked' — app lock */
+  state?: 'mfa' | 'setup' | 'locked';
 };
 
 export const AUTH_OPTS = Symbol('AUTH_OPTS');
@@ -104,19 +106,34 @@ export const isAdminRole = (role: string) => role === 'owner' || role === 'admin
  * Context by Bearer token or planar_sid cookie; null — not authorized.
  * The cloud trial is over (cloud-link) — null for everyone; with expiredAdmins owners and admins
  * pass (AuthGuard lets them only to the payment routes).
+ * Without `states` an incomplete session (2FA pending or not set up) is null and a locked one is 423;
+ * AuthGuard passes `states` and lets such sessions only to their /api/auth routes.
  */
 export async function authenticateRaw(
   db: Db,
   headers: IncomingHttpHeaders,
   method: string,
-  opts: { publicUrl: string; allowToken?: boolean; expiredAdmins?: boolean },
+  opts: { publicUrl: string; allowToken?: boolean; expiredAdmins?: boolean; states?: boolean },
   /** session was extended — the caller re-sets the cookie (the token is not part of AuthCtx) */
   onRenew?: (token: string) => void,
 ): Promise<AuthCtx | null> {
   if (cloudExpired() && !opts.expiredAdmins) return null;
   const ctx = await authenticateAny(db, headers, method, opts, onRenew);
+  if (ctx?.state && !opts.states) {
+    if (ctx.state === 'locked') throw lockedError();
+    return null;
+  }
   return ctx && cloudExpired() && !isAdminRole(ctx.role) ? null : ctx;
 }
+
+export const lockedError = () => new HttpError(423, 'locked', 'Приложение заблокировано');
+
+/**
+ * App lock without the client (tab closed, device taken): no requests for this long — locked;
+ * null — no lock setting. «On every open» alone — 3 minutes.
+ */
+export const lockIdleMs = (lockMinutes: number | null, lockOnOpen: boolean | null) =>
+  lockMinutes != null || lockOnOpen ? Math.max(lockMinutes ?? 0, 3) * 60_000 : null;
 
 async function authenticateAny(
   db: Db,
@@ -133,11 +150,19 @@ async function authenticateAny(
     throw new HttpError(403, 'origin_mismatch', 'Origin не совпадает с PUBLIC_URL');
   }
   const [row] = await db
-    .select({ s: sessions, role: users.role, deactivated: users.deactivatedAt })
+    .select({
+      s: sessions,
+      role: users.role,
+      deactivated: users.deactivatedAt,
+      lockMinutes: userSecurity.lockMinutes,
+      lockOnOpen: userSecurity.lockOnOpen,
+    })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
+    .leftJoin(userSecurity, eq(userSecurity.userId, sessions.userId))
     .where(eq(sessions.id, hashToken(token)));
-  if (!row) return null;
+  // a handoff token is exchanged only by GET /api/auth/handoff
+  if (!row || row.s.state === 'handoff') return null;
   if (row.deactivated) {
     await deleteUserSessions(db, row.s.userId);
     return null;
@@ -147,7 +172,22 @@ async function authenticateAny(
     await deleteSession(db, token);
     return null;
   }
-  const renew = left < 15 * DAY;
+  // the idle check goes before lastSeenAt is touched: the lock is kept in lockedAt
+  let locked = !!row.s.lockedAt;
+  const idle = lockIdleMs(row.lockMinutes, row.lockOnOpen);
+  if (
+    !locked &&
+    !row.s.state &&
+    idle !== null &&
+    Date.now() - Date.parse(row.s.lastSeenAt) > idle
+  ) {
+    locked = true;
+    await db
+      .update(sessions)
+      .set({ lockedAt: sql`now()` })
+      .where(eq(sessions.id, row.s.id));
+  }
+  const renew = left < 15 * DAY && !row.s.state;
   if (renew) {
     await db
       .update(sessions)
@@ -166,6 +206,11 @@ async function authenticateAny(
     userId: row.s.userId,
     role: row.role as AuthCtx['role'],
     via: 'session',
+    ...(row.s.state === 'mfa'
+      ? { state: 'mfa' as const }
+      : locked
+        ? { state: 'locked' as const }
+        : row.s.state === 'setup' && { state: 'setup' as const }),
   };
 }
 

@@ -4,10 +4,11 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { VueDraggable } from 'vue-draggable-plus';
 import { rankBetween } from '../../sync';
-import { CopyPlus, Link, Pencil, Trash2 } from 'lucide-vue-next';
+import { CopyPlus, Link, Pencil, Trash2 } from '@lucide/vue';
 import { Button, Dialog, Menu } from '../../ui';
 import { deleteView, saveView, updateView } from './ops';
 import { toast } from '../../ui/toast';
+import { tabLabelHidden } from '../../ui/taskPanelWidth';
 import { optionsFrom } from '../options';
 import { migrateAiStatus } from '../aiFilter';
 import type { Filter } from '../filter';
@@ -174,8 +175,8 @@ async function confirmDelete() {
           @dragstart="holdEnd"
         >
           <component :is="viewIcon(v.icon)" :size="16" aria-hidden="true" />
-          <!-- мобильная: только иконка, как у вкладок видов -->
-          <span class="max-md:sr-only">{{ v.name }}</span>
+          <!-- мобильная и под широкой панелью задачи: только иконка, как у вкладок видов -->
+          <span :class="tabLabelHidden()">{{ v.name }}</span>
         </button>
       </Menu>
     </div>

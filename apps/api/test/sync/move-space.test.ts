@@ -204,3 +204,85 @@ describe('PLNRAPP-152 перенос задачи в другое простра
     expect(mine2.every((x) => x.projectId === null)).toBe(true);
   });
 });
+
+describe('перенос проекта в другое пространство', () => {
+  it('проект со статусами, метками, задачами и комментариями — в новом пространстве; не участники там теряют назначения', async () => {
+    const w = await world(db);
+    const b = uuidv7();
+    await w.admin.ok('space.create', { id: b, name: 'B', rank: 'a1', memberId: uuidv7() });
+    await w.admin.ok('member.add', {
+      id: uuidv7(),
+      spaceId: b,
+      userId: w.outsider.userId,
+      role: 'member',
+    });
+    const pa2 = uuidv7();
+    await w.admin.ok('project.create', {
+      id: pa2,
+      spaceId: w.spaceId,
+      name: 'P2',
+      key: key(),
+      rank: 'a1',
+    });
+    const [t, kid, outer, label, comment] = [uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7()];
+    await w.admin.ok('label.create', {
+      id: label,
+      projectId: w.projectId,
+      name: 'L',
+      color: '#ff0000',
+    });
+    const base = { projectId: w.projectId, statusId: w.statusIds[1], title: 'T', rank: 'a0' };
+    await w.admin.ok('task.create', {
+      ...base,
+      id: t,
+      assignees: [{ id: uuidv7(), userId: w.guest.userId }],
+      labels: [{ id: uuidv7(), labelId: label }],
+    });
+    await w.admin.ok('task.create', { ...base, id: kid, parentId: t });
+    const pa2Status = (await w.admin.bootstrap()).data.statuses!.find((s) => s.projectId === pa2)!;
+    await w.admin.ok('task.create', {
+      ...base,
+      id: outer,
+      projectId: pa2,
+      statusId: pa2Status.id,
+      parentId: t,
+    });
+    await w.admin.ok('comment.create', { id: comment, taskId: t, body: doc('c') });
+
+    // project admin only
+    expect(
+      await w.member.push('project.move', { id: w.projectId, spaceId: b, rank: 'a0' }),
+    ).toMatchObject({ ok: false, code: 'forbidden' });
+    const gb0 = await w.guest.bootstrap();
+    await w.admin.ok('project.move', { id: w.projectId, spaceId: b, rank: 'a0' });
+
+    const ob = await w.outsider.bootstrap();
+    expect(ob.data.projects!.map((p) => p.id)).toEqual([w.projectId]);
+    expect(ob.data.projects![0]!.spaceId).toBe(b);
+    expect(ob.data.statuses!.filter((s) => s.projectId === w.projectId)).toHaveLength(5);
+    expect(ob.data.statuses!.every((s) => s.spaceId === b)).toBe(true);
+    expect(ob.data.labels!.map((l) => [l.id, l.spaceId])).toEqual([[label, b]]);
+    const tasks = ob.data.tasks!;
+    expect(tasks.map((x) => x.id).sort()).toEqual([t, kid].sort());
+    expect(tasks.every((x) => x.spaceId === b && typeof x.number === 'number')).toBe(true);
+    expect(tasks.find((x) => x.id === kid)!.parentId).toBe(t);
+    expect(ob.data.comments!.map((c) => [c.id, c.spaceId])).toEqual([[comment, b]]);
+    expect(ob.data.taskLabels!.map((x) => x.spaceId)).toEqual([b]);
+    // the guest is not in B: the assignment is gone
+    expect(ob.data.taskAssignees ?? []).toEqual([]);
+
+    // the guest of A sees the moved rows go and the subtask of the other project cut off
+    const ops = new Map<string, string>();
+    for (const ch of (await w.guest.pull(gb0.cursor)).changes)
+      ops.set(`${ch.entity}:${ch.id}`, ch.op);
+    for (const k of [
+      `projects:${w.projectId}`,
+      `tasks:${t}`,
+      `tasks:${kid}`,
+      `comments:${comment}`,
+    ])
+      expect(ops.get(k), k).toBe('del');
+    const gb = await w.guest.bootstrap();
+    expect(gb.data.tasks!.map((x) => [x.id, x.parentId])).toEqual([[outer, null]]);
+  });
+});

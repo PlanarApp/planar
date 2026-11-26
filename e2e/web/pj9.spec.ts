@@ -12,7 +12,7 @@ async function mobileLogin(browser: import('@playwright/test').Browser): Promise
   await page.goto('/login');
   await page.getByLabel('Логин').fill('alice');
   await page.getByLabel('Пароль').fill('alice');
-  await page.getByRole('button', { name: 'Войти' }).click();
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
   await expect(page.getByRole('button', { name: /меню|навигац/i }).first()).toBeVisible();
   return page;
 }

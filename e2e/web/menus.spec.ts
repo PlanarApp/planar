@@ -4,20 +4,22 @@ import { fixture, loginAs, uniq } from './helpers.js';
 // Menus and quick create (ClickUp level): right click on a task, '+ Create', project menu.
 // statusIds of the fixture: [backlog, todo, in_progress, done, cancelled] — default status names (en).
 
-test('правый клик по задаче: статус через подменю, переживает reload', async ({ browser }) => {
+test('правый клик по задаче: «Статус» открывает селектор статуса, выбор переживает reload', async ({
+  browser,
+}) => {
   const title = uniq('Меню');
   const f = await fixture([title]);
   const page = await loginAs(browser, 'alice');
   await page.goto(`/p/${f.projectId}/list`);
   const row = page.getByRole('row').filter({ hasText: title });
   await row.click({ button: 'right' });
-  await page.getByRole('menuitem', { name: 'Статус' }).hover();
-  await page.getByRole('menuitem', { name: 'Done' }).click();
+  await page.getByRole('menuitem', { name: 'Статус' }).click();
+  await page.getByRole('option', { name: 'Done' }).click();
   await page.reload();
   await row.click({ button: 'right' });
-  await page.getByRole('menuitem', { name: 'Статус' }).hover();
-  // mark of the current status — on Done
-  await expect(page.getByRole('menuitem', { name: 'Done' }).locator('svg').last()).toBeVisible();
+  await page.getByRole('menuitem', { name: 'Статус' }).click();
+  // the current status is selected in the picker
+  await expect(page.getByRole('option', { name: 'Done' })).toHaveAttribute('aria-selected', 'true');
 });
 
 test('«+ Создать» → задача: создаётся с одного клика, без дублей', async ({ browser }) => {
@@ -88,7 +90,7 @@ test('баг DataCloneError: правило автоматизации созд�
   await enableModules(await Client.login('admin'));
   const page = await loginAs(browser, 'admin');
   const name = uniq('Правило');
-  await page.goto(`/settings/automations:rules?project=${f.projectId}`);
+  await page.goto(`/p/${f.projectId}/settings?s=automations:rules`);
   await page.locator('[data-role=new]').click();
   const ed = page.getByTestId('editor');
   await ed.getByLabel('Название').first().fill(name);

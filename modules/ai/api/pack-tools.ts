@@ -122,7 +122,7 @@ export function aiPackTools(core: CoreServices): PackTool[] {
     {
       name: 'list_task_ai_runs',
       description:
-        'Прогоны ИИ задачи (новые сверху, до 50): состояние, действие, попытка, время, причина ошибки. Видят админ проекта, автор и исполнители задачи',
+        'Прогоны ИИ задачи (новые сверху, до 50): состояние, действие, модель, попытка, время, причина ошибки. Видят админ проекта, автор и исполнители задачи',
       shape: { task: z.string().min(1).describe('uuid или ключ задачи, например ABC-123') },
       write: false,
       run: async (a: { task: string }, uid) => taskRuns(core, uid, a.task),
@@ -145,7 +145,7 @@ async function taskRuns(core: CoreServices, uid: string, task: string) {
   if (!t) throw new HttpError(404, 'not_found', 'Не найдено');
   const r = await core.db.execute(
     sql`select r.id, r.kind, r.state, r.attempt, r.restart_of as "restartOf",
-          (select a.name from ai_actions a where a.id = r.action_id) as action, r.cost,
+          (select a.name from ai_actions a where a.id = r.action_id) as action, r.cost, r.model,
           r.created_at as "createdAt", r.started_at as "startedAt", r.finished_at as "finishedAt",
           -- the reason of a failure is the last line of the log
           case when r.state = 'failed' then left(regexp_replace(rtrim(r.log, E'\n'), '^.*\n', ''), 500) end as error

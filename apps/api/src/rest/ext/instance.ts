@@ -1,8 +1,10 @@
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { passkeys, userSecurity } from '../../db/schema.js';
 import { hashPassword } from '../../auth/password.js';
 import { deleteUserSessions } from '../../auth/sessions.js';
-import { ensureRootSpace } from '../../spaces/root.js';
-import { loginSchema, passwordSchema } from '../../users/users.controller.js';
+import { capSpaceRoles, ensureRootSpace, leaveAllSpaces } from '../../spaces/root.js';
+import { ADMIN_BY_OWNER, loginSchema, passwordSchema } from '../../users/users.controller.js';
 import { insertUser, listUsers, updateUser } from '../../users/users.repo.js';
 import type { ExtArea, ExtOp } from './types.js';
 import {
@@ -36,7 +38,7 @@ const ops: ExtOp[] = [
   {
     tool: 'create_user',
     description:
-      'Создать пользователя инстанса (только админ инстанса): логин, имя, пароль, роль (admin/member/guest), email',
+      'Создать пользователя инстанса (только админ инстанса): логин, имя, пароль, роль (admin — только владелец; member/guest), email',
     method: 'post',
     path: '/api/v1/instance/users',
     shape: {
@@ -50,7 +52,7 @@ const ops: ExtOp[] = [
     danger: 'delete', // admin power: the AI chat asks the user's «yes» (prompt injection)
     status: 201,
     run: async (d, u, i) => {
-      await requireAdmin(d, u);
+      const actor = await requireAdmin(d, u);
       const { password, ...v } = i as {
         password: string;
         login: string;
@@ -58,6 +60,7 @@ const ops: ExtOp[] = [
         role: string;
         email?: string;
       };
+      if (v.role === 'admin' && actor !== 'owner') throw forbidden(ADMIN_BY_OWNER);
       const passwordHash = await hashPassword(password);
       const row = await d.db.transaction((q) => insertUser(q, { ...v, passwordHash }));
       await ensureRootSpace(d.db);
@@ -67,7 +70,7 @@ const ops: ExtOp[] = [
   {
     tool: 'update_user',
     description:
-      'Изменить пользователя инстанса (только админ инстанса): имя, email, роль (admin/member/guest), блокировка (deactivated). Владельца и, не будучи владельцем, админа менять нельзя; себе роль и блокировку менять нельзя',
+      'Изменить пользователя инстанса (только админ инстанса): имя, email, роль (admin/member/guest; назначить admin может только владелец), блокировка (deactivated), сброс двухфакторной аутентификации (reset2fa: приложение-аутентификатор, резервные коды, passkey). Владельца и, не будучи владельцем, админа менять нельзя; себе роль, блокировку и 2FA менять нельзя',
     method: 'patch',
     path: '/api/v1/instance/users/{id}',
     shape: {
@@ -76,6 +79,7 @@ const ops: ExtOp[] = [
       email: z.string().email().nullable().optional(),
       role: role.optional(),
       deactivated: z.boolean().optional(),
+      reset2fa: z.literal(true).optional(),
     },
     write: true,
     danger: 'delete', // admin power: the AI chat asks the user's «yes» (prompt injection)
@@ -87,13 +91,16 @@ const ops: ExtOp[] = [
         email?: string | null;
         role?: string;
         deactivated?: boolean;
+        reset2fa?: true;
       };
       const target = await findUser(d, tid);
       if (tid === u) {
-        if (p.role !== undefined || p.deactivated !== undefined)
+        if (p.role !== undefined || p.deactivated !== undefined || p.reset2fa)
           throw forbidden('Себе можно менять только name и email');
       } else if (target.role === 'owner' || (target.role === 'admin' && actor !== 'owner'))
         throw forbidden();
+      if (p.role === 'admin' && target.role !== 'admin' && actor !== 'owner')
+        throw forbidden(ADMIN_BY_OWNER);
       const row = await d.db.transaction((q) =>
         updateUser(q, u, tid, {
           ...(p.name !== undefined && { name: p.name }),
@@ -104,8 +111,17 @@ const ops: ExtOp[] = [
           }),
         }),
       );
-      if (p.role !== undefined || p.deactivated === false) await ensureRootSpace(d.db);
-      if (p.deactivated) await deleteUserSessions(d.db, tid);
+      if (p.role !== undefined || p.deactivated === false)
+        await ensureRootSpace(d.db, p.role !== undefined ? tid : undefined);
+      if (p.role === 'guest') await capSpaceRoles(d.db, tid);
+      if (p.deactivated) {
+        await leaveAllSpaces(d.db, tid);
+        await deleteUserSessions(d.db, tid);
+      }
+      if (p.reset2fa) {
+        await d.db.delete(userSecurity).where(eq(userSecurity.userId, tid));
+        await d.db.delete(passkeys).where(eq(passkeys.userId, tid));
+      }
       return userOut(row);
     },
   },
@@ -124,15 +140,24 @@ const ops: ExtOp[] = [
   },
   {
     tool: 'update_workspace',
-    description: 'Переименовать workspace инстанса (только админ инстанса)',
+    description:
+      'Workspace инстанса (только админ инстанса): имя, политика двухфакторной аутентификации mfa — off (по желанию), admins (обязательна админам), all (обязательна всем)',
     method: 'patch',
     path: '/api/v1/instance/workspace',
-    shape: { name: z.string().trim().min(1).max(100) },
+    shape: {
+      name: z.string().trim().min(1).max(100).optional(),
+      mfa: z.enum(['off', 'admins', 'all']).optional(),
+    },
     write: true,
     danger: 'delete', // admin power: the AI chat asks the user's «yes» (prompt injection)
     run: async (d, u, i, t) => {
       await requireAdmin(d, u);
-      const value = { ...(await workspace(d)), name: (i as { name: string }).name };
+      const p = i as { name?: string; mfa?: string };
+      const value = {
+        ...(await workspace(d)),
+        ...(p.name !== undefined && { name: p.name }),
+        ...(p.mfa !== undefined && { mfa: p.mfa }),
+      };
       await d.run(u, [{ name: 'settings.set', args: { id: 'workspace', value } }], t);
       return workspace(d);
     },

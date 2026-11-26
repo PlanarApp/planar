@@ -15,7 +15,7 @@ import {
   SquarePen,
   Sun,
   UserRound,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { EmptyState, Tabs } from '../ui';
 import { useAuth } from '../auth/useAuth';
 import { mutate } from '../sync';

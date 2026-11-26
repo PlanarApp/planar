@@ -6,6 +6,7 @@ import { useMembers } from '../queries';
 // task assignees: the common user picker over the space members (PLNRAPP-827)
 const props = defineProps<{ spaceId: string; compact?: boolean }>();
 const model = defineModel<string[]>({ default: () => [] });
+const open = defineModel<boolean>('open', { default: false });
 const { t } = useI18n();
 const members = useMembers(() => props.spaceId);
 const toggle = (id: string | null) =>
@@ -17,6 +18,7 @@ const toggle = (id: string | null) =>
 
 <template>
   <UserPicker
+    v-model:open="open"
     :users="members ?? []"
     :selected="model"
     multiple

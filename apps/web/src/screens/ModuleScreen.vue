@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
-import { Boxes } from 'lucide-vue-next';
+import { Boxes } from '@lucide/vue';
 import { useAuth } from '../auth/useAuth';
 import { ensureModule, moduleStatus } from '../modules/registry';
 import { Button, EmptyState } from '../ui';

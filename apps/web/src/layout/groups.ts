@@ -1,25 +1,13 @@
 /** Groups: three levels and shared tabs (Tasks — any view key, e.g. `/p/<id>/board`). */
 export type GroupLevel = 'workspace' | 'space' | 'project';
-export const GROUP_TABS = [
-  'work',
-  'tasks',
-  'docs',
-  'chats',
-  'reports',
-  'spaces',
-  'projects',
-  'settings',
-] as const;
+export const GROUP_TABS = ['work', 'tasks', 'docs', 'chats', 'reports', 'settings'] as const;
 export type GroupTab = (typeof GROUP_TABS)[number];
 
 export const groupTab = (seg: unknown): GroupTab =>
   GROUP_TABS.includes(seg as GroupTab) ? (seg as GroupTab) : 'tasks';
 
-/** level tabs: lists of nested groups — Workspace has spaces and projects, Space has projects */
-export const tabsFor = (level: GroupLevel): GroupTab[] =>
-  GROUP_TABS.filter(
-    (k) => (k !== 'spaces' || level === 'workspace') && (k !== 'projects' || level !== 'project'),
-  );
+/** level tabs: the same on every level (Workspace settings — admins only, useGroupTabs); projects of a space are managed in its settings */
+export const tabsFor = (): GroupTab[] => [...GROUP_TABS];
 
 /** Group tab address; Tasks — the last chosen view (PLNRAPP-111), `list` by default: the bare node
  * address opens the remembered tab. */

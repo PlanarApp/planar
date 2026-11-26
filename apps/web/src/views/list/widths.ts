@@ -1,4 +1,4 @@
-import { ref, watch, computed, toValue, type MaybeRefOrGetter } from 'vue';
+import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 import type { Row } from '@planar/shared';
 import type { TaskView } from '../../tasks';
 import { formatDue } from './due';
@@ -33,17 +33,16 @@ const clamp = (n: number) => Math.round(Math.min(MAX, Math.max(MIN, n)));
 
 export interface WidthCtx {
   labels: Map<string, string>;
+  labelNames: boolean;
   projects: Map<string, string>;
-  header: (c: ListColumn) => string;
   priority: (p: number) => string;
   locale: string;
 }
 
 /** Column auto-size by row content (as in ClickUp): widest value + cell padding. */
 export function autoWidth(c: ListColumn, tasks: readonly TaskView[], x: WidthCtx): number {
-  const head = textWidth(x.header(c), 12) + 16;
-  if (c === 'git') return clamp(Math.max(head, 72));
-  if (c === 'ai' || c === 'aiCost' || c === 'aiTime') return clamp(Math.max(head, 96));
+  if (c === 'git') return 72;
+  if (c === 'ai' || c === 'aiCost' || c === 'aiTime') return 96;
   let w = 0;
   for (const t of tasks) {
     const v =
@@ -53,81 +52,45 @@ export function autoWidth(c: ListColumn, tasks: readonly TaskView[], x: WidthCtx
           ? 20 + 16 * (Math.min(t.assigneeIds.length, 3) - 1) + (t.assigneeIds.length > 3 ? 16 : 0)
           : 16
         : c === 'dueDate'
-          ? t.dueDate
-            ? textWidth(formatDue(t.dueDate, x.locale))
+          ? t.dueDate || t.startDate
+            ? // DatesValue: «12 Nov – 19 Nov»; only a start — «from 12 Nov» (+16 for «from»)
+              textWidth(
+                [t.startDate, t.dueDate]
+                  .filter((d): d is string => !!d)
+                  .map((d) => formatDue(d, x.locale))
+                  .join(' – '),
+              ) + (t.startDate && !t.dueDate ? 16 : 0)
             : 16
           : c === 'priority'
             ? t.priority
               ? textWidth(x.priority(t.priority)) + 22
               : 16
             : c === 'labels'
-              ? t.labelIds.reduce((s, id) => s + textWidth(x.labels.get(id) ?? '', 12) + 24, 0)
+              ? // LabelsValue: a 14px tag icon, with names — a 12px icon and the name
+                t.labelIds.reduce(
+                  (s, id) => s + (x.labelNames ? textWidth(x.labels.get(id) ?? '', 12) + 18 : 18),
+                  0,
+                )
               : textWidth(x.projects.get(t.projectId) ?? '');
     if (v > w) w = v;
   }
-  return clamp(Math.max(head, w + 16));
+  return clamp(w + 16);
 }
 
-/**
- * List column widths: auto-size by content; a width dragged by hand is remembered
- * (localStorage, per view key), a double click on the divider returns auto-size.
- */
+/** List column widths: auto-size by content (the list has no header row to drag a width in). */
 export function useColumnWidths(
-  key: MaybeRefOrGetter<string>,
   columns: MaybeRefOrGetter<readonly ListColumn[]>,
   tasks: MaybeRefOrGetter<readonly TaskView[] | undefined>,
   x: MaybeRefOrGetter<WidthCtx>,
 ) {
-  const store = () => `planar.list.${toValue(key)}.widths`;
-  const manual = ref<Partial<Record<ListColumn, number>>>({});
-  watch(
-    () => toValue(key),
-    () => {
-      try {
-        manual.value = JSON.parse(localStorage.getItem(store()) ?? '{}');
-      } catch {
-        manual.value = {};
-      }
-    },
-    { immediate: true },
-  );
-  const save = () => {
-    try {
-      localStorage.setItem(store(), JSON.stringify(manual.value));
-    } catch {
-      /* no storage — until reload */
-    }
-  };
   const widths = computed(() => {
     const ts = toValue(tasks) ?? [];
     const c = toValue(x);
     return Object.fromEntries(
-      toValue(columns).map((col) => [col, manual.value[col] ?? autoWidth(col, ts, c)]),
+      toValue(columns).map((col) => [col, autoWidth(col, ts, c)]),
     ) as Record<ListColumn, number>;
   });
-  const set = (col: ListColumn, px: number) => {
-    manual.value = { ...manual.value, [col]: clamp(px) };
-    save();
-  };
-  const reset = (col: ListColumn) => {
-    const m = { ...manual.value };
-    delete m[col];
-    manual.value = m;
-    save();
-  };
-  /** dragging the divider in the column header */
-  function startResize(col: ListColumn, e: PointerEvent) {
-    const x0 = e.clientX;
-    const w0 = widths.value[col];
-    const move = (ev: PointerEvent) => set(col, w0 + ev.clientX - x0);
-    const up = () => {
-      removeEventListener('pointermove', move);
-      removeEventListener('pointerup', up);
-    };
-    addEventListener('pointermove', move);
-    addEventListener('pointerup', up);
-  }
-  return { widths, startResize, reset };
+  return { widths };
 }
 
 export type { Row };

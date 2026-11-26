@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ArrowDown, ArrowUp, Plus, Trash2, X } from 'lucide-vue-next';
+import { ArrowDown, ArrowUp, Plus, Trash2, X } from '@lucide/vue';
 import { FIELD_TYPES, type FieldType, type Row } from '@planar/shared';
 import { mutate, newId, rankBetween } from '../sync';
 import { Button, Dialog, Input, Select } from '../ui';

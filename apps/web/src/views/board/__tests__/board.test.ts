@@ -8,7 +8,7 @@ import en from '../../../i18n/en';
 import ru from '../../../i18n/ru';
 import { i18n as appI18n } from '../../../i18n';
 import { db, registerMutators, startSync, stopSync } from '../../../sync';
-import { type GroupBy } from '../../../tasks';
+import { setLabels, type GroupBy } from '../../../tasks';
 import { ids, reset, task, until } from '../../../tasks/__tests__/data';
 import { resetBreakpoint } from '../../../ui';
 import { openTask, useSelection } from '../..';
@@ -16,6 +16,9 @@ import View from '../View.vue';
 import { applyMove, boardColumns, planMove } from '../plan';
 
 vi.mock('../..', async (orig) => ({ ...(await orig<object>()), openTask: vi.fn() }));
+// the card and its subtasks open a task through ../open directly
+vi.mock('../../open', async (orig) => ({ ...(await orig<object>()), openTask: vi.fn() }));
+const { openTask: openFromCard } = await import('../../open');
 
 const i18n = createI18n({
   legacy: false,
@@ -80,17 +83,112 @@ describe('board:card', () => {
       w2.findAll('article').find((a) => a.text().includes('24 дек'))!.element.children,
     ).toHaveLength(3);
   });
-  it('board:card ключ виден всегда; у подзадачи — строка родителя с его ключом', async () => {
+  it('board:card ключ — по настройке «Показывать ключ»; у подзадачи — строка родителя с его ключом', async () => {
     const p = task(1);
     await db.table('tasks').bulkPut([p, task(2, { parentId: p.id })]);
     const w = mount(View, {
-      props: { projectId: ids.project, options: { ...options('status'), showSubtasks: true } },
+      props: {
+        projectId: ids.project,
+        options: { ...options('status'), showSubtasks: true, showKey: true },
+      },
       global: { plugins: [i18n] },
     });
     await until(() => w.findAll('article').length === 2);
     const card = w.findAll('article').find((a) => a.find('[data-testid=card-parent]').exists())!;
     expect(card.get('[data-testid=card-key]').text()).toBe('PLN-2');
     expect(card.get('[data-testid=card-parent]').text()).toContain('PLN-1');
+    await w.setProps({ options: { ...options('status'), showSubtasks: true, showKey: false } });
+    await until(() => !w.find('[data-testid=card-key]').exists());
+    w.unmount();
+  });
+  it('board:card поля «Статус» и «ИИ» вида: выключены — иконок на карточке нет', async () => {
+    await db.table('tasks').put(task(1));
+    const w = mount(View, {
+      props: { projectId: ids.project, options: { ...options('status'), fields: ['status'] } },
+      global: { plugins: [i18n] },
+    });
+    await until(() => w.findAll('article').length === 1);
+    expect(w.find('article [role=gridcell] button').exists()).toBe(true);
+    await w.setProps({ options: { ...options('status'), fields: [] } });
+    await until(() => !w.find('article [role=gridcell] button').exists());
+    expect(w.find('[data-testid=card-ai]').exists()).toBe(false);
+    w.unmount();
+  });
+  it('board:card метки — иконкой метки, с «Показать имена меток» — и названием; перенос названий', async () => {
+    const t = task(1, { title: 'длинное название' });
+    await db.table('tasks').put(t);
+    await setLabels(t.id, [ids.bug]);
+    const opts = (o: Partial<ViewOptions>) => ({
+      ...options('status'),
+      fields: ['status', 'labels', 'ai'] as ViewOptions['fields'],
+      ...o,
+    });
+    const w = mount(View, {
+      props: {
+        projectId: ids.project,
+        options: opts({ showLabelNames: false, wrapTitles: false }),
+      },
+      global: { plugins: [i18n] },
+    });
+    await until(() => w.find('[data-testid=card-tag]').exists());
+    const tag = () => w.get('[data-testid=card-tag]');
+    expect(tag().text()).toBe('');
+    expect(tag().find('svg').exists()).toBe(true);
+    const title = () => w.findAll('article p[role=gridcell]').at(0)!;
+    expect(title().classes()).toContain('truncate');
+    await w.setProps({ options: opts({ showLabelNames: true, wrapTitles: true }) });
+    await until(() => tag().text() === 'bug');
+    expect(title().classes()).toContain('break-words');
+    w.unmount();
+  });
+  it('board:sort сортировка вида — внутри колонок; «rank» — ручной порядок', async () => {
+    await db
+      .table('tasks')
+      .bulkPut([
+        task(1, { rank: 'a1', priority: 3 }),
+        task(2, { rank: 'a2', priority: 1 }),
+        task(3, { rank: 'a3', priority: 2 }),
+      ]);
+    const w = mount(View, {
+      props: { projectId: ids.project, options: options('status') },
+      global: { plugins: [i18n] },
+    });
+    const order = () => w.findAll('article').map((a) => a.attributes('data-task'));
+    await until(() => order().length === 3);
+    expect(order()).toEqual(['PLN-1', 'PLN-2', 'PLN-3']);
+    await w.setProps({ options: { ...options('status'), sortBy: 'priority' } });
+    await until(() => order().join() === 'PLN-2,PLN-3,PLN-1');
+    w.unmount();
+  });
+  it('board:subtasks клик по значку подзадач показывает их под карточкой, повторный — скрывает', async () => {
+    const p = task(1);
+    await db
+      .table('tasks')
+      .bulkPut([
+        p,
+        task(2, { parentId: p.id, title: 'первая', rank: 'a1' }),
+        task(3, { parentId: p.id, title: 'вторая', rank: 'a2' }),
+      ]);
+    const w = mount(View, {
+      props: { projectId: ids.project, options: options('status') },
+      global: { plugins: [i18n] },
+    });
+    vi.mocked(openTask).mockClear();
+    await until(() => w.find('[data-testid=row-children]').exists());
+    const chip = w.get('[data-testid=row-children]');
+    expect(chip.attributes('aria-expanded')).toBe('false');
+    await chip.trigger('click');
+    await until(() => w.findAll('[data-testid=card-subtasks] li').length === 2);
+    expect(w.findAll('[data-testid=card-subtasks] li').map((x) => x.text())).toEqual([
+      'первая',
+      'вторая',
+    ]);
+    expect(vi.mocked(openTask)).not.toHaveBeenCalled();
+    vi.mocked(openFromCard).mockClear();
+    await w.get('[data-testid=card-subtasks] [data-task=PLN-3]').trigger('click');
+    expect(vi.mocked(openFromCard)).toHaveBeenCalledWith('PLN-3');
+    await w.get('[data-testid=row-children]').trigger('click');
+    await until(() => !w.find('[data-testid=card-subtasks]').exists());
     w.unmount();
   });
 });

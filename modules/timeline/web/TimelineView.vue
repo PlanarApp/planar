@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { CalendarDays, CalendarRange, Columns3, PanelRight } from 'lucide-vue-next';
+import { CalendarDays, CalendarRange, Columns3, PanelRight } from '@lucide/vue';
 import {
   Button,
   db,

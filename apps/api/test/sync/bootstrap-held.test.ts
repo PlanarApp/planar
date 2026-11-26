@@ -87,3 +87,23 @@ describe('bootstrap v3: детали только «моих» задач', () =
     expect(ids(b.data.comments)).not.toContain(t.comment);
   });
 });
+
+describe('lean bootstrap', () => {
+  it('задачи без описания, описания — страницами bootstrapHeavy только видимого', async () => {
+    const w = await world(db);
+    const a = taskArgs(w, { description: doc('A') });
+    const b = taskArgs(w, { title: 'B' });
+    await w.admin.ok('task.create', a);
+    await w.admin.ok('task.create', b);
+    const full = await w.member.bootstrap(SYNC_PROTOCOL);
+    expect((full.data.tasks as Row[]).find((t) => t.id === a.id)?.description).not.toBeNull();
+    const lean = await w.member.bootstrap(SYNC_PROTOCOL, true);
+    expect(lean.lean).toBe(true);
+    expect((lean.data.tasks as Row[]).every((t) => t.description === null)).toBe(true);
+    const h = await w.member.heavy();
+    expect(h.items.map((i) => i.id)).toEqual([a.id]); // b has no description
+    expect(JSON.stringify(h.items[0].description)).toContain('A');
+    expect(h.next).toBeUndefined();
+    expect((await w.outsider.heavy()).items).toEqual([]);
+  });
+});

@@ -75,3 +75,9 @@ export async function safeAddress(hostname: string): Promise<{ address: string; 
   if (!allowed(host, addrs) && addrs.some(isBlocked)) throw new BlockedAddress();
   return { address: list[0]!.address, family: list[0]!.family as 4 | 6 };
 }
+
+/** `lookup` for http(s).request / Agent: the connection goes to the verified address, without re-resolving (DNS rebinding). */
+export const pinnedLookup =
+  ({ address, family }: { address: string; family: 4 | 6 }) =>
+  (_h: string, o: { all?: boolean }, cb: (...a: unknown[]) => void) =>
+    o.all ? cb(null, [{ address, family }]) : cb(null, address, family);

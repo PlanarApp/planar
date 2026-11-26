@@ -28,15 +28,29 @@ export interface HeldRow {
 }
 export interface MetaRow {
   /** protocol — the C-sync version of the last bootstrap (PLNRAPP-487) */
-  key: 'clientId' | 'userId' | 'cursor' | 'lastMutationId' | 'schema' | 'protocol';
+  key:
+    | 'clientId'
+    | 'userId'
+    | 'cursor'
+    | 'lastMutationId'
+    | 'schema'
+    | 'protocol'
+    | 'heavy'
+    | 'heavyAfter';
   value: string | number;
 }
 
 /** Replica-only indexes of core entities (no server index behind them). */
-const CLIENT_INDEXES: Record<string, string[]> = { tasks: ['createdBy'] };
+const CLIENT_INDEXES: Record<string, string[]> = {
+  tasks: ['createdBy', '[projectId+number]'],
+  projects: ['key'],
+};
 
 /** Core indexes and service tables that appeared in v4 — absent from the declarations of v1–v3. */
-const SINCE_V4 = { skip: ['_held'], omit: ['tasks.createdBy'] };
+const SINCE_V4 = {
+  skip: ['_held'],
+  omit: ['tasks.createdBy', 'tasks.[projectId+number]', 'projects.key'],
+};
 
 /**
  * Dexie schema: a table per entity (indexes from meta.indexes + CLIENT_INDEXES) + service ones;

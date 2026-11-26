@@ -1,21 +1,23 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CalendarDays, Flag, FolderKanban, Tag, UserRound } from 'lucide-vue-next';
+import { CalendarDays, Flag, FolderKanban, Tag, UserRound } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import {
   AssigneePicker,
-  DueDatePicker,
   LabelPicker,
   PriorityIcon,
   PriorityPicker,
   setAssignees,
   setLabels,
+  TaskDatesPicker,
   updateTask,
   type TaskView,
 } from '../../tasks';
-import { AvatarStack, Badge } from '../../ui';
+import { AvatarStack } from '../../ui';
 import { dueTone as dueToneOf, formatDue } from '../list/due';
+import DatesValue from '../../tasks/fields/DatesValue.vue';
+import LabelsValue from '../../tasks/fields/LabelsValue.vue';
 
 export type CardCol = 'project' | 'priority' | 'dueDate' | 'assignee' | 'labels';
 // card field: at rest — the value; while the card is under the cursor — a picker with the same content (click — choose)
@@ -30,10 +32,8 @@ const props = defineProps<{
   projectName?: string;
   /** mobile: icons only (the text — in the hint) */
   iconOnly?: boolean;
-  /** tag names even with iconOnly (the "Show tag names" option) */
+  /** label names next to the tag icons (the "Show label names" option) */
   labelNames?: boolean;
-  /** PLNRAPP-802: the mobile List — a tag icon (12 px, the tag's color) before the name instead of the dot */
-  tagIcon?: boolean;
   /** the List card on desktop: the value frame of the dense picker buttons (24 px, 2 px sides) */
   dense?: boolean;
 }>();
@@ -52,15 +52,18 @@ const box = computed(() =>
     props.dense ? 'h-6 px-0.5' : 'h-7 px-1.5',
   ].join(' '),
 );
-const due = computed(() => (props.task.dueDate ? formatDue(props.task.dueDate, locale.value) : ''));
-// overdue — red, today — accent, future — neutral (PLNRAPP-872); an icon without text must show this too
-const dueTone = computed(() => dueToneOf(props.task.dueDate));
+const due = computed(() =>
+  [props.task.startDate, props.task.dueDate]
+    .filter((d): d is string => !!d)
+    .map((d) => formatDue(d, locale.value))
+    .join(' – '),
+);
+// the icon without text shows the due date's color (only a start — the start's)
+const dueTone = computed(() => {
+  const d = props.task.dueDate ?? props.task.startDate;
+  return dueToneOf(d);
+});
 const empty = 'text-fg-subtle opacity-60';
-// mobile: a tag icon in the tag's color per tag, unless the names are asked for
-// the List card (tagIcon): tag icons too, names with the "Show tag names" option
-const tagIcons = computed(() => (props.iconOnly || props.tagIcon) && !props.labelNames);
-// PLNRAPP-802: a tag with the icon — as Badge dot (h-5 text-xs), the gap to the name 2 px
-const tagChip = 'inline-flex h-5 items-center gap-0.5 text-xs font-medium text-fg-muted';
 </script>
 
 <template>
@@ -78,16 +81,29 @@ const tagChip = 'inline-flex h-5 items-center gap-0.5 text-xs font-medium text-f
           <PriorityIcon v-if="task.priority" :priority="task.priority" />
           <Flag v-else :size="14" :class="empty" /></template
       ></PriorityPicker>
-      <DueDatePicker
+      <TaskDatesPicker
         v-else-if="col === 'dueDate'"
         :task-id="task.id"
-        :model-value="task.dueDate"
-        @update:model-value="updateTask(task.id, { dueDate: $event })"
+        :start="task.startDate"
+        :due="task.dueDate"
+        :start-time="task.startTime"
+        :due-time="task.dueTime"
+        :due-remind-min="task.dueRemindMin"
+        @update:start="(v: string | null) => updateTask(task.id, { startDate: v })"
+        @update:due="(v: string | null) => updateTask(task.id, { dueDate: v })"
+        @update:start-time="(v: string | null) => updateTask(task.id, { startTime: v })"
+        @update:due-time="(v: string | null) => updateTask(task.id, { dueTime: v })"
+        @update:due-remind-min="(v: number | null) => updateTask(task.id, { dueRemindMin: v })"
         ><template #value>
-          <CalendarDays v-if="task.dueDate && iconOnly" :size="14" :class="dueTone" />
-          <span v-else-if="task.dueDate" :class="dueTone">{{ due }}</span>
+          <CalendarDays v-if="due && iconOnly" :size="14" :class="dueTone" />
+          <DatesValue
+            v-else-if="due"
+            :start="task.startDate"
+            :due="task.dueDate"
+            :start-time="task.startTime"
+            :due-time="task.dueTime" />
           <CalendarDays v-else :size="14" :class="empty" /></template
-      ></DueDatePicker>
+      ></TaskDatesPicker>
       <AssigneePicker
         v-else-if="col === 'assignee'"
         :space-id="spaceId"
@@ -104,30 +120,8 @@ const tagChip = 'inline-flex h-5 items-center gap-0.5 text-xs font-medium text-f
         :model-value="task.labelIds"
         @update:model-value="setLabels(task.id, $event)"
         ><template #value>
-          <Tag
-            v-for="l in tagIcons ? chosen : []"
-            :key="l.id"
-            :size="14"
-            class="shrink-0 text-fg-subtle"
-            :style="l.color ? { color: l.color } : undefined" />
-          <template v-if="!tagIcons && tagIcon"
-            ><span v-for="l in chosen" :key="l.id" :class="tagChip" data-testid="card-tag"
-              ><Tag
-                :size="12"
-                class="shrink-0 text-fg-muted"
-                aria-hidden="true"
-                :style="l.color ? { color: l.color } : undefined"
-              />{{ l.name }}</span
-            ></template
-          >
-          <Badge
-            v-for="l in tagIcons || tagIcon ? [] : chosen"
-            :key="l.id"
-            dot
-            :color="l.color ?? undefined"
-            >{{ l.name }}</Badge
-          >
-          <Tag v-if="!chosen.length" :size="14" :class="empty" /></template
+          <LabelsValue v-if="chosen.length" :labels="chosen" :names="labelNames" />
+          <Tag v-else :size="14" :class="empty" /></template
       ></LabelPicker>
     </template>
     <span
@@ -148,8 +142,14 @@ const tagChip = 'inline-flex h-5 items-center gap-0.5 text-xs font-medium text-f
         <Flag v-else :size="14" :class="empty" />
       </template>
       <template v-else-if="col === 'dueDate'">
-        <CalendarDays v-if="task.dueDate && iconOnly" :size="14" :class="dueTone" />
-        <span v-else-if="task.dueDate" :class="dueTone">{{ due }}</span>
+        <CalendarDays v-if="due && iconOnly" :size="14" :class="dueTone" />
+        <DatesValue
+          v-else-if="due"
+          :start="task.startDate"
+          :due="task.dueDate"
+          :start-time="task.startTime"
+          :due-time="task.dueTime"
+        />
         <CalendarDays v-else :size="14" :class="empty" />
       </template>
       <template v-else-if="col === 'assignee'">
@@ -157,31 +157,8 @@ const tagChip = 'inline-flex h-5 items-center gap-0.5 text-xs font-medium text-f
         <UserRound v-else :size="14" :class="empty" />
       </template>
       <template v-else>
-        <Tag
-          v-for="l in tagIcons ? chosen : []"
-          :key="l.id"
-          :size="14"
-          class="shrink-0 text-fg-subtle"
-          :style="l.color ? { color: l.color } : undefined"
-        />
-        <template v-if="!tagIcons && tagIcon"
-          ><span v-for="l in chosen" :key="l.id" :class="tagChip" data-testid="card-tag"
-            ><Tag
-              :size="12"
-              class="shrink-0 text-fg-muted"
-              aria-hidden="true"
-              :style="l.color ? { color: l.color } : undefined"
-            />{{ l.name }}</span
-          ></template
-        >
-        <Badge
-          v-for="l in tagIcons || tagIcon ? [] : chosen"
-          :key="l.id"
-          dot
-          :color="l.color ?? undefined"
-          >{{ l.name }}</Badge
-        >
-        <Tag v-if="!chosen.length" :size="14" :class="empty" />
+        <LabelsValue v-if="chosen.length" :labels="chosen" :names="labelNames" />
+        <Tag v-else :size="14" :class="empty" />
       </template>
     </span>
   </span>

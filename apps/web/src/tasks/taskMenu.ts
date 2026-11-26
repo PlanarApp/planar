@@ -1,4 +1,4 @@
-import type { MaybeRefOrGetter } from 'vue';
+import type { Component, MaybeRefOrGetter } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   Archive,
@@ -6,6 +6,7 @@ import {
   ArrowRightLeft,
   CalendarDays,
   CircleDot,
+  Copy,
   CopyPlus,
   ExternalLink,
   Flag,
@@ -13,41 +14,35 @@ import {
   Hash,
   Link,
   Maximize2,
+  PanelRight,
   Star,
   StarOff,
-  Sun,
   Trash2,
   UserRound,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import type { MenuItem } from '../ui/Menu.vue';
 import { toast } from '../ui/toast';
-import { useAuth } from '../auth/useAuth';
-import { localToday } from '../views/filter';
-import { addDays } from '../views/calendar/dates';
 import { openTask } from '../views/open';
 import { favorites } from '../layout/nav';
-import { planToday } from '../inbox/myDay';
-import { useMembers, useStatuses } from './dictionaries';
 import { useProjectAdmin } from './admin';
-import { archiveTask, createTask, deleteTask, restoreTask, setAssignees, updateTask } from './ops';
+import { archiveTask, createTask, deleteTask, restoreTask } from './ops';
 import { mergeFrom } from './merge';
 import { moveTarget } from './move';
 import { moveMenu, useMoveSpaces } from './moveTargets';
 import type { TaskView } from './queries';
-import PriorityIcon from './fields/PriorityIcon.vue';
-import StatusIcon from './fields/StatusIcon.vue';
 
-const PRIORITIES = [1, 2, 3, 4, 0];
+/** a value field the menu opens the picker of */
+export type TaskMenuField = 'status' | 'priority' | 'assignee' | 'dates';
 
 /**
- * Task context menu (List, Board, Table): open, link, status, priority,
- * assignees, due date, move to another project, duplicate, merge, delete. Dictionaries are read once per view.
+ * Task context menu (List, Board, Table): open, copy, the value fields (their pickers), move to another project,
+ * duplicate, merge, archive, delete (always confirmed, cannot be undone). Dictionaries are read once per view.
  */
-export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
+export function useTaskMenu(
+  spaceId: MaybeRefOrGetter<string>,
+  openField?: (field: TaskMenuField, task: TaskView) => void,
+) {
   const { t } = useI18n();
-  const session = useAuth().user;
-  const statuses = useStatuses(spaceId);
-  const members = useMembers(spaceId);
   const admin = useProjectAdmin();
   // move targets (PLNRAPP-519): spaces → projects I can change; the pick opens MoveTaskDialog
   const spaces = useMoveSpaces();
@@ -79,51 +74,56 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
   const copy = (text: string, note: string) =>
     navigator.clipboard?.writeText(text).then(() => toast(note, 2500));
 
-  const due = (task: TaskView, d: string | null) => void updateTask(task.id, { dueDate: d });
-
-  // «My day» (PLANARAPP-10, PLNRAPP-864): due today; no «remove from the day» — a task leaves the day only by
-  // a due date change (the «Due date» item)
-  const myDayItem = (task: TaskView): MenuItem[] =>
-    task.dueDate === localToday()
-      ? []
-      : [
-          {
-            id: 'myDay',
-            label: t('myDay.add'),
-            icon: Sun,
-            shortcut: 'D', // in the List, on the focused task (PLNRAPP-80)
-            onSelect: () => void planToday(task.id),
-          },
-        ];
+  // the value fields open their picker (the List, Board, Table menu); without openField (the task form, where the
+  // fields are on screen) they are not in the menu
+  const fieldItem = (
+    task: TaskView,
+    field: TaskMenuField,
+    label: string,
+    icon: Component,
+  ): MenuItem[] =>
+    openField ? [{ id: field, label, icon, onSelect: () => openField(field, task) }] : [];
 
   return (task: TaskView): MenuItem[] => {
-    const me = session.value?.id;
-    const today = localToday();
     return [
       {
         id: 'open',
         label: t('taskMenu.open'),
         icon: Maximize2,
-        onSelect: () => openTask(task.key),
+        actions: [
+          {
+            id: 'open',
+            label: t('taskMenu.openHere'),
+            icon: PanelRight,
+            onSelect: () => openTask(task.key),
+          },
+          {
+            id: 'tab',
+            label: t('taskMenu.newTab'),
+            icon: ExternalLink,
+            onSelect: () => void window.open(`/t/${task.key}`, '_blank'),
+          },
+        ],
       },
       {
-        id: 'tab',
-        label: t('taskMenu.newTab'),
-        icon: ExternalLink,
-        onSelect: () => void window.open(`/t/${task.key}`, '_blank'),
-      },
-      {
-        id: 'link',
-        label: t('taskMenu.copyLink'),
-        icon: Link,
-        onSelect: () =>
-          void copy(new URL(`/t/${task.key}`, location.origin).href, t('sidebar.linkCopied')),
-      },
-      {
-        id: 'key',
-        label: t('taskMenu.copyId', { key: task.key }),
-        icon: Hash,
-        onSelect: () => void copy(task.key, t('taskMenu.idCopied')),
+        id: 'copy',
+        label: t('taskMenu.copy'),
+        icon: Copy,
+        actions: [
+          {
+            id: 'link',
+            label: t('taskMenu.copyLink'),
+            icon: Link,
+            onSelect: () =>
+              void copy(new URL(`/t/${task.key}`, location.origin).href, t('sidebar.linkCopied')),
+          },
+          {
+            id: 'key',
+            label: t('taskMenu.copyKey', { key: task.key }),
+            icon: Hash,
+            onSelect: () => void copy(task.key, t('taskMenu.idCopied')),
+          },
+        ],
       },
       {
         id: 'fav',
@@ -132,94 +132,11 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
         onSelect: () =>
           favorites.toggle({ kind: 'task', id: task.id, name: task.title, to: `/t/${task.key}` }),
       },
-      ...myDayItem(task),
       { separator: true },
-      {
-        id: 'status',
-        label: t('tasks.status'),
-        icon: CircleDot,
-        children: (statuses.value ?? [])
-          .filter((s) => s.projectId === task.projectId)
-          .map((s) => ({
-            id: s.id,
-            label: s.name,
-            icon: StatusIcon,
-            iconProps: { status: s },
-            checked: s.id === task.statusId,
-            onSelect: () => void updateTask(task.id, { statusId: s.id }),
-          })),
-      },
-      {
-        id: 'priority',
-        label: t('tasks.priorityTitle'),
-        icon: Flag,
-        children: PRIORITIES.map((p) => ({
-          id: String(p),
-          label: t(`tasks.priority.${p}`),
-          icon: PriorityIcon,
-          iconProps: { priority: p },
-          checked: p === task.priority,
-          onSelect: () => void updateTask(task.id, { priority: p }),
-        })),
-      },
-      {
-        id: 'assignee',
-        label: t('tasks.assignee'),
-        icon: UserRound,
-        children: [
-          ...(me && !task.assigneeIds.includes(me)
-            ? [
-                {
-                  id: 'me',
-                  label: t('taskMenu.assignMe'),
-                  onSelect: () => void setAssignees(task.id, [...task.assigneeIds, me]),
-                },
-              ]
-            : []),
-          ...(members.value ?? []).map((u) => {
-            const on = task.assigneeIds.includes(u.id);
-            return {
-              id: u.id,
-              label: u.name,
-              checked: on,
-              onSelect: () =>
-                void setAssignees(
-                  task.id,
-                  on ? task.assigneeIds.filter((x) => x !== u.id) : [...task.assigneeIds, u.id],
-                ),
-            };
-          }),
-        ],
-      },
-      {
-        id: 'due',
-        label: t('taskMenu.due'),
-        icon: CalendarDays,
-        children: [
-          {
-            id: 'today',
-            label: t('taskMenu.today'),
-            checked: task.dueDate === today,
-            onSelect: () => due(task, today),
-          },
-          {
-            id: 'tomorrow',
-            label: t('taskMenu.tomorrow'),
-            onSelect: () => due(task, addDays(today, 1)),
-          },
-          {
-            id: 'week',
-            label: t('taskMenu.nextWeek'),
-            onSelect: () => due(task, addDays(today, 7)),
-          },
-          {
-            id: 'none',
-            label: t('taskMenu.noDue'),
-            checked: !task.dueDate,
-            onSelect: () => due(task, null),
-          },
-        ],
-      },
+      ...fieldItem(task, 'status', t('tasks.status'), CircleDot),
+      ...fieldItem(task, 'priority', t('tasks.priorityTitle'), Flag),
+      ...fieldItem(task, 'assignee', t('tasks.assignee'), UserRound),
+      ...fieldItem(task, 'dates', t('taskMenu.due'), CalendarDays),
       moveItem(task),
       { separator: true },
       {
@@ -259,8 +176,17 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
             id: 'archive',
             label: t('archive.toArchive'),
             icon: Archive,
+            // undo — restoring, which only an admin of the project may do
             onSelect: () =>
-              void archiveTask(task.id).then(() => toast(t('archive.archived'), 2500)),
+              void archiveTask(task.id).then(() =>
+                toast(
+                  t('archive.archived'),
+                  10000,
+                  admin(task.spaceId, task.projectId)
+                    ? { label: t('archive.undo'), run: () => void restoreTask(task.id) }
+                    : undefined,
+                ),
+              ),
           },
       ...(admin(task.spaceId, task.projectId)
         ? [
@@ -270,8 +196,8 @@ export function useTaskMenu(spaceId: MaybeRefOrGetter<string>) {
               icon: Trash2,
               danger: true,
               confirm: {
-                title: t('list.deleteTitle'),
-                description: t('list.deleteText', { n: 1 }),
+                title: t('task.deleteTitle'),
+                description: t('task.deleteText'),
                 confirmLabel: t('list.delete'),
               },
               onSelect: () => void deleteTask(task.id),

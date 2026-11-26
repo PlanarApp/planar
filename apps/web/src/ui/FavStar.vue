@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import { Star } from 'lucide-vue-next';
+import { Star } from '@lucide/vue';
 import Tooltip from './Tooltip.vue';
 
 // favourite toggle: grey star — not in favourites, yellow filled — in favourites

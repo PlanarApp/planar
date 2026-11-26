@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } f
 import { generateKeyBetween } from 'fractional-indexing';
 import { HttpError } from '../../auth/errors.js';
 import * as s from '../../db/schema.js';
+import { mySpaceIds } from '../../sync/my-spaces.js';
 import { hiddenProjectIds } from '../../sync/project-access.js';
 import { toWire } from '../../sync/rows.js';
 import { toV1Tasks } from '../v1-tasks.js';
@@ -10,11 +11,7 @@ import type { ExtDeps } from './types.js';
 export const notFound = (what: string) => new HttpError(404, 'not_found', `${what} не найден`);
 
 export async function mySpaces(d: ExtDeps, userId: string) {
-  const rows = await d.db
-    .select({ id: s.spaceMembers.spaceId })
-    .from(s.spaceMembers)
-    .where(eq(s.spaceMembers.userId, userId));
-  return rows.map((r) => r.id);
+  return mySpaceIds(d.db, userId);
 }
 
 export async function requireSpace(d: ExtDeps, userId: string, spaceId: string) {
@@ -125,14 +122,14 @@ export async function requireFavoriteRef(d: ExtDeps, userId: string, kind: strin
   else if (kind === 'doc') {
     // a page of the user's spaces outside hidden projects (rule: SQL function project_role)
     const r = await d.db.execute(sql`select 1 from docs_pages p where p.id = ${refId}::uuid
-      and exists (select 1 from space_members m where m.space_id = p.space_id and m.user_id = ${userId}::uuid)
+      and can_see_space(${userId}::uuid, p.space_id)
       and (p.project_id is null or project_role(${userId}::uuid, p.project_id) is not null)`);
     if (!r.rows.length) throw notFound('Документ');
   } else if (kind === 'chat') {
     // as canSee of the chat module: a space member (project not hidden) or a member of a dialog
     const r = await d.db.execute(sql`select 1 from chat_channels c where c.id = ${refId}::uuid and (
       (c.space_id is not null
-        and exists (select 1 from space_members m where m.space_id = c.space_id and m.user_id = ${userId}::uuid)
+        and can_see_space(${userId}::uuid, c.space_id)
         and (c.project_id is null or project_role(${userId}::uuid, c.project_id) is not null))
       or (c.space_id is null
         and exists (select 1 from chat_members m where m.channel_id = c.id and m.user_id = ${userId}::uuid)))`);

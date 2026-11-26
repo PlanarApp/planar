@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Play, Plus, Square } from 'lucide-vue-next';
+import { Play, Plus, Square } from '@lucide/vue';
 import { IconButton, Popover } from '@planar/web/modules';
 import TimerPanel from './TimerPanel.vue';
-import { mutate, newId, tr, useMyEntries, useNow } from './data';
-import { clock, hm } from './lib';
+import { mutate, newId, tr, useEstimate, useMyEntries, useNow } from './data';
+import { clock, hm, timeTone } from './lib';
 
 // task time as in ClickUp: start/stop on the left, my tracked time on the right;
 // a click on the time — a menu with the new-entry form and the entries list (TimerPanel)
@@ -32,6 +32,11 @@ const shown = computed(() =>
   runningHere.value ? clock(Math.max(0, total.value)) : hm(total.value),
 );
 
+// the estimate, if any: «spent / estimate», the time is colored as it nears and passes it
+const estimate = useEstimate(() => props.taskId);
+const estSec = computed(() => (estimate.value?.minutes ?? 0) * 60);
+const tone = computed(() => timeTone(total.value, estSec.value));
+
 const toggle = () =>
   runningHere.value
     ? mutate('time.stop', { id: running.value!.id })
@@ -54,12 +59,20 @@ const toggle = () =>
         <!-- no time yet — a «+» (PLNRAPP-128), the label stays for screen readers and the tooltip -->
         <button
           type="button"
-          :class="['time', runningHere && 'live', !shown && 'muted']"
-          :aria-label="shown ? undefined : tr('addManual')"
-          :title="shown ? undefined : tr('addManual')"
+          :class="[
+            'time',
+            runningHere && 'live',
+            !shown && !estSec && 'muted',
+            tone && `tone-${tone}`,
+          ]"
+          :aria-label="shown || estSec ? undefined : tr('addManual')"
+          :title="shown || estSec ? undefined : tr('addManual')"
           data-test="time-total"
         >
-          <template v-if="shown">{{ shown }}</template>
+          <template v-if="shown || estSec">
+            {{ shown || '0:00'
+            }}<span v-if="estSec" data-test="time-estimate"> / {{ hm(estSec) }}</span>
+          </template>
           <Plus v-else :size="14" aria-hidden="true" />
         </button>
       </template>
@@ -106,6 +119,12 @@ const toggle = () =>
 }
 .muted {
   color: var(--color-fg-subtle);
+}
+.tone-near {
+  color: var(--color-time-near);
+}
+.tone-over {
+  color: var(--color-time-over);
 }
 .menu {
   width: 22rem;

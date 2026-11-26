@@ -64,7 +64,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
   <div
     v-if="panelOpen && side"
     role="dialog"
-    class="fixed bottom-0 right-0 top-[calc(2.75rem+env(safe-area-inset-top))] z-30 flex max-w-full overflow-hidden border-l border-border bg-surface pb-[env(safe-area-inset-bottom)] shadow-dialog"
+    class="fixed bottom-0 right-0 top-[calc(2.75rem+env(safe-area-inset-top)+var(--banner-h,0px))] z-30 flex max-w-full overflow-hidden border-l border-border bg-surface pb-[env(safe-area-inset-bottom)] shadow-dialog"
     :style="{ width: taskPanelWidth + 'px' }"
     data-testid="task-side"
   >

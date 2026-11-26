@@ -3,11 +3,12 @@ import type { Row } from '@planar/shared';
 import { db, mutate, newId, rankBetween, replicaState, syncState, useQuery } from '../sync';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { LogOut, Languages, Monitor, Moon, Settings, Sun, User } from 'lucide-vue-next';
+import { Languages, Lock, LogOut, Monitor, Moon, Sun, User } from '@lucide/vue';
 import type { MenuItem } from '../ui/Menu.vue';
 import { useTheme } from '../ui/useTheme';
 import { setLocale } from '../i18n';
 import { useAuth } from '../auth/useAuth';
+import { lock } from '../auth/lock';
 import { useSpaces, useWorkspace } from '../tasks/queries';
 
 const KEY = 'planar.sidebar.collapsed';
@@ -38,24 +39,18 @@ export const mobileNav = ref(false);
 
 const notice = ref(''); // common: shown in TopBar on any menu entry
 
-/** User menu (profile, settings, theme, language, logout) — in the panel header and in TopBar on mobile. */
+/** User menu (profile, theme, language, logout) — in the panel header and in TopBar on mobile. */
 export function useUserMenu() {
   const { t, locale } = useI18n();
   const router = useRouter();
   const { theme } = useTheme();
-  const { logout } = useAuth();
+  const { logout, canLock } = useAuth();
   const items = (): MenuItem[] => [
     {
       id: 'profile',
       label: t('topbar.profile'),
       icon: User,
       onSelect: () => router.push('/profile'),
-    },
-    {
-      id: 'settings',
-      label: t('topbar.settings'),
-      icon: Settings,
-      onSelect: () => router.push('/settings'),
     },
     { separator: true },
     {
@@ -84,6 +79,9 @@ export function useUserMenu() {
       onSelect: () => setLocale(locale.value === 'ru' ? 'en' : 'ru'),
     },
     { separator: true },
+    ...(canLock.value
+      ? [{ id: 'lock', label: t('security.lockNow'), icon: Lock, onSelect: () => void lock() }]
+      : []),
     {
       id: 'logout',
       label: t('auth.signOut'),
@@ -103,9 +101,11 @@ export interface NavSpace {
   name: string;
   color: string | null;
   icon: string | null;
+  rank: string;
   projects: {
     id: string;
     name: string;
+    rank: string;
     prefix: string;
     color: string | null;
     icon: string | null;
@@ -235,9 +235,11 @@ export function useNavData(): {
       name: s.name,
       color: s.color,
       icon: s.icon,
+      rank: s.rank,
       projects: s.projects.map((p) => ({
         id: p.id,
         name: p.name,
+        rank: p.rank,
         prefix: p.key,
         color: p.color,
         icon: p.icon,

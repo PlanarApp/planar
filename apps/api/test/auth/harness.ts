@@ -53,7 +53,7 @@ export function useApp({
 }
 
 export const req = (
-  method: 'GET' | 'POST' | 'PATCH',
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   url: string,
   o: {
     cookie?: string;

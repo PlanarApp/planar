@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { observeElementRect, useVirtualizer } from '@tanstack/vue-virtual';
 import type { Rect, Virtualizer } from '@tanstack/vue-virtual';
 import { VueDraggable } from 'vue-draggable-plus';
-import { ChevronsLeft, Plus } from 'lucide-vue-next';
+import { ChevronsLeft, Plus } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import type { TaskGroup, TaskView } from '../../tasks';
 import { Input } from '../../ui';
@@ -38,6 +38,10 @@ const props = defineProps<{
   noAdd?: boolean;
   /** whole task names on the cards (the "Wrap task names" option) */
   wrap?: boolean;
+  /** the task key on the card (the "Show task key" option) */
+  showKey?: boolean;
+  /** tag names instead of tag icons on mobile (the "Show tag names" option) */
+  labelNames?: boolean;
   /** the board's keyboard-focused card (ringed, scrolled into view) */
   focusedId?: string | null;
   /** PLNRAPP-293: how many tasks a drag of a selected card carries; > 1 — the «+N» badge in the drag preview */
@@ -59,7 +63,7 @@ const filled = (x: TaskView, c: CardCol) =>
     : c === 'priority'
       ? !!x.priority
       : c === 'dueDate'
-        ? !!x.dueDate
+        ? !!(x.dueDate || x.startDate)
         : c === 'assignee'
           ? x.assigneeIds.length > 0
           : x.labelIds.some((l) => label(l));
@@ -284,7 +288,8 @@ function submit() {
           :data-task-id="x.id"
           tabindex="0"
           :class="[
-            'relative mb-2 flex cursor-grab flex-col gap-1 rounded-lg border bg-surface p-2 text-sm focus-visible:ring-2 ring-focus',
+            // inset ring: the column scrolls, an outer ring of the top card is cut off under the header
+            'relative mb-2 flex cursor-grab flex-col gap-1 rounded-lg border bg-surface p-2 text-sm ring-inset focus-visible:ring-2 ring-focus',
             sel.selected.value.has(x.id) ? 'border-accent bg-accent-subtle' : 'border-border',
             sel.active.value && 'pr-8',
             focusedId === x.id && 'ring-2',
@@ -329,6 +334,11 @@ function submit() {
             :parent="x.parentId ? parents?.get(x.parentId) : undefined"
             :project-name="projects?.get(x.projectId)"
             :wrap="wrap"
+            :show-key="showKey"
+            :label-names="labelNames"
+            :status="fields.includes('status')"
+            :ai="fields.includes('ai')"
+            :git="fields.includes('git')"
           />
         </article>
       </VueDraggable>

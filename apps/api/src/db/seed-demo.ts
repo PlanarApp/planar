@@ -91,7 +91,7 @@ function prng(seed: number) {
 
 const USERS = [
   ['maya', 'Maya Chen', 'owner', '#6366f1'],
-  ['demo', 'Demo User', 'member', '#0ea5e9'],
+  ['demo', 'Demo User', 'admin', '#0ea5e9'],
   ['liam', 'Liam Walker', 'member', '#10b981'],
   ['sofia', 'Sofia Rossi', 'member', '#f43f5e'],
   ['noah', 'Noah Kim', 'member', '#f59e0b'],
@@ -896,6 +896,8 @@ async function insertAll(tx: Tx, now: Date) {
         rank: ranks[i],
         dueDate: due !== null ? day(due) : null,
         startDate: due !== null && st === 2 ? day(due - 7) : null,
+        dueTime: due !== null && i % 5 === 0 ? '10:00' : null, // some due dates with a time of day
+        dueRemindMin: due !== null && i % 10 === 0 ? 30 : null, // 30 min instead of the default 10
         createdBy: uid_[who.split(',')[0]!],
         completedAt: done ? at(due !== null ? Math.min(due, -1) : -1) : null,
         cycleId: cycleOf(p.key, t),

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Download } from 'lucide-vue-next';
+import { Download } from '@lucide/vue';
 import { Button, Input, Popover } from '@planar/web/modules';
 import { exportRows, toCsv } from './lib';
 import { isInstanceAdmin, loadExport, tr, userId, useUsers, type Key } from './data';

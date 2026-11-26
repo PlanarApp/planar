@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ChevronLeft, FileText } from 'lucide-vue-next';
+import { ChevronLeft, FileText } from '@lucide/vue';
 import type { Row } from '@planar/shared';
 import { Button, EmptyState, db, mutate, newId, rankBetween, useQuery } from '@planar/web/modules';
 import PageView from './PageView.vue';

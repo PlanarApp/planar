@@ -47,7 +47,7 @@ for (const [name, path, rowSel, oneSel] of [
     await page.goto('/login');
     await page.getByLabel('Логин').fill('alice');
     await page.getByLabel('Пароль').fill('alice');
-    await page.getByRole('button', { name: 'Войти' }).click();
+    await page.getByRole('button', { name: 'Войти', exact: true }).click();
     await page.waitForURL((u) => !u.pathname.startsWith('/login'));
 
     await page.goto(path);

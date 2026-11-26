@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { RouterLink, useRouter, type RouteLocationRaw } from 'vue-router';
-import { ChevronRight, FileText, Plus } from 'lucide-vue-next';
+import { ChevronRight, FileText, Plus } from '@lucide/vue';
 import { IconButton, db, mutate, newId, rankBetween, useQuery } from '@planar/web/modules';
 import { buildTree, moveArgs, type DropZone, type PageRow, type TreeNode } from './model';
 import { useTexts } from './text';

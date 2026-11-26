@@ -4,7 +4,14 @@ import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { MutatorError, uuidv7, type EntityName, type Row, type Tx } from '@planar/shared';
 import * as schema from '../db/schema.js';
 import { installed } from '../modules/installed.js';
-import { hiddenProjectIds, projectAccess, projectOfWire, PROJECT_RANK } from './project-access.js';
+import {
+  hiddenProjectIds,
+  projectAccess,
+  projectIdSql,
+  projectOfWire,
+  PROJECT_RANK,
+} from './project-access.js';
+import { Notify } from './notify.js';
 import { allMetas, metaOf, schemaOf, tableOf, toWire } from './rows.js';
 
 /** Drizzle transaction (or a connection inside a manual BEGIN). */
@@ -68,6 +75,8 @@ export class ServerTx implements Tx {
   private created = new Set<string>();
   /** Projects created by this transaction: their creator initializes the project's statuses (PJ-1). */
   private createdProjects = new Set<string>();
+  /** spaces whose members got `_reset` in this transaction */
+  private resetSpaces = new Set<string>();
   private instanceRole?: string;
   /** PJ-11: project of a row (`entity:id` -> project id), the user's role in a project (0 — none), projects hidden from the user. */
   private projectOf = new Map<string, string | null>();
@@ -77,6 +86,8 @@ export class ServerTx implements Tx {
   private cache: TxCache;
   private locked: boolean;
   private lastSeq = 0;
+  /** Whom the writes concern (notification payload); `all` — a global row or a membership change. */
+  private notified = new Notify();
   /** Records of this mutation (for the notification hook). */
   readonly writes: TxWrite[] = [];
 
@@ -106,7 +117,9 @@ export class ServerTx implements Tx {
   /** Notification about what was written; call in the same transaction before commit. */
   async finish(): Promise<void> {
     if (this.lastSeq)
-      await this.q.execute(sql`select pg_notify('planar_changes', ${String(this.lastSeq)})`);
+      await this.q.execute(
+        sql`select pg_notify('planar_changes', ${this.notified.payload(this.lastSeq)})`,
+      );
   }
 
   /** Lock until the first read: read-then-write mutations are serialized (C-sync v2). */
@@ -262,8 +275,8 @@ export class ServerTx implements Tx {
     extra?: Record<string, unknown>,
   ): Promise<void> {
     const moved = entity !== 'spaces' && !!old && old.spaceId !== next.spaceId;
-    // only a task or a docs page changes its space (PLNRAPP-152, PLNRAPP-5): its rows follow it in relocate()
-    if (moved && entity !== 'tasks' && (entity as string) !== 'docsPages')
+    // only a project, a task or a docs page changes its space (PLNRAPP-152, PLNRAPP-5): its rows follow it in relocate()
+    if (moved && !['projects', 'tasks', 'docsPages'].includes(entity))
       throw new MutatorError('invalid_args', 'spaceId неизменяем');
     await this.authorize(entity, old, next);
     if (moved) {
@@ -273,6 +286,8 @@ export class ServerTx implements Tx {
       this.projectOf.set(`${entity}:${id}`, (next.projectId as string) ?? null);
     }
     if (entity === 'attachments' && !old) await this.checkFile(next);
+    if (['spaces', 'projects', 'settings', 'templatesTemplates'].includes(entity))
+      await this.checkIcon(entity, old, next);
     if (entity === 'settings' && next.id === 'enabled_modules')
       await this.checkAvailable(old?.value, next.value);
     if (entity === 'projects') await this.checkProjectModules(old, next);
@@ -295,13 +310,17 @@ export class ServerTx implements Tx {
       await this.reset(next.userId as string);
     // a change of the project's composition: the replica of everyone in the space drops what it must (PJ-11)
     if (entity === 'projects' && old && old.membersMode !== next.membersMode)
-      for (const m of await this.exec(() =>
-        this.q
-          .select({ u: schema.spaceMembers.userId })
-          .from(schema.spaceMembers)
-          .where(eq(schema.spaceMembers.spaceId, next.spaceId as string)),
-      ))
-        await this.reset(m.u);
+      await this.resetSpace(next.spaceId as string);
+    // a task/page moved between projects of one space: a custom project on either side changes who sees it,
+    // and a log row of the new project does not remove it from the replica of those who saw the old one
+    if (
+      (entity === 'tasks' || (entity as string) === 'docsPages') &&
+      old &&
+      !moved &&
+      old.projectId !== next.projectId &&
+      (await this.anyCustom([old.projectId, next.projectId]))
+    )
+      await this.resetSpace(next.spaceId as string);
     if (entity === 'settings' && next.id === 'enabled_modules') {
       this.cache.modules = undefined;
       await this.log('_reset', 'put', null, next.id as string);
@@ -422,6 +441,7 @@ export class ServerTx implements Tx {
    * PLNRAPP-152, PLNRAPP-5: a task or docs page moved to another space takes along the rows tied to it — every space entity
    * (core and modules) with taskId or pageId, reactions to its comments: del in the old space, put in the new one;
    * no rights check and no hooks (the move itself is authorized). A child left behind is cut off.
+   * A moved project takes every space row tied to it (project.move).
    */
   private async relocate(entity: EntityName, row: Wire, old: Wire): Promise<void> {
     const id = row.id as string;
@@ -460,6 +480,43 @@ export class ServerTx implements Tx {
           .where(and(eq(schema.tasks.parentId, id), ne(schema.tasks.spaceId, to))),
       );
       for (const r of left) await this.store('tasks', { ...toWire('tasks', r), parentId: null });
+    } else if (entity === 'projects') {
+      // every space row of the project — by its project reference, also through tasks, comments, pages
+      for (const [e, m] of Object.entries(allMetas())) {
+        const pid = m.scope === 'space' && e !== 'projects' ? projectIdSql(e) : null;
+        const c = pid && getTableColumns(tableOf(e));
+        if (!c || !c.spaceId) continue;
+        const rows = await this.exec(() =>
+          this.q
+            .select()
+            .from(tableOf(e))
+            .where(and(sql`${pid} = ${id}`, ne(c.spaceId!, to))),
+        );
+        for (const r of rows) {
+          const w = toWire(e, r);
+          await this.append(w.spaceId as string, null, e, w.id as string, 'del', null, id);
+          await this.store(e as EntityName, { ...w, spaceId: to });
+        }
+      }
+      // a parent and a child now in different spaces (the other one in another project) are cut apart
+      for (const [e, m] of Object.entries(allMetas())) {
+        const t = tableOf(e);
+        const c = getTableColumns(t);
+        if (m.scope !== 'space' || !c.parentId || !c.spaceId) continue;
+        const parentSpace = sql`(select p.space_id from ${t} p where p.id = ${c.parentId})`;
+        const cut = await this.exec(() =>
+          this.q
+            .select()
+            .from(t)
+            .where(
+              and(
+                sql`${c.spaceId} <> ${parentSpace}`,
+                sql`(${c.spaceId} = ${to} or ${parentSpace} = ${to})`,
+              ),
+            ),
+        );
+        for (const r of cut) await this.store(e as EntityName, { ...toWire(e, r), parentId: null });
+      }
     } else if ((entity as string) === 'docsPages') {
       for (const [e, m] of Object.entries(allMetas())) {
         if (m.scope !== 'space' || e === 'docsPages') continue;
@@ -486,6 +543,32 @@ export class ServerTx implements Tx {
       for (const r of left)
         await this.store('docsPages' as EntityName, { ...toWire('docsPages', r), parentId: null });
     }
+  }
+
+  /** `_reset` for every member of the space, once per transaction. */
+  private async resetSpace(spaceId: string): Promise<void> {
+    if (this.resetSpaces.has(spaceId)) return;
+    this.resetSpaces.add(spaceId);
+    for (const m of await this.exec(() =>
+      this.q
+        .select({ u: schema.spaceMembers.userId })
+        .from(schema.spaceMembers)
+        .where(eq(schema.spaceMembers.spaceId, spaceId)),
+    ))
+      await this.reset(m.u);
+  }
+
+  private async anyCustom(projectIds: unknown[]): Promise<boolean> {
+    const ids = projectIds.filter((x): x is string => typeof x === 'string');
+    if (!ids.length) return false;
+    const rows = await this.exec(() =>
+      this.q
+        .select({ id: schema.projects.id })
+        .from(schema.projects)
+        .where(and(inArray(schema.projects.id, ids), eq(schema.projects.membersMode, 'custom')))
+        .limit(1),
+    );
+    return rows.length > 0;
   }
 
   /** `_reset` for one user: their replica is rebuilt from bootstrap. */
@@ -546,6 +629,7 @@ export class ServerTx implements Tx {
         .returning({ seq: schema.changes.seq }),
     );
     this.lastSeq = c.seq;
+    this.notified.add(spaceId, userId, entity);
   }
 
   /** userIds of members of the container of an entity row of scope space|members. */
@@ -619,14 +703,36 @@ export class ServerTx implements Tx {
     } else if (entity === 'comments' && next && !old) {
       kind = 'commented';
       changes = { commentId: row.id };
+    } else if (entity === 'taskLinks' && next && !old && next.kind === 'duplicates') {
+      // a «duplicates» link is what task.merge leaves: a trace in the history of both tasks, with the other one's title
+      const [src, dst] = [
+        await this.rawGet('tasks', next.taskId as string),
+        await this.rawGet('tasks', next.targetId as string),
+      ];
+      if (src && dst) {
+        await this.addActivity(src, 'merged_into', { taskId: dst.id, title: dst.title });
+        await this.addActivity(dst, 'merged_from', { taskId: src.id, title: src.title });
+      }
+      return;
     }
     if (!kind) return;
+    await this.addActivity(
+      {
+        id: entity === 'tasks' ? (row.id as string) : (row.taskId as string),
+        spaceId: row.spaceId as string,
+      },
+      kind,
+      changes,
+    );
+  }
+
+  private async addActivity(t: { id: string; spaceId: string }, kind: string, changes: Wire) {
     await this.store(
       'activity',
       this.parse('activity', {
         id: uuidv7(),
-        spaceId: row.spaceId,
-        taskId: entity === 'tasks' ? row.id : row.taskId,
+        spaceId: t.spaceId,
+        taskId: t.id,
         actorId: this.ctx.userId,
         kind,
         changes,
@@ -638,6 +744,8 @@ export class ServerTx implements Tx {
 
   private async spaceRole(spaceId: string): Promise<number> {
     if (this.created.has(spaceId)) return RANK.admin;
+    // an instance owner/admin changes a space as its admin, without being a member (roles audit 2026-11-26)
+    if (['owner', 'admin'].includes((await this.userRole())!)) return RANK.admin;
     let r = this.roles.get(spaceId);
     if (r === undefined) {
       const [m] = await this.exec(() =>
@@ -705,7 +813,13 @@ export class ServerTx implements Tx {
         this.created.add(spaceId);
         continue;
       }
-      if (w === 'member|self' && r.userId != null && r.userId !== this.ctx.userId)
+      // another user's personal view: only a space admin deletes it (space.delete takes all views of the space)
+      if (
+        w === 'member|self' &&
+        r.userId != null &&
+        r.userId !== this.ctx.userId &&
+        (next || !(await this.isSpaceOrInstanceAdmin(spaceId)))
+      )
         throw forbidden('личный вид другого пользователя');
       // project.create writes the new project's statuses (write: admin) on behalf of a member (projects.md §PJ-1)
       if (entity === 'statuses' && this.createdProjects.has(r.projectId as string)) continue;
@@ -774,5 +888,33 @@ export class ServerTx implements Tx {
         .limit(1),
     );
     if (!a) throw new MutatorError('forbidden', 'файл не загружен этим пользователем');
+  }
+
+  /**
+   * An icon `file:<sha>` opens the file to everyone who sees the space/project (files.controller): only a file the user
+   * uploaded, or one already used as an icon in this space (a project copy, a template).
+   */
+  private async checkIcon(entity: EntityName, old: Wire | undefined, next: Wire): Promise<void> {
+    const iconOf = (r: Wire | undefined): unknown =>
+      entity === 'settings'
+        ? (r?.value as { icon?: unknown } | undefined)?.icon
+        : (entity as string) === 'templatesTemplates'
+          ? (r?.data as { project?: { icon?: unknown } } | undefined)?.project?.icon
+          : r?.icon;
+    const icon = iconOf(next);
+    if (this.opts.system || typeof icon !== 'string' || !icon.startsWith('file:')) return;
+    if (icon === iconOf(old)) return;
+    const spaceId =
+      entity === 'settings' ? null : ((entity === 'spaces' ? next.id : next.spaceId) as string);
+    const { rows } = await this.exec(() =>
+      this.q
+        .execute(sql`select 1 from file_uploads where sha256 = ${icon.slice(5)} and user_id = ${this.ctx.userId}
+        union all select 1 from projects where space_id = ${spaceId} and icon = ${icon}
+        union all select 1 from spaces where id = ${spaceId} and icon = ${icon}
+        union all select 1 from templates_templates where space_id = ${spaceId} and data->'project'->>'icon' = ${icon}
+        limit 1`),
+    );
+    if (!rows.length)
+      throw new MutatorError('forbidden', 'файл иконки не загружен этим пользователем');
   }
 }

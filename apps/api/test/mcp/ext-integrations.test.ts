@@ -8,7 +8,7 @@ import { toolDefs } from '../../src/mcp/tools.js';
 import { area } from '../../src/rest/ext/integrations.js';
 import { RestService } from '../../src/rest/rest.service.js';
 import { createUser, ORIGIN, loginCookie } from '../auth.js';
-import { dbUrl, newDb, taskArgs, world, type World } from '../sync/helpers.js';
+import { dbUrl, newDb, taskArgs, workspaceModule, world, type World } from '../sync/helpers.js';
 
 // PLNRAPP-279 (IG-1): automation runs, webhooks and import job status over REST v1 and MCP, as the user
 const PARITY_INTEGRATIONS: Record<string, string> = {
@@ -53,6 +53,7 @@ beforeAll(async () => {
   await app.listen(0, '127.0.0.1');
   base = await app.getUrl();
   w = await world(db);
+  await workspaceModule(db, 'import');
   const adminId = (await createUser(db, { role: 'admin' })).id;
   admin = await issue(adminId, 'write');
   adminRead = await issue(adminId, 'read');
@@ -155,6 +156,16 @@ describe('интеграции (ext/integrations)', () => {
     const [e2, r2] = await call('list_automation_runs', { id: ruleId });
     expect([e2, r2.code]).toEqual([true, 'module_disabled']);
     await db.execute(sql`update projects set modules = '{automations}' where id = ${w.projectId}`);
+
+    // a custom project without the member: the rule does not exist for them (PJ-11)
+    await w.admin.ok('project.setMembersMode', {
+      projectId: w.projectId,
+      mode: 'custom',
+      members: [{ id: uuidv7(), userId: w.admin.userId, role: 'admin' }],
+    });
+    const [e3, r3] = await call('list_automation_runs', { id: ruleId });
+    expect([e3, r3.code]).toEqual([true, 'not_found']);
+    await w.admin.ok('project.setMembersMode', { projectId: w.projectId, mode: 'inherit' });
   });
 
   it('вебхуки: создать → список → изменить → ping → доставки → повтор → удалить, секрет не отдаётся', async () => {
@@ -294,5 +305,29 @@ describe('интеграции (ext/integrations)', () => {
     expect(
       (await guest('start_import', { ...file, mapping, projectId: w.projectId }))[1].code,
     ).toBe('not_found');
+  });
+
+  it('импорт: модуль выключен (по умолчанию) — module_disabled, задание не создаётся', async () => {
+    await db.execute(
+      sql`update settings set value = value - 'import' where id = 'enabled_modules'`,
+    );
+    try {
+      const call = await mcp(member);
+      const file = { format: 'csv', preset: 'custom', content: 'Title\nA\n' };
+      const before = (await db.execute(sql`select count(*)::int as n from import_jobs`)).rows[0];
+      for (const [tool, args] of [
+        ['preview_import', file],
+        ['start_import', { ...file, mapping: { title: 'Title' }, projectId: w.projectId }],
+        ['get_import_job', { id: uuidv7() }],
+      ] as const) {
+        const [e, r] = await call(tool, args);
+        expect([tool, e, r.code]).toEqual([tool, true, 'module_disabled']);
+      }
+      expect((await db.execute(sql`select count(*)::int as n from import_jobs`)).rows[0]).toEqual(
+        before,
+      );
+    } finally {
+      await workspaceModule(db, 'import');
+    }
   });
 });

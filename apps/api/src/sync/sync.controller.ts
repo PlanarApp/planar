@@ -28,12 +28,14 @@ function parse<T extends z.ZodType>(schema: T, data: unknown): z.output<T> {
   return r.data;
 }
 
-const bootstrapQuery = z.object({ clientId: z.uuid() });
+const bootstrapQuery = z.object({ clientId: z.uuid(), lean: z.enum(['1']).optional() });
+const heavyQuery = z.object({ after: z.uuid().optional() });
 /** C-sync v3: the client's protocol version; no header or not a number — v2. */
 const protocolOf = (v: string | undefined) => (v && /^\d+$/.test(v) ? Number(v) : 2);
 const pullQuery = z.object({
   clientId: z.uuid(),
   cursor: z.coerce.number().int().min(0),
+  page: z.enum(['1']).optional(),
 });
 
 @Controller('sync')
@@ -49,17 +51,20 @@ export class SyncController {
     @Query() q: unknown,
     @Headers(SYNC_PROTOCOL_HEADER.toLowerCase()) protocol?: string,
   ) {
-    return this.pull.bootstrap(
-      getAuth(req).userId,
-      parse(bootstrapQuery, q).clientId,
-      protocolOf(protocol),
-    );
+    const { clientId, lean } = parse(bootstrapQuery, q);
+    return this.pull.bootstrap(getAuth(req).userId, clientId, protocolOf(protocol), !!lean);
+  }
+
+  /** Second phase of a lean bootstrap: task descriptions in pages. */
+  @Get('bootstrap-heavy')
+  bootstrapHeavy(@Req() req: object, @Query() q: unknown) {
+    return this.pull.bootstrapHeavy(getAuth(req).userId, parse(heavyQuery, q).after);
   }
 
   @Get('pull')
   pullChanges(@Req() req: object, @Query() q: unknown) {
-    const { clientId, cursor } = parse(pullQuery, q);
-    return this.pull.pull(getAuth(req).userId, clientId, cursor);
+    const { clientId, cursor, page } = parse(pullQuery, q);
+    return this.pull.pull(getAuth(req).userId, clientId, cursor, !!page);
   }
 
   @Post('push')

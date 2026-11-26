@@ -136,9 +136,6 @@ describe('TaskListView вне «Списка» (PLNRAPP-863)', () => {
       'PLN-2',
       'PLN-1',
     ]);
-    // заголовок «Название» меняет сортировку через источник настроек
-    await w.get('[data-testid=list-head] button').trigger('click');
-    expect(update).toHaveBeenCalledWith({ sortBy: 'title', sortDir: 'desc' });
     w.unmount();
   });
   it('dnd=false — без ручки перетаскивания и при ручном порядке', async () => {

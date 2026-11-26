@@ -63,6 +63,7 @@ import TimerPanel from '../../../../../../modules/time/web/TimerPanel.vue';
 import TimeControl from '../../../../../../modules/time/web/TimeControl.vue';
 import TopbarTimer from '../../../../../../modules/time/web/TopbarTimer.vue';
 import WeekPage from '../../../../../../modules/time/web/WeekPage.vue';
+import { timeTone } from '../../../../../../modules/time/web/lib';
 import {
   dayKey,
   exportRows,
@@ -269,6 +270,25 @@ describe('PLNRAPP-145 диалог времени', () => {
     // the menu (edit/delete) — only on own entries
     expect(rows[0].find('button').exists()).toBe(false);
     expect(rows[1].find('button').exists()).toBe(true);
+  });
+});
+
+describe('свойство «Время»: оценка и цвет', () => {
+  it('показывает «затрачено / оценка» и красит время у оценки и за ней', async () => {
+    st.estimate.value = { id: 'root', minutes: 120 };
+    st.entries.value = [entry({ durationSec: 3600 })];
+    const w = mount(TimeControl, { props: { taskId: 'root' } });
+    const el = () => w.get('[data-test=time-total]');
+    expect(el().text()).toBe('1:00 / 2:00');
+    expect(el().classes()).not.toContain('tone-near');
+    st.entries.value = [entry({ durationSec: 6000 })]; // 83%
+    await w.vm.$nextTick();
+    expect(el().classes()).toContain('tone-near');
+    st.entries.value = [entry({ durationSec: 7500 })];
+    await w.vm.$nextTick();
+    expect(el().classes()).toContain('tone-over');
+    expect(timeTone(7200, 7200)).toBe('near');
+    expect(timeTone(10, 0)).toBe('');
   });
 });
 

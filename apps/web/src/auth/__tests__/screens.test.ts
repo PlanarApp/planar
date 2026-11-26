@@ -119,6 +119,20 @@ describe('auth:profile', () => {
     expect(body).toMatchObject({ name: 'Bob' });
     expect(useAuth().user.value?.name).toBe('Bob');
   });
+  it('часовой пояс: кнопка «Системный» сохраняет зону браузера', async () => {
+    useAuth().user.value = mkUser({ timezone: 'Asia/Almaty' } as never);
+    let body: unknown;
+    mockFetch((m, p, b) => {
+      body = b;
+      return m === 'PATCH' && p === '/api/users/0190-u1'
+        ? json(200, { user: mkUser({ timezone: 'UTC' } as never) })
+        : undefined;
+    });
+    const { w } = await mountAt(ProfileScreen, '/profile');
+    await w.find('[data-testid=timezone-system]').trigger('click');
+    await flushPromises();
+    expect(body).toEqual({ timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+  });
   it('тема и язык', async () => {
     useAuth().user.value = mkUser();
     const { setLocale } = await import('../../i18n');

@@ -2,6 +2,7 @@ import { and, asc, eq, getTableColumns, isNull, type SQL } from 'drizzle-orm';
 import type { PgColumn } from 'drizzle-orm/pg-core';
 import { generateKeyBetween } from 'fractional-indexing';
 import { HttpError } from '../../auth/errors.js';
+import { mySpaceIds } from '../../sync/my-spaces.js';
 import { tableOf, toWire } from '../../sync/rows.js';
 import type { ExtDeps } from './types.js';
 
@@ -69,14 +70,7 @@ export async function spaceRowOf(
 }
 
 export async function visibleSpaceOf(d: ExtDeps, userId: string, spaceId: string, what: string) {
-  const c = cols('spaceMembers');
-  const [m] = isUuid(spaceId)
-    ? await d.db
-        .select({ id: c.id! })
-        .from(tableOf('spaceMembers'))
-        .where(and(eq(c.spaceId!, spaceId), eq(c.userId!, userId)))
-    : [];
-  if (!m) throw notFound(what);
+  if (!isUuid(spaceId) || !(await mySpaceIds(d.db, userId)).includes(spaceId)) throw notFound(what);
 }
 
 export async function goalsOf(d: ExtDeps, spaceId: string, archived: boolean) {

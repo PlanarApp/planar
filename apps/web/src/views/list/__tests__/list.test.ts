@@ -15,10 +15,11 @@ import {
   PriorityPicker,
   setLabels,
   StatusPicker,
+  TaskDatesPicker,
 } from '../../../tasks';
 import OptionPicker from '../../../tasks/fields/OptionPicker.vue';
 import { ids, id, reset, task, until } from '../../../tasks/__tests__/data';
-import { resetBreakpoint } from '../../../ui';
+import { Menu, resetBreakpoint } from '../../../ui';
 import { toasts } from '../../../ui/toast';
 import { commitImeOnEnter } from '../../../ui/imeEnter';
 import { registerModules } from '../../../modules/registry';
@@ -99,14 +100,17 @@ beforeEach(async () => {
 });
 
 describe('list:groups', () => {
-  it('PLNRAPP-823: при группировке общего заголовка списка нет — заголовки у групп', async () => {
+  it('заголовков полей нет: ни шапки списка, ни названий колонок у групп', async () => {
     await db.table('tasks').put(task(1));
     await show();
     expect(w.find('[data-testid=group-row]').exists()).toBe(true);
-    expect(w.find('[data-testid=list-head]').exists()).toBe(false);
+    expect(w.find('[data-testid=group-row]').text()).not.toMatch(/Срок|Приоритет/);
+    expect(w.find('[data-testid=col-resize]').exists()).toBe(false);
     w.unmount();
     await show({ groupBy: 'none' });
-    expect(w.find('[data-testid=list-head]').exists()).toBe(true);
+    await until(() => w.find('[role=row][data-task]').exists());
+    expect(w.find('[data-testid=list-head]').exists()).toBe(false);
+    expect(w.find('[data-testid=col-resize]').exists()).toBe(false);
   });
   it('list:groups по статусу в порядке rank', async () => {
     await db
@@ -266,6 +270,19 @@ describe('list:groups', () => {
     await poll(async () => row('PLN-1').get('[data-testid=card-fields]').text() === '');
     expect(empties()).toBe(0);
     expect(row('PLN-1').get('[data-testid=card-fields]').find('svg').exists()).toBe(true);
+  });
+  it('карточка Списка: поле «Статус» выключено в «Виде» — статуса нет', async () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener() {} }) as never;
+    resetBreakpoint();
+    await db.table('tasks').put(task(1));
+    await show({ fields: ['status', 'priority'] });
+    await poll(async () => w.find('[data-task=PLN-1] p[role=gridcell]').exists());
+    const statusCells = () => row('PLN-1').findAll('div[role=gridcell]');
+    expect(statusCells()).toHaveLength(1);
+    w.unmount();
+    await show({ fields: ['priority'] });
+    await poll(async () => w.find('[data-task=PLN-1] p[role=gridcell]').exists());
+    expect(statusCells()).toHaveLength(0);
   });
   it('list:groups подзадачи скрыты, пока showSubtasks=false', async () => {
     const p = task(1);
@@ -460,7 +477,7 @@ describe('PLNRAPP-291 режим выделения в Списке', () => {
     expect(checks()).toHaveLength(0);
     expect(w.find('[data-testid=bulk-bar]').exists()).toBe(false);
   });
-  it('PLNRAPP-823: «Выбрать все» — в общем заголовке без группировки и в панели при группировке', async () => {
+  it('«Выбрать все» — в панели, с группировкой и без', async () => {
     await db.table('tasks').bulkPut([1, 2, 3].map((n) => task(n, { rank: rank(n) })));
     await show();
     await row('PLN-1').trigger('click', { metaKey: true });
@@ -473,8 +490,8 @@ describe('PLNRAPP-291 режим выделения в Списке', () => {
     useSelection().clear();
     await show({ groupBy: 'none' });
     await row('PLN-1').trigger('click', { metaKey: true });
-    expect(w.find('[data-testid=list-head] [data-testid=select-all]').exists()).toBe(true);
-    expect(w.find('[data-testid=bulk-bar] [data-testid=select-all]').exists()).toBe(false);
+    expect(w.findAll('[data-testid=select-all]')).toHaveLength(1);
+    expect(w.find('[data-testid=bulk-bar] [data-testid=select-all]').exists()).toBe(true);
   });
   it('Shift-клик без якоря выделяет задачу, второй — диапазон подряд идущих строк', async () => {
     await db.table('tasks').bulkPut([1, 2, 3, 4].map((n) => task(n, { rank: rank(n) })));
@@ -516,6 +533,54 @@ describe('PLNRAPP-291 режим выделения в Списке', () => {
     await until(() => useSelection().selected.value.size === 1);
     expect(row('PLN-2').attributes('aria-selected')).toBe('true');
     expect(r.currentRoute.value.query.task).toBeUndefined();
+  });
+  const menuItem = (text: string) =>
+    until(() =>
+      [...document.querySelectorAll<HTMLElement>('[role=menuitem]')].find(
+        (x) => x.textContent?.trim() === text,
+      ),
+    );
+  it('контекстное меню: без «В мой день»; «Открыть» и «Копировать» — строки с двумя кнопками', async () => {
+    await db.table('tasks').put(task(1));
+    await show();
+    await row('PLN-1').trigger('contextmenu');
+    await menuItem('Выбрать');
+    const text = document.body.textContent ?? '';
+    expect(text).not.toContain('В мой день');
+    for (const g of ['Открыть', 'Копировать']) {
+      const group = document.querySelector(`[role=group][aria-label="${g}"]`)!;
+      expect(group.querySelectorAll('[role=menuitem]'), g).toHaveLength(2);
+    }
+  });
+  it('контекстное меню: «Статус» открывает селектор статуса, выбор меняет статус', async () => {
+    const t = task(1);
+    await db.table('tasks').put(t);
+    await show();
+    await row('PLN-1').trigger('contextmenu');
+    (await menuItem('Статус'))!.click();
+    const done = await until(() =>
+      [...document.querySelectorAll<HTMLElement>('[role=option]')].find(
+        (x) => x.textContent?.trim() === 'Done',
+      ),
+    );
+    done!.click();
+    await until(async () => (await db.table('tasks').get(t.id))?.statusId === ids.done);
+  });
+  it('контекстное меню: «В архив» — тост с «Отменить» (админу), отмена возвращает задачу', async () => {
+    const t = task(1);
+    await db.table('tasks').put(t);
+    // restoring is an admin's right: ann is the space admin here
+    await db.table('spaceMembers').toCollection().modify({ role: 'admin' });
+    useAuth().user.value = (await db.table('users').get(ids.ann)) as never;
+    await show();
+    await row('PLN-1').trigger('contextmenu');
+    (await menuItem('В архив'))!.click();
+    await until(async () => !!(await db.table('tasks').get(t.id))?.archivedAt);
+    const { toasts } = await import('../../../ui/toast');
+    const last = await until(() => toasts.value.find((x) => x.text === 'Задача в архиве'));
+    expect(last!.action?.label).toBe('Отменить');
+    last!.action!.run();
+    await until(async () => !(await db.table('tasks').get(t.id))?.archivedAt);
   });
 });
 
@@ -560,6 +625,54 @@ describe('list:bulk', () => {
     sp.vm.$emit('update:modelValue', other);
     await until(() => toasts.value.some((x) => x.text.includes('его нет: 2')));
     expect(await db.table('tasks').where('statusId').equals(ids.todo).count()).toBe(2);
+  });
+  it('list:bulk срок — тот же пикер, что в форме: «Сегодня/Завтра» и время после даты', async () => {
+    const ts = [task(1), task(2)];
+    await db.table('tasks').bulkPut(ts);
+    await show();
+    useSelection().set(ts.map((x) => x.id));
+    await until(() => w.find('[data-testid=bulk-bar]').exists());
+    const dp = w.get('[data-testid=bulk-bar]').getComponent(TaskDatesPicker);
+    expect([...dp.props('taskIds')!].sort()).toEqual(ts.map((x) => x.id).sort());
+    dp.vm.$emit('update:due', '2026-12-01');
+    await nextTick();
+    expect(dp.props('due')).toBe('2026-12-01');
+    await poll(async () => (await db.table('tasks').get(ts[1].id)).dueDate === '2026-12-01');
+  });
+  it('list:bulk перенос в проект: подзадача — вместе с выделенным родителем, статус по имени', async () => {
+    useAuth().user.value = (await db.table('users').get(ids.ann)) as never;
+    const [two, twoTodo] = [id(), id()];
+    await db.table('projects').put({
+      ...(await db.table('projects').get(ids.project)),
+      id: two,
+      name: 'Two',
+      key: 'TWO',
+      rank: 'a2',
+    });
+    await db.table('statuses').put({
+      ...(await db.table('statuses').get(ids.todo)),
+      id: twoTodo,
+      projectId: two,
+    });
+    const parent = task(1);
+    const ts = [task(2, { parentId: parent.id }), parent, task(3)];
+    await db.table('tasks').bulkPut(ts);
+    await show();
+    useSelection().set(ts.map((x) => x.id));
+    await until(() => w.find('[data-testid=bulk-move]').exists());
+    type Item = { label: string; children?: Item[]; onSelect?: () => void };
+    const menu = w
+      .get('[data-testid=bulk-bar]')
+      .findAllComponents(Menu)
+      .find((m) => m.find('[data-testid=bulk-move]').exists())!;
+    const items = menu.props('items') as Item[];
+    items.flatMap((s) => s.children ?? []).find((p) => p.label === 'Two')!.onSelect!();
+    await poll(async () =>
+      (await db.table('tasks').bulkGet(ts.map((x) => x.id))).every((x) => x.projectId === two),
+    );
+    const kid = await db.table('tasks').get(ts[0]!.id);
+    expect([kid.parentId, kid.statusId]).toEqual([parent.id, twoTodo]);
+    expect(useSelection().selected.value.size).toBe(0);
   });
   it('list:bulk архив — участник, без «Удалить» (PLNRAPP-155)', async () => {
     useAuth().user.value = (await db.table('users').get(ids.ann)) as never;
@@ -808,7 +921,7 @@ describe('list:row', () => {
     d.setDate(d.getDate() + n);
     return ymd(d);
   };
-  it('list:row срок (PLNRAPP-872): вчера — красный, сегодня — акцентный, через 3 дня — нейтральный', async () => {
+  it('list:row срок: вчера — красным, сегодня — зелёным, через 3 дня — цветом текста', async () => {
     await db
       .table('tasks')
       .bulkPut([
@@ -821,6 +934,16 @@ describe('list:row', () => {
     expect(tone('PLN-1')).toContain('text-due-overdue');
     expect(tone('PLN-2')).toContain('text-due-today');
     expect(tone('PLN-3')).toContain('text-due-future');
+  });
+  it('list:row начало и срок — оба в ячейке, каждый своим цветом', async () => {
+    await db.table('tasks').put(task(1, { startDate: day(-2), dueDate: day(0) }));
+    await show();
+    const spans = row('PLN-1').findAll('[data-testid=task-dates-value] > span');
+    expect(spans.map((x) => x.classes())).toEqual([
+      expect.arrayContaining(['text-due-overdue']),
+      expect.arrayContaining(['text-fg-muted']),
+      expect.arrayContaining(['text-due-today']),
+    ]);
   });
   it('list:card срок на мобильной карточке 375 px (PLNRAPP-872): те же токены, не белый', async () => {
     await db

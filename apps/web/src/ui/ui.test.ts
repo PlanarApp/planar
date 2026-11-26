@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick, type Component } from 'vue';
 import { TooltipProvider } from 'reka-ui';
-import { Plus } from 'lucide-vue-next';
+import { Plus } from '@lucide/vue';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import ru from '../i18n/ru';

@@ -3,17 +3,17 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   AssigneePicker,
-  DueDatePicker,
   PriorityPicker,
   LabelPicker,
   StatusPicker,
+  TaskDatesPicker,
   setAssignees,
   setLabels,
   updateTask,
   type TaskView,
 } from '../../tasks';
 import type { Row as DbRow } from '@planar/shared';
-import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, GripVertical, MoreHorizontal } from '@lucide/vue';
 import { COLUMN_CLASS, visibleColumns, type ListColumn } from './columns';
 import CellValue from './CellValue.vue';
 import TaskCard from './TaskCard.vue';
@@ -22,7 +22,6 @@ import AiCell from './AiCell.vue';
 import TaskProgress from '../TaskProgress.vue';
 import { BlockedIcon } from '../../links';
 import { isAiField, type TaskField } from '../options';
-import { dueTone as dueToneOf } from './due';
 import { useBreakpoint } from '../../ui/useBreakpoint';
 import { toast } from '../../ui/toast';
 
@@ -138,7 +137,7 @@ const cardCols = computed(() =>
     (c) => props.fields.includes(c) && (props.showEmpty || filled(c)),
   ),
 );
-// value frame = the picker button's frame (OptionPicker, DueDatePicker): the change on hover is not visible
+// value frame = the picker button's frame (OptionPicker, TaskDatesPicker): the change on hover is not visible
 const box = 'inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 text-sm text-fg';
 const labelsSet = computed(() =>
   props.task.labelIds.flatMap((id) => props.labels.find((l) => l.id === id) ?? []),
@@ -148,7 +147,7 @@ const filled = (c: 'project' | 'priority' | 'dueDate' | 'labels' | 'assignee') =
   (c === 'priority'
     ? !!props.task.priority
     : c === 'dueDate'
-      ? !!props.task.dueDate
+      ? !!(props.task.dueDate || props.task.startDate)
       : c === 'assignee'
         ? props.task.assigneeIds.length > 0
         : labelsSet.value.length > 0);
@@ -157,8 +156,6 @@ const people = computed(() =>
     name: props.members.find((u) => u.id === id)?.name ?? '?',
   })),
 );
-// PLNRAPP-872: overdue — red, today — accent, future — neutral (shared theme tokens)
-const dueTone = computed(() => dueToneOf(props.task.dueDate));
 
 // «…» (PLNRAPP-139): the view's context menu (TaskContextMenu), opened at the button;
 // a plain button, not IconButton — no tooltip per virtualized row
@@ -264,6 +261,7 @@ function save() {
         :project-name="projectName"
         project-text
         head
+        :status="fields.includes('status')"
         :ai="fields.includes('ai')"
         :git="fields.includes('git')"
         :label-names="labelNames"
@@ -430,27 +428,41 @@ function save() {
               ><CellValue
                 :col="c"
                 :people="people"
+                :start-date="task.startDate"
                 :due-date="task.dueDate"
-                :due-tone="dueTone"
+                :start-time="task.startTime"
+                :due-time="task.dueTime"
                 :priority="task.priority"
                 :labels="labelsSet"
-                :project="projectName" /></template
+                :project="projectName"
+                :label-names="labelNames" /></template
           ></AssigneePicker>
-          <DueDatePicker
+          <TaskDatesPicker
             v-else-if="c === 'dueDate'"
             :task-id="task.id"
-            :model-value="task.dueDate"
-            @update:model-value="updateTask(task.id, { dueDate: $event })"
+            :start="task.startDate"
+            :due="task.dueDate"
+            :start-time="task.startTime"
+            :due-time="task.dueTime"
+            :due-remind-min="task.dueRemindMin"
+            @update:start="(v: string | null) => updateTask(task.id, { startDate: v })"
+            @update:due="(v: string | null) => updateTask(task.id, { dueDate: v })"
+            @update:start-time="(v: string | null) => updateTask(task.id, { startTime: v })"
+            @update:due-time="(v: string | null) => updateTask(task.id, { dueTime: v })"
+            @update:due-remind-min="(v: number | null) => updateTask(task.id, { dueRemindMin: v })"
             ><template #value
               ><CellValue
                 :col="c"
                 :people="people"
+                :start-date="task.startDate"
                 :due-date="task.dueDate"
-                :due-tone="dueTone"
+                :start-time="task.startTime"
+                :due-time="task.dueTime"
                 :priority="task.priority"
                 :labels="labelsSet"
-                :project="projectName" /></template
-          ></DueDatePicker>
+                :project="projectName"
+                :label-names="labelNames" /></template
+          ></TaskDatesPicker>
           <PriorityPicker
             v-else-if="c === 'priority'"
             :model-value="task.priority"
@@ -459,11 +471,14 @@ function save() {
               ><CellValue
                 :col="c"
                 :people="people"
+                :start-date="task.startDate"
                 :due-date="task.dueDate"
-                :due-tone="dueTone"
+                :start-time="task.startTime"
+                :due-time="task.dueTime"
                 :priority="task.priority"
                 :labels="labelsSet"
-                :project="projectName" /></template
+                :project="projectName"
+                :label-names="labelNames" /></template
           ></PriorityPicker>
           <LabelPicker
             v-else
@@ -475,22 +490,28 @@ function save() {
               ><CellValue
                 :col="c"
                 :people="people"
+                :start-date="task.startDate"
                 :due-date="task.dueDate"
-                :due-tone="dueTone"
+                :start-time="task.startTime"
+                :due-time="task.dueTime"
                 :priority="task.priority"
                 :labels="labelsSet"
-                :project="projectName" /></template
+                :project="projectName"
+                :label-names="labelNames" /></template
           ></LabelPicker>
         </template>
         <span v-else :class="box">
           <CellValue
             :col="c"
             :people="people"
+            :start-date="task.startDate"
             :due-date="task.dueDate"
-            :due-tone="dueTone"
+            :start-time="task.startTime"
+            :due-time="task.dueTime"
             :priority="task.priority"
             :labels="labelsSet"
             :project="projectName"
+            :label-names="labelNames"
           />
         </span>
       </div>

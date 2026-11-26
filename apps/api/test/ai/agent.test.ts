@@ -316,8 +316,10 @@ describe('agent: жизненный цикл', () => {
     });
     expect(plain.post!.body.env.GITLAB_TOKEN).toBeUndefined();
     await raw(
-      `insert into gitlab_connections (id, project_id, base_url, token_enc, gitlab_project_id, path)
-       values ($1, $2, 'https://gitlab.example/', $3, 7, 'acme/app')`,
+      `with s as (insert into gitlab_servers (id, scope, scope_id, name, base_url, token_enc)
+         values (gen_random_uuid(), 'workspace', '00000000-0000-0000-0000-000000000000', 'gl', 'https://gitlab.example/', $3) returning id)
+       insert into gitlab_connections (id, project_id, server_id, gitlab_project_id, path)
+       select $1, $2, s.id, 7, 'acme/app' from s`,
       [uuidv7(), P, encrypt('glpat-secret', secretKey()!)],
     );
     const { post } = await start();
@@ -549,8 +551,10 @@ describe('agent: лог агента (PLNRAPP-199)', () => {
 
   it('stream-json Claude Code → события; секреты замаскированы; курсор; после результата — 409', async () => {
     await raw(
-      `insert into gitlab_connections (id, project_id, base_url, token_enc, gitlab_project_id, path)
-       values ($1, $2, 'https://gitlab.example/', $3, 7, 'acme/app')`,
+      `with s as (insert into gitlab_servers (id, scope, scope_id, name, base_url, token_enc)
+         values (gen_random_uuid(), 'workspace', '00000000-0000-0000-0000-000000000000', 'gl', 'https://gitlab.example/', $3) returning id)
+       insert into gitlab_connections (id, project_id, server_id, gitlab_project_id, path)
+       select $1, $2, s.id, 7, 'acme/app' from s`,
       [uuidv7(), P, encrypt('glpat-secret-of-project', secretKey()!)],
     );
     const { run, secret } = await start();
@@ -679,6 +683,8 @@ describe('agent: LLM-прокси', () => {
     expect(res.statusCode).toBe(200);
     expect(provHits[0]).toMatchObject({ url: '/chat/completions', auth: `Bearer ${KEY_SECRET}` });
     expect(provHits[0]!.headers['x-api-key']).toBeUndefined();
+    // the agent asked for 'm': the provider gets the connection's model (the cost is counted at its prices)
+    expect(provHits[0]!.body.model).toBe('fake');
     expect(res.body).not.toContain(KEY_SECRET);
     let row = await one(`select input_tokens, output_tokens, cost from ai_runs where id = $1`, [
       r.run.id,
@@ -773,8 +779,10 @@ describe('agent: поручения из комментариев на зада�
   const GL_PROJECT = 7;
   async function codeTask(mrState: string | null = 'opened') {
     await raw(
-      `insert into gitlab_connections (id, project_id, base_url, token_enc, gitlab_project_id, path)
-       values ($1, $2, 'https://gitlab.example/', $3, $4, 'acme/app')`,
+      `with s as (insert into gitlab_servers (id, scope, scope_id, name, base_url, token_enc)
+         values (gen_random_uuid(), 'workspace', '00000000-0000-0000-0000-000000000000', 'gl', 'https://gitlab.example/', $3) returning id)
+       insert into gitlab_connections (id, project_id, server_id, gitlab_project_id, path)
+       select $1, $2, s.id, $4, 'acme/app' from s`,
       [uuidv7(), P, encrypt('glpat-secret', secretKey()!), GL_PROJECT],
     );
     const id = uuidv7();

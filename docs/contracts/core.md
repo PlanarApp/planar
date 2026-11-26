@@ -21,7 +21,9 @@ The DB schema against this file — `apps/api/test/contract.schema.test.ts` (app
 
 Contract code — `packages/shared/src/contract/` (exported from `packages/shared/src/index.ts`, no Node API): `CONTRACT_VERSIONS`, `contractSchemas`, `entitySchemas`, `ENTITIES`, types `Tx`, `MutatorCtx`, `MutatorDef`, functions `defineMutator`, `createRegistry`, class `MutatorError`, `uuidv7()`.
 
-## C-schema v31
+## C-schema v32
+
+v32: `spaces.membersMode` (`inherit` | `custom`, default `custom`; migration 0092) — the members of a space mirror the root space (Workspace) or are its own list — core-schema.md.
 
 v31 (PLNRAPP-709): the personal entity `dayPlans` is removed — «My day» is built from the user's tasks (assignee) by `tasks.dueDate`; the DB table `day_plans` is dropped (its dates were moved to `tasks.due_date` by migration 0078).
 
@@ -110,6 +112,38 @@ The suffix `?` means `.nullable()` (the key is present, the value may be `null`)
 - `indexes` — fields allowed for `Tx.scan({index, eq})` (in Dexie these are indexes; in the DB — b-tree).
 - `detail: tasks` (optional, C-sync v3) — a detail entity: its rows belong to a task and are kept by the client only for tasks in `_held` (§C-sync «Detail entities»); `ENTITIES[e].detail = 'tasks'`. Absent — a core entity.
 
+### Roles and access (audit 2026-11-26)
+
+Three levels; each rule is enforced on the server (the mutator and `ServerTx.authorize`), the web only hides what the server would refuse.
+
+| level | role | what it can |
+|---|---|---|
+| instance (`users.role`) | `owner` | everything of `admin`; cannot be changed, deactivated or impersonated; the only one who creates or appoints `admin` users |
+| | `admin` | sees every space with its projects and tasks, even without membership, and changes them as an admin of the space; users (create, edit, deactivate — `member`/`guest` only), instance settings (modules, workspace, integrations, `settings.*`), impersonation of strictly lower roles (session only, not a token), switching modules and members mode of projects |
+| | `member` | creates spaces (becomes their admin), everything else through space roles |
+| | `guest` | does not create spaces, is not added to the root space (Workspace) automatically, at most `guest` in every space and project, does not see other users' `email`; everything else through space roles |
+| space (`spaceMembers.role`) | `admin` | `space.update/delete`, members and `membersMode` of the space, statuses, modules and members of every project of the space (always admin of them), update/archive/delete of its projects, delete/restore tasks, resolve any assigned comment |
+| | `member` | creates projects, tasks, labels, fields, links, attachments, comments, own views |
+| | `guest` | comments, reactions, watching; reads the rest |
+| project (`projects.membersMode`) | `inherit` | the space role |
+| | `custom` | the role in `projectMembers`, no row — no access; space admins and instance admins keep admin; a space guest is at most a guest |
+| | admin of the project | `project.update` (rename, archive, lead…), `project.delete`, statuses, modules, members: a space admin, an instance admin, an admin of a `custom` project (an `inherit` project has no admins of its own) |
+
+Inheritance: instance → space is not automatic (a role in a space exists only with a `spaceMembers` row; the root space gets everyone except guests, instance owners and admins as admins) — except visibility and administration: instance owners and admins see every space (SQL `can_see_space`, `mySpaceIds`) and are admins of it (`ServerTx.spaceRole`, `roleInProject`). Space → project: `inherit` / `custom` (PJ-11). Space → root space: `spaces.membersMode` — `inherit` mirrors the root space's members and roles (rows are materialized, so every access rule keeps reading `spaceMembers`), `custom` is its own list; the root space is the source and always `custom`.
+
+Invariants kept by the code:
+- a role in a space or project never exceeds the instance role: an instance `guest` is `guest` there (`member.add/update`, `space.setMembersMode`, project members refuse with `invalid_args`, the mirror of an `inherit` space caps; demoting a user to `guest` lowers their roles in spaces with their own members and, through them, in projects; migration 0096 brought existing rows to the cap, a space may be left with no space admin — instance admins administer it);
+- the role in the root space follows the instance role: a demoted admin is demoted in the Workspace too (`ensureRootSpace(db, changed)`), an instance admin is always admin there;
+- a role inside a project is the project role (PJ-11), not the space role: `comment.assign`, `checkAssignee` (task/doc comments, checklist assignees), `view.setNodeDefault` of a project node and `chat.channel.create/update` read `roleInProject` / `isProjectAdmin`;
+- `project.create` — a member of the space (a guest is refused); `project.update/delete` — an admin of the project (the sidebar and settings show these only to them);
+- creating a user with the `admin` role and promoting to `admin` — the instance owner only (`403`, REST and MCP `create_user/update_user` included);
+- leaving the Workspace — `member.remove` of the root row, or deactivating the user — removes them from every space with its own members (`custom`) and from every project with its own members (`inherit` spaces follow the Workspace); the last-admin check does not hold a deactivated user or an instance guest;
+- `users.email` of other users is `null` in sync (bootstrap and pull) for instance guests; REST/MCP user lists are for instance admins only, spaces' and projects' member lists carry no email;
+- comment resolve — the assignee, the author or an admin of the comment's space (the web checks the same, not the instance role);
+- the sidebar offers rename/delete of a space only to its admin.
+
+Not changed: chat messages are posted by space members (an instance admin who is not a member reads a space's chats and administers channels, but does not post); notifications go to members only.
+
 ### Entities
 
 Entities — docs/contracts/core-schema.md (part of C-schema v22).
@@ -117,7 +151,7 @@ Entities — docs/contracts/core-schema.md (part of C-schema v22).
 ### Non-synced tables (server only)
 | table | columns |
 |---|---|
-| `sessions` | `id text pk` (sha256 hex of the cookie token), `user_id uuid`, `created_at`, `expires_at`, `last_seen_at timestamptz`, `user_agent text?` |
+| `sessions` | `id text pk` (sha256 hex of the cookie token), `user_id uuid`, `created_at`, `expires_at`, `last_seen_at timestamptz`, `user_agent text?`, `state text?` (null, mfa, setup — § Two-factor authentication; handoff — a one-time sign-in token of cloud-link/setup, exchanged only by GET /api/auth/handoff, not accepted as a cookie), `locked_at timestamptz?` (app lock) |
 | `files` | `sha256 text pk`, `size bigint`, `mime text`, `width int?`, `height int?`, `created_by uuid`, `created_at` |
 | `push_subscriptions` | `id uuid pk`, `user_id uuid`, `endpoint text unique`, `p256dh text`, `auth text`, `user_agent text?`, `created_at` |
 | `client_mutations` | `client_id uuid pk`, `user_id uuid`, `last_mutation_id bigint not null`, `rejected jsonb not null default '[]'` (the last 100 refusals: id, code, message), `updated_at` |
@@ -125,7 +159,11 @@ Entities — docs/contracts/core-schema.md (part of C-schema v22).
 | `file_uploads` | `sha256 text`, `user_id uuid`, `created_at`; primary key (sha256, user_id) — who uploaded the file (duplicate content is a single row in files); created_at — the last upload of this content by this user |
 | `files_deleted` | `sha256 text pk`, `deleted_at timestamptz` — files of attachments deleted in the app (trigger attachments_files_deleted on attachments delete, any path: attachment.delete, comment.delete, cascades). Night job core.files.purge (04:10 UTC) takes rows older than 7 days: deletes the files row and the file in DATA_DIR if the sha256 occurs in no text/json/bytea/array column of the schema (except the sync journal changes: it keeps puts of deleted rows) and was not uploaded again within 7 days; the queue row goes in any outcome. Files never attached (inline images, avatars, icons) are not purged (PLNRAPP-858) |
 | `login_attempts` | `key text pk` (ip and login joined by "\|"), `attempts int`, `window_started_at timestamptz` — a 1-minute window for the login limit |
+| `due_reminders` | `user_id uuid`, `task_id uuid`, `kind text` (due_today, start_today, due_soon, due_now), `mark text` (the local day or the firing moment), `created_at`; primary key (user_id, task_id, kind, mark) — reminders already sent (jobs/due.ts): a deleted notification does not fire again; rows older than 2 days are deleted by the same job |
 | `api_tokens` | `id uuid pk`, `user_id uuid`, `name text`, `token_sha256 text unique`, `prefix text`, `scope text check (read,write)`, `expires_at?`, `last_used_at?`, `revoked_at?`, `created_at` |
+| `user_security` | `user_id uuid pk`, `totp_secret text?`, `totp_enabled bool`, `totp_step bigint?` (the last accepted step), `recovery_codes text[]` (sha256), `lock_on_open bool`, `lock_minutes int?`, `lock_wipe bool`, `updated_at` |
+| `passkeys` | `id text pk` (credential id, base64url), `user_id uuid`, `name text`, `public_key text`, `counter bigint`, `transports text[]?`, `created_at`, `last_used_at?` |
+| `auth_challenges` | `id text pk`, `challenge text`, `user_id uuid?` (null — passwordless sign-in), `expires_at` — WebAuthn challenges, 5 minutes, one use |
 | `ydocs` | `doc_id text pk` (document name docs:uuid or task:uuid), `state bytea not null` (Y.encodeStateAsUpdate), `updated_at timestamptz` — p3.md §P3-ydoc |
 
 Migrations — drizzle-kit, directory `apps/api/drizzle/`, schema — `apps/api/src/db/schema.ts` (+ module schemas `modules/*/api/schema.ts`, tables prefixed with `<moduleId>_`).
@@ -135,6 +173,8 @@ Migrations — drizzle-kit, directory `apps/api/drizzle/`, schema — `apps/api/
 v3 (PLNRAPP-481): detail entities (`comments`, `commentReactions`) — the client keeps them only for the tasks it holds; protocol version `3`, `held` in bootstrap, `taskId` in pull changes, `POST /sync/tasks` — a snapshot of task details with `cursor`.
 
 v2 (CL-1a): `space|members`, WS `typing` — `docs/contracts/collab.md` §X-core items 1–2.
+
+Visibility (roles audit 2026-11-26): instance owners and admins receive every space (bootstrap, pull, WS pokes), others — the spaces they are members of; an instance guest gets other users' `users.email` as `null` (bootstrap and pull), their own is kept.
 
 Transport — JSON over HTTP, authorization — session (C-http) or Bearer. Request-level errors use the C-http format (`401 unauthenticated`, `400 invalid_request`, `413 payload_too_large`, `426 upgrade_required`, `500 internal`).
 
@@ -315,7 +355,11 @@ Applies `changes` by `seq`; `reset` → bootstrap. After a pull it drops from th
 
 v3: details of a task are kept only while it is in `_held` (bootstrap `held`, `POST /sync/tasks`); opening a task updates `accessedAt`. Cooling: the leader tab, when the queue is empty, deletes the details and the `_held` row for tasks not accessed for 30 days (the task's y-indexeddb database is kept: it may hold unsent offline edits of the description), except «my» open tasks; the protocol does not change — a cooled task is loaded again via `POST /sync/tasks`. `reset` and a change of the protocol version clear `_held` too. Prefetch (PLNRAPP-488): hovering a task (`[data-task-id]`) and, in idle time, the tasks rendered on the page are loaded via `POST /sync/tasks` — only those not in `_held`, batches of ≤ `SYNC_TASKS_MAX` ids, at most one request per 500 ms; prefetch does not update `accessedAt`; `forbidden`/`not_found` are not prefetched again until `stopSync`.
 
-## C-mutators v23
+## C-mutators v25
+
+v25 (roles audit 2026-11-26): the role in a space/project is capped by the instance role (`member.add/update`, `space.setMembersMode`, mirror), `project.update/delete` — admin of the project, leaving the Workspace removes the user from spaces and projects with their own members, `checkAssignee` and the chat/docs/view guards read the role in the project — core-mutators.md.
+
+v24: `space.setMembersMode`; `member.add/update/remove` only in a `custom` space, a change of the root space's members is mirrored into `inherit` spaces — core-mutators.md.
 
 v23 (PLNRAPP-709): `day.plan`, `day.move`, `day.remove` are removed — «My day» changes `tasks.dueDate` with `task.update`.
 
@@ -450,10 +494,11 @@ Any non-2xx response is JSON `{code, message, details?}`. `details` of `invalid_
 |---|---|
 | 400 | `invalid_request` |
 | 401 | `unauthenticated`, `invalid_credentials` |
-| 403 | `forbidden`, `origin_mismatch` |
+| 403 | `forbidden`, `origin_mismatch`, `mfa_setup_required` |
 | 404 | `not_found`, `module_disabled` |
 | 409 | `conflict` |
 | 413 | `payload_too_large` |
+| 423 | `locked` |
 | 426 | `upgrade_required` |
 | 429 | `rate_limited` |
 | 500 | `internal` |
@@ -473,16 +518,24 @@ Any non-2xx response is JSON `{code, message, details?}`. `details` of `invalid_
 - `Authorization: Bearer plnr_<…>` (CR-10) gives the same `ctx.userId`; Origin is not checked. A `read` token — only GET and `/sync/bootstrap`, `/sync/pull`; otherwise `403 forbidden`. Tokens, REST `/api/v1` and MCP `/mcp` — `docs/contracts/core-api-v1.md` (part of C-http).
 - A deactivated user — `401 unauthenticated` (sessions are deleted).
 
+### Two-factor authentication and app lock
+- Factors: TOTP (RFC 6238, SHA-1, 6 digits, 30 s, ±1 step, a step is not accepted twice), 10 one-time recovery codes (only sha256 in the DB), passkeys (WebAuthn, discoverable, user verification required — biometrics or the device PIN). Secrets — server tables `user_security`, `passkeys`, `auth_challenges` (not synced).
+- Login with a factor set up: `POST /api/auth/login` → `200 {mfa: {totp, passkey}}` + cookie of a session with `state='mfa'` (10 minutes, only `POST /api/auth/mfa/verify` and logout; others `401`). `mfa/verify` `{code}` (TOTP or recovery) or `{challengeId, response}` (passkey) → `200 {user}` + cookie of a new full session.
+- Passwordless sign-in: `POST /api/auth/passkey/options` → `{challengeId, options}`; `POST /api/auth/passkey/login` `{challengeId, response}` → `200 {user}` + cookie. For a signed-in session (`mfa`, locked) options list only its keys. RP ID — the host of the request `Origin` (one of the instance origins).
+- Policy — `settings.workspace.mfa`: `off` | `admins` | `all` (REST `PATCH /api/v1/instance/workspace`). Applies and no factor: login → `{user, mfaSetup: true}`, session `state='setup'`: only `/api/auth/*` (no impersonation), others `403 mfa_setup_required`; the first factor makes these sessions full. Under the policy the last factor cannot be removed (`409`). Instance admin resets a user's 2FA — `PATCH /api/v1/instance/users/{id}` `{reset2fa: true}`.
+- App lock — `user_security.lockOnOpen` (on every open of the app) and `lockMinutes` (after N = 1, 5, 15, 30, 60 minutes of inactivity; null — off), independent; needs a factor. On inactivity the client shows a 10-second full-screen countdown (a click cancels), then locks. The client locks with `POST /api/auth/lock` (any user with a factor — also the «Lock» menu item); the server locks by itself when a session had no requests for `max(N, 3)` minutes (only «on every open» — 3 minutes). A locked session: only `unlock`, `logout`, `security`, `me`; the rest of HTTP — `423 locked`, `/ws` and `/collab` — refused with `423`. `POST /api/auth/unlock` `{code}` or `{challengeId, response}` → `204`. `lockWipe` — the client clears its replica on lock (when nothing is pending).
+- `GET /api/auth/security` → `{totp, recoveryLeft, passkeys: [{id, name, createdAt, lastUsedAt}], lockOnOpen, lockMinutes, lockWipe, required, setup}`; `POST /api/auth/totp/setup` → `{secret, uri, qr}`; `POST /api/auth/totp/enable` `{code}` → `{recoveryCodes}`; `POST /api/auth/totp/disable` `{code}` → `204`; `POST /api/auth/recovery-codes` `{code}` or passkey → `{recoveryCodes}`; `POST /api/auth/passkeys/options` → `{challengeId, options}`; `POST /api/auth/passkeys` `{challengeId, response, name}` → `201`; `DELETE /api/auth/passkeys/:id` → `204`; `PATCH /api/auth/lock` `{lockOnOpen, lockMinutes, lockWipe}`. Wrong code — `401 invalid_credentials`, > 10 failures/min — `429`. Session only (token → `403`).
+
 ### Core endpoints
 | method and path | input → output | task |
 |---|---|---|
 | `GET /api/health` | → `200 {ok: true, db: 'up'}` \| `503 {ok: false, db: 'down'}` | CR-1 |
 | `GET /api/setup` | → `200 {needed: boolean}` — `true` while there are no users; no authorization | CR-3 |
 | `POST /api/setup` | `{login, name, password}` → `201 {user}`; users already exist → `409 conflict` | CR-3 |
-| `POST /api/auth/login` | `{login, password}` → `200 {user}` + cookie; `401 invalid_credentials`; > 10 attempts/min per IP+login → `429` | CR-3 |
+| `POST /api/auth/login` | `{login, password}` → `200 {user, mfaSetup}` + cookie, with 2FA — `200 {mfa: {totp, passkey}}` (§ Two-factor authentication); `401 invalid_credentials`; > 10 attempts/min per IP+login → `429` | CR-3 |
 | `POST /api/auth/logout` | → `204`, cookie cleared | CR-3 |
 | `POST /api/auth/impersonate` | `{userId}` → `200 {user}` + cookie of that user, the caller's session is deleted; only an owner/admin from a cookie session (token → `403`), only an active user of a strictly lower role (`403` / `404`) | PLNRAPP-129 |
-| `GET /api/auth/me` | → `{user}` \| `401` | CR-3 |
+| `GET /api/auth/me` | → `{user, mfaSetup, locked, lockOnOpen, lockMinutes, lockWipe, canLock}` \| `401` | CR-3 |
 | `GET /api/users` | → `{users: user[]}` (instance_admin) | CR-3 |
 | `POST /api/users` | `{login, name, password, role, email?}` → `201 {user}` (instance_admin) | CR-3 |
 | `PATCH /api/users/:id` | `{name?, email?, role?, password?, deactivated?: bool, avatarFile?: string\|null, timezone?: string}` → `{user}`; `avatarFile` — a sha256 from `POST /files` uploaded by this user (`file_uploads`), otherwise `400 invalid_request`; `timezone` — an IANA zone, otherwise `400`; for oneself — only name, email, password, avatarFile, timezone | CR-3 |

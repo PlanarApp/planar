@@ -34,6 +34,7 @@ import { enabledModules, moduleOnInProject } from '../modules/enabled.js';
 import { moduleTables } from '../modules/installed.js';
 import { PushQueue } from '../push/push.js';
 import { executeMutations, Reject } from '../sync/mutate.js';
+import { mySpaceIds } from '../sync/my-spaces.js';
 import { hiddenProjectIds, notHidden, projectAccess } from '../sync/project-access.js';
 import { DB } from '../tokens.js';
 import { toWire } from '../sync/rows.js';
@@ -128,11 +129,7 @@ export class RestService {
   }
 
   private async mySpaces(userId: string): Promise<string[]> {
-    const rows = await this.db
-      .select({ id: s.spaceMembers.spaceId })
-      .from(s.spaceMembers)
-      .where(eq(s.spaceMembers.userId, userId));
-    return rows.map((r) => r.id);
+    return mySpaceIds(this.db, userId);
   }
 
   /** PJ-11: where-condition — the entity's rows outside projects hidden from the user. */
@@ -405,6 +402,8 @@ export class RestService {
             description: b.description === undefined ? undefined : await this.toDoc(b.description),
             priority: b.priority,
             dueDate: b.dueDate,
+            dueTime: b.dueTime,
+            dueRemindMin: b.dueRemindMin,
             assignees: b.assigneeIds?.map((u) => ({ id: uuidv7(), userId: u })),
             labels: b.labelIds?.map((l) => ({ id: uuidv7(), labelId: l })),
           },

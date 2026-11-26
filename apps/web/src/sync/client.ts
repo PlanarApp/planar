@@ -8,6 +8,7 @@ import {
   SYNC_TASKS_MAX,
   createRegistry,
   syncBootstrapSchema,
+  syncHeavySchema,
   syncPullSchema,
   syncPushResponseSchema,
   syncTasksResponseSchema,
@@ -39,7 +40,13 @@ export interface TypingEvent {
   id: string;
   userId: string;
 }
-export type SyncStatus = 'idle' | 'bootstrapping' | 'online' | 'offline' | 'error';
+/** full — the device is out of space for the replica (QuotaExceededError): the queue is still pushed */
+export type SyncStatus = 'idle' | 'bootstrapping' | 'online' | 'offline' | 'error' | 'full';
+
+/** Dexie wraps the browser's QuotaExceededError (often as the inner error of a transaction AbortError). */
+export const isQuota = (e: unknown): boolean =>
+  e instanceof Error &&
+  (e.name === 'QuotaExceededError' || isQuota((e as { inner?: unknown }).inner));
 export interface MutationErrorInfo {
   id: number;
   name: string;
@@ -159,7 +166,13 @@ export function createClient(db: PlanarDB) {
       }
   };
   channel?.addEventListener('message', (ev: MessageEvent) => {
-    if (ev.data?.db === db.name && Array.isArray(ev.data.batch)) fire(ev.data.batch);
+    if (ev.data?.db !== db.name) return;
+    if (Array.isArray(ev.data.batch)) fire(ev.data.batch);
+    // another tab cleared the replica (logout, another user): this tab's clientId and cursor are stale
+    if (ev.data.wiped && unsub) {
+      void stopSync();
+      authCbs.forEach((cb) => cb());
+    }
   });
   /** after commit: to this tab's subscribers and (unless local) to the other tabs */
   const emit = (b: ReplicaChange[], local = false) => {
@@ -291,6 +304,8 @@ export function createClient(db: PlanarDB) {
     drop?: Set<number>;
     /** v3 bootstrap: tasks whose details are in `bootstrap` — `_held` rows for them */
     held?: string[];
+    /** lean bootstrap: task descriptions are still to come (`heavy` phase, resumed after a reload) */
+    lean?: boolean;
     /** v3 `POST /sync/tasks`: replaces the details of its tasks; applied only if its cursor ≥ the local one */
     snapshot?: SyncTasksResponse;
   }): Promise<boolean> {
@@ -327,6 +342,9 @@ export function createClient(db: PlanarDB) {
         await db._held.clear();
         // the C-sync version of this bootstrap: `held` comes only in a v3 answer
         await db._meta.put({ key: 'protocol', value: p.held ? SYNC_PROTOCOL : 2 });
+        // in the same transaction as the data: a reload cannot lose the pending phase
+        await db._meta.put({ key: 'heavy', value: p.lean ? 'pending' : 'done' });
+        await db._meta.put({ key: 'heavyAfter', value: '' });
         if (p.held?.length)
           await db._held.bulkPut(
             p.held.map((taskId) => ({ taskId, loadedAt: now, accessedAt: now })),
@@ -421,7 +439,7 @@ export function createClient(db: PlanarDB) {
     const r = syncBootstrapSchema.parse(
       // v3 (PLNRAPP-487): without the header the server answers by v2 — all details, no `held`
       await http(
-        `/sync/bootstrap?clientId=${clientId}`,
+        `/sync/bootstrap?clientId=${clientId}&lean=1`,
         { headers: { [SYNC_PROTOCOL_HEADER]: String(SYNC_PROTOCOL) } },
         0,
       ),
@@ -431,7 +449,67 @@ export function createClient(db: PlanarDB) {
       cursor: r.cursor,
       lastMutationId: r.lastMutationId,
       held: r.held,
+      lean: r.lean,
     });
+  }
+
+  let heavyRunning = false;
+  /**
+   * Phase 2 of a lean bootstrap: task descriptions page by page. Guarantee against the race with pull: a description
+   * is written only into an existing row whose `updatedAt` is not newer than the page's (pull/own edits bump it).
+   * Resumes after a reload (`heavy` = pending, `heavyAfter` — the last page), not started when `done`.
+   */
+  async function heavy() {
+    if (heavyRunning) return;
+    heavyRunning = true;
+    const g = gen;
+    try {
+      let restarted = true;
+      while (restarted && g === gen) {
+        restarted = false;
+        if ((await db._meta.get('heavy'))?.value !== 'pending') return;
+        let after = ((await db._meta.get('heavyAfter'))?.value as string) || '';
+        for (;;) {
+          const r = syncHeavySchema.parse(
+            await http(`/sync/bootstrap-heavy${after ? `?after=${after}` : ''}`),
+          );
+          const changes: ReplicaChange[] = [];
+          let ok = true;
+          await db.transaction('rw', db._meta, db.table('tasks'), async () => {
+            // a new bootstrap started meanwhile (heavyAfter reset): our position is stale
+            if (((await db._meta.get('heavyAfter'))?.value ?? '') !== after)
+              return void (ok = false);
+            for (const it of r.items) {
+              const row = (await db.table('tasks').get(it.id)) as
+                Record<string, unknown> | undefined;
+              if (!row || (row.updatedAt as string) > it.updatedAt) continue;
+              const next = { ...row, description: it.description };
+              await db.table('tasks').put(next);
+              changes.push({ entity: 'tasks', id: it.id, row: next });
+            }
+            if (r.next) await db._meta.put({ key: 'heavyAfter', value: r.next });
+            else await db._meta.put({ key: 'heavy', value: 'done' });
+          });
+          if (g !== gen) return;
+          if (!ok) {
+            restarted = true;
+            break;
+          }
+          emit(changes, true);
+          if (!r.next) {
+            channel?.postMessage({ db: db.name, batch: [RESET] });
+            return;
+          }
+          after = r.next;
+        }
+      }
+    } catch (e) {
+      // offline or an error: the next cycle resumes from heavyAfter
+      if (isQuota(e)) setStatus('full');
+      console.error('sync heavy', e);
+    } finally {
+      heavyRunning = false;
+    }
   }
 
   /**
@@ -589,9 +667,15 @@ export function createClient(db: PlanarDB) {
   }
 
   async function pull() {
-    const r = syncPullSchema.parse(await http(`/sync/pull?cursor=${cursor}&clientId=${clientId}`));
-    if (r.reset) return bootstrap();
-    await applyServer({ changes: r.changes, cursor: r.cursor, lastMutationId: r.lastMutationId });
+    const g = gen;
+    for (;;) {
+      const r = syncPullSchema.parse(
+        await http(`/sync/pull?cursor=${cursor}&clientId=${clientId}&page=1`),
+      );
+      if (r.reset) return bootstrap();
+      await applyServer({ changes: r.changes, cursor: r.cursor, lastMutationId: r.lastMutationId });
+      if (!r.more || g !== gen) return;
+    }
   }
 
   /** true — something was sent; limit — mutations per request (halved while the server answers 413) */
@@ -652,6 +736,7 @@ export function createClient(db: PlanarDB) {
       if (!boot || sent) await pull();
       failures = 0;
       setStatus('online');
+      if (g === gen) void heavy();
       if (Date.now() - cooledAt >= COOL_EVERY_MS && g === gen) {
         cooledAt = Date.now();
         await cool().catch((e) => console.error('sync cool', e));
@@ -662,12 +747,22 @@ export function createClient(db: PlanarDB) {
         authCbs.forEach((cb) => cb());
         return;
       }
+      // the session is locked (auth/lock.ts): sync is stopped until unlock
+      if (e instanceof HttpError && e.status === 423) {
+        setStatus('error');
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event('planar:locked'));
+        return;
+      }
+      // before the network check: a quota failure comes as a transaction AbortError. Push runs before pull,
+      // so queued edits still reach the server; the replica catches up when space is freed (the retry below)
+      const full = isQuota(e);
       // fetch timeout/abort (AbortError, TimeoutError) — treated as a network error
       const net =
-        e instanceof TypeError ||
-        (e instanceof Error && (e.name === 'AbortError' || e.name === 'TimeoutError')) ||
-        (e instanceof HttpError && e.status >= 500);
-      setStatus(net ? 'offline' : 'error');
+        !full &&
+        (e instanceof TypeError ||
+          (e instanceof Error && (e.name === 'AbortError' || e.name === 'TimeoutError')) ||
+          (e instanceof HttpError && e.status >= 500));
+      setStatus(full ? 'full' : net ? 'offline' : 'error');
       // server refusal (not network): changes are not sent — say so, otherwise edits silently pile up in the queue
       if (!net && e instanceof HttpError)
         emitErrors([{ id: 0, name: 'sync', code: e.code || String(e.status), message: e.message }]);
@@ -702,7 +797,11 @@ export function createClient(db: PlanarDB) {
     s.onopen = () => {
       // stable connection — open ≥ 5 s or a poke received; otherwise the pause grows
       wsStable = setTimeout(() => (wsFailures = 0), 5000);
-      s.send(JSON.stringify({ t: 'hello', cursor: cursor ?? 0 }));
+      // the warm start's first pull is in flight: a hello with the old cursor makes the server poke → a second pull
+      const hello = () =>
+        g === gen && ws === s && s.send(JSON.stringify({ t: 'hello', cursor: cursor ?? 0 }));
+      if (running) void running.then(hello, hello);
+      else hello();
     };
     s.onmessage = (ev) => {
       let m;
@@ -764,9 +863,14 @@ export function createClient(db: PlanarDB) {
     const owner = (await meta('userId')) as string | undefined;
     if (owner !== undefined && owner !== o.userId) await wipe(); // replica of another user
     await db._meta.put({ key: 'userId', value: o.userId });
-    const id = (await meta('clientId')) as string | undefined;
-    clientId = id ?? uuidv7();
-    if (!id) await db._meta.put({ key: 'clientId', value: clientId });
+    // read-or-create in one transaction: tabs starting together get the same clientId
+    clientId = await db.transaction('rw', db._meta, async () => {
+      const id = (await meta('clientId')) as string | undefined;
+      if (id) return id;
+      const fresh = uuidv7();
+      await db._meta.put({ key: 'clientId', value: fresh });
+      return fresh;
+    });
     await readState();
     pushedUpTo = 0;
     failures = wsFailures = 0;
@@ -858,6 +962,16 @@ export function createClient(db: PlanarDB) {
     replicaState.value = 'empty';
     syncState.value = { status: 'idle', pending: 0 };
     emit([RESET]);
+    channel?.postMessage({ db: db.name, wiped: true });
+  }
+
+  /** Whose replica is on the device and how many of their edits are unsent (before sync starts). */
+  async function localOwner(): Promise<{ userId?: string; pending: number }> {
+    await db.open();
+    return {
+      userId: (await meta('userId')) as string | undefined,
+      pending: await db._queue.count(),
+    };
   }
 
   async function clearLocal(): Promise<void> {
@@ -867,6 +981,7 @@ export function createClient(db: PlanarDB) {
 
   return {
     clearLocal,
+    localOwner,
     registerMutators,
     mutate,
     mutateMany,

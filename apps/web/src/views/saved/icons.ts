@@ -50,7 +50,7 @@ import {
   Users,
   Wrench,
   Zap,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 
 /** Saved view tab icons (savedViews.icon is the key); missing or unknown — bookmark. */
 export const VIEW_ICONS: Record<string, Component> = {
