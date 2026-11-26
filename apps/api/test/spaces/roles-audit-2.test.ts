@@ -264,4 +264,26 @@ describe('скрытый проект', () => {
       code: 'forbidden',
     });
   });
+
+  it('перенос задачи в custom-проект того же пространства: тем, кто его не видит, — reset, а не «призрак» в старом проекте', async () => {
+    const w = await world(db);
+    const p2 = uuidv7();
+    await w.admin.ok('project.create', {
+      id: p2,
+      spaceId: w.spaceId,
+      name: 'P2',
+      key: key(),
+      rank: 'b',
+    });
+    await w.admin.ok('project.setMembersMode', {
+      projectId: p2,
+      mode: 'custom',
+      members: [{ id: uuidv7(), userId: w.admin.userId, role: 'admin' }],
+    });
+    const t = taskArgs(w);
+    await w.admin.ok('task.create', t);
+    const { cursor } = await w.member.bootstrap();
+    await w.admin.ok('task.update', { id: t.id, projectId: p2 });
+    expect(await w.member.pull(cursor)).toMatchObject({ reset: true });
+  });
 });
