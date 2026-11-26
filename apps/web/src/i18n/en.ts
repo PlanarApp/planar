@@ -509,6 +509,12 @@ export default {
     syncing: 'Syncing…',
     syncError: 'Sync error',
     synced: 'Synced',
+    storageFull: 'Low storage on device',
+    storageFullHint:
+      'Not enough space for the local copy of data: changes are sent to the server, but updates are not saved. Free up space and sync resumes on its own',
+    storageUsed: 'Data on this device: {mb} MB',
+    storagePersisted: 'kept persistently',
+    storageBestEffort: 'the browser may remove it when space runs low',
   },
   views: {
     emptyBoard: 'Add a task in any column',

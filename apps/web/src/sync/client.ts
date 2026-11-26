@@ -40,7 +40,13 @@ export interface TypingEvent {
   id: string;
   userId: string;
 }
-export type SyncStatus = 'idle' | 'bootstrapping' | 'online' | 'offline' | 'error';
+/** full — the device is out of space for the replica (QuotaExceededError): the queue is still pushed */
+export type SyncStatus = 'idle' | 'bootstrapping' | 'online' | 'offline' | 'error' | 'full';
+
+/** Dexie wraps the browser's QuotaExceededError (often as the inner error of a transaction AbortError). */
+export const isQuota = (e: unknown): boolean =>
+  e instanceof Error &&
+  (e.name === 'QuotaExceededError' || isQuota((e as { inner?: unknown }).inner));
 export interface MutationErrorInfo {
   id: number;
   name: string;
@@ -493,6 +499,7 @@ export function createClient(db: PlanarDB) {
       }
     } catch (e) {
       // offline or an error: the next cycle resumes from heavyAfter
+      if (isQuota(e)) setStatus('full');
       console.error('sync heavy', e);
     } finally {
       heavyRunning = false;
@@ -740,12 +747,16 @@ export function createClient(db: PlanarDB) {
         if (typeof window !== 'undefined') window.dispatchEvent(new Event('planar:locked'));
         return;
       }
+      // before the network check: a quota failure comes as a transaction AbortError. Push runs before pull,
+      // so queued edits still reach the server; the replica catches up when space is freed (the retry below)
+      const full = isQuota(e);
       // fetch timeout/abort (AbortError, TimeoutError) — treated as a network error
       const net =
-        e instanceof TypeError ||
-        (e instanceof Error && (e.name === 'AbortError' || e.name === 'TimeoutError')) ||
-        (e instanceof HttpError && e.status >= 500);
-      setStatus(net ? 'offline' : 'error');
+        !full &&
+        (e instanceof TypeError ||
+          (e instanceof Error && (e.name === 'AbortError' || e.name === 'TimeoutError')) ||
+          (e instanceof HttpError && e.status >= 500));
+      setStatus(full ? 'full' : net ? 'offline' : 'error');
       // server refusal (not network): changes are not sent — say so, otherwise edits silently pile up in the queue
       if (!net && e instanceof HttpError)
         emitErrors([{ id: 0, name: 'sync', code: e.code || String(e.status), message: e.message }]);
