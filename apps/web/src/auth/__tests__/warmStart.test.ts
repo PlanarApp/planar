@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
 import { json, mkUser, mockFetch } from './helpers';
 
@@ -13,6 +13,11 @@ async function boot(setup: object, me: Response, warm = true) {
   return { router, auth: useAuth(), me };
 }
 
+// cold transform of the router and Group screen graphs takes seconds under a full run — pay it in the hook, not in the first test
+beforeAll(
+  () => Promise.all([import('../../router'), import('../../screens/GroupScreen.vue')]),
+  30_000,
+);
 beforeEach(() => localStorage.clear());
 
 describe('auth:warm-start', () => {
