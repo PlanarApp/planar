@@ -965,6 +965,15 @@ export function createClient(db: PlanarDB) {
     channel?.postMessage({ db: db.name, wiped: true });
   }
 
+  /** Whose replica is on the device and how many of their edits are unsent (before sync starts). */
+  async function localOwner(): Promise<{ userId?: string; pending: number }> {
+    await db.open();
+    return {
+      userId: (await meta('userId')) as string | undefined,
+      pending: await db._queue.count(),
+    };
+  }
+
   async function clearLocal(): Promise<void> {
     await stopSync();
     await wipe();
@@ -972,6 +981,7 @@ export function createClient(db: PlanarDB) {
 
   return {
     clearLocal,
+    localOwner,
     registerMutators,
     mutate,
     mutateMany,

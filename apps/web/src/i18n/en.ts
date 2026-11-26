@@ -1104,6 +1104,11 @@ export default {
     closeAll: 'Close all',
     offline: 'Cannot check the assigned comments: unavailable offline',
   },
+  switchPending: {
+    title: 'Sign in as another user?',
+    text: 'This device has unsent changes of the previous user, they will be lost',
+    confirm: 'Sign in and discard',
+  },
   logoutPending: {
     title: 'Sign out?',
     text: 'You have unsent changes, they will be lost',

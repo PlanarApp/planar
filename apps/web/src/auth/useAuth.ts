@@ -2,7 +2,7 @@ import { computed, ref, watch } from 'vue';
 import type { Row } from '@planar/shared';
 import { api, ApiError } from '../api/http';
 import { passkeyProof, type Proof } from '../api/security';
-import { clearLocal, syncState } from '../sync';
+import { clearLocal, localOwner, syncState } from '../sync';
 
 /** timezone — only in the own profile (/api/auth/me), not in the users replica */
 export type User = Row<'users'> & { timezone?: string | null };
@@ -105,7 +105,8 @@ function adoptBrowserZone(u: User) {
 
 async function refresh(): Promise<void> {
   try {
-    signedIn(await api<Me>('GET', '/api/auth/me', undefined, undefined, BOOT_TIMEOUT));
+    if (!(await adopt(await api<Me>('GET', '/api/auth/me', undefined, undefined, BOOT_TIMEOUT))))
+      user.value = null;
   } catch (e) {
     if (!(e instanceof ApiError)) throw e;
     // offline/5xx: stay with the last known user
@@ -124,36 +125,57 @@ async function login(login: string, password: string): Promise<void> {
     { login, password },
   );
   if (r.mfa) mfaPending.value = r.mfa;
-  else signedIn(r);
+  else await adopt(r);
 }
 
 async function verifyMfa(p: Proof): Promise<void> {
-  signedIn(await api<Me>('POST', '/api/auth/mfa/verify', p));
-  await refresh(); // lock settings
+  if (await adopt(await api<Me>('POST', '/api/auth/mfa/verify', p))) await refresh(); // lock settings
 }
 
 async function passkeyLogin(): Promise<void> {
-  signedIn(await api<Me>('POST', '/api/auth/passkey/login', await passkeyProof()));
-  await refresh();
+  if (await adopt(await api<Me>('POST', '/api/auth/passkey/login', await passkeyProof())))
+    await refresh();
 }
 
 // logout confirmation when there are unsent changes (dialog — sync/LogoutDialog.vue)
 const promptOpen = ref(false);
+/** logout — this user's edits; switch — the previous user's edits on this device */
+const promptKind = ref<'logout' | 'switch'>('logout');
 let promptResolve: ((ok: boolean) => void) | null = null;
 const logoutPrompt = {
   open: promptOpen,
+  kind: promptKind,
   answer(ok: boolean) {
     promptOpen.value = false;
     promptResolve?.(ok);
     promptResolve = null;
   },
 };
-const confirmLoss = () =>
+const confirmLoss = (kind: 'logout' | 'switch' = 'logout') =>
   new Promise<boolean>((resolve) => {
     promptResolve?.(false);
     promptResolve = resolve;
+    promptKind.value = kind;
     promptOpen.value = true;
   });
+
+/**
+ * Sign-in on a device with another user's replica: it is cleared before any screen reads it; the previous user's
+ * unsent edits — only after confirmation (cancel signs the new user out, the edits stay). false — cancelled.
+ */
+async function adopt(r: Me): Promise<boolean> {
+  // no IndexedDB (private mode, broken storage): nothing to clear, sign-in goes on
+  const o = await localOwner().catch(() => ({ userId: undefined, pending: 0 }));
+  if (o.userId && o.userId !== r.user.id) {
+    if (o.pending > 0 && !(await confirmLoss('switch'))) {
+      await api('POST', '/api/auth/logout').catch(() => {});
+      return false;
+    }
+    await clearLocal();
+  }
+  signedIn(r);
+  return true;
+}
 
 /** true — logged out; false — cancelled or no network (then nothing is cleared) */
 async function logout(): Promise<boolean> {
@@ -262,7 +284,7 @@ async function setupNeeded(): Promise<boolean> {
 }
 
 async function demoLogin(): Promise<void> {
-  signedIn(await api<Me>('POST', '/api/auth/demo-login'));
+  await adopt(await api<Me>('POST', '/api/auth/demo-login'));
 }
 
 const isAdmin = computed(() => user.value?.role === 'owner' || user.value?.role === 'admin');
