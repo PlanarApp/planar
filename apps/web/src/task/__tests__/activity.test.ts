@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h } from 'vue';
 import type { VueWrapper } from '@vue/test-utils';
 import { registerModules } from '../../modules/registry';
-import { activityOf, minutesSince, type Activity } from '../../modules/activity';
+import { activeByPanel, activityOf, minutesSince, type Activity } from '../../modules/activity';
+import { emitWork } from '../../sync/work';
 import type { WorkActivity } from '../../modules/types';
 import { db, ids, open, setup, until } from './h';
 
@@ -129,21 +130,25 @@ describe('task: индикатор работы ИИ', () => {
     w = await open();
     await until(() => aiRow().exists());
     expect(aiRow().attributes('data-state')).toBe('queued');
-    // the queue is polled: the started run replaces the queued job without a replica change
+    // PLNRAPP-884: the started run replaces the queued job by the server's signal, without a replica change
     answer = [run({ agent: true, itemId: null, startedAt: ago(0) })];
+    emitWork({ entity: 'tasks', id: t.id, projectId: t.projectId });
     await until(() => aiRow().attributes('data-state') === 'running', 6000);
     expect(aiRow().text()).toBe('Работает');
   }, 10_000);
 
-  it('PLNRAPP-532: задание взято, прогон ещё не записан — опрос не останавливается и видит прогон', async () => {
+  it('PLNRAPP-532: задание взято, прогон ещё не записан — сигнал записи прогона показывает его', async () => {
     answer = [run({ state: 'queued', itemId: null })];
     w = await open();
     await until(() => aiRow().exists());
     const before = load.mock.calls.length;
-    // the job is taken, its run is not in the DB yet: nothing live for a moment
+    // the job is taken, its run is not in the DB yet: nothing live for a moment (the signal of the job's run)
     answer = [];
+    emitWork({ entity: 'tasks', id: t.id, projectId: t.projectId });
     await until(() => load.mock.calls.length > before && !aiRow().exists(), 6000);
+    // PLNRAPP-884: the run's row is written — the signal of the ai_runs trigger, no polling
     answer = [run({ itemId: null, startedAt: ago(0) })];
+    emitWork({ entity: 'tasks', id: t.id, projectId: t.projectId });
     await until(() => aiRow().exists() && aiRow().attributes('data-state') === 'running', 6000);
   }, 15_000);
 
@@ -229,5 +234,82 @@ describe('task: индикатор работы ИИ', () => {
     w = await open();
     await until(() => load.mock.calls.length > 0);
     expect(status().exists()).toBe(false);
+  });
+});
+
+// PLNRAPP-884: the count on the «AI» tab — the runs running or waiting, updated by the server's signal, no polling
+describe('task: число прогонов на табе модуля', () => {
+  const count = () => w!.find('[data-testid="tab-count-work-test:runs"]');
+
+  it('считаются идущие и ждущие; готово и ошибка — нет; без панели — нет', () => {
+    const a = (state: WorkActivity['state'], o: Partial<WorkActivity> = {}) =>
+      ({ ...run({ state, ...o }), moduleId: 'ai' }) as Activity;
+    expect(
+      activeByPanel([
+        a('queued'),
+        a('running'),
+        a('waiting_human'),
+        a('waiting_subtasks'),
+        a('done'),
+        a('failed'),
+        a('running', { panel: undefined }),
+      ]),
+    ).toEqual({ 'ai:runs': 4 });
+    expect(activeByPanel([a('done'), a('failed')])).toEqual({});
+  });
+
+  it('два прогона — «2»; по сигналу сервера — «1», затем бейдж скрыт; опроса нет', async () => {
+    answer = [run(), run({ state: 'waiting_subtasks', itemId: null })];
+    w = await open();
+    await until(() => count().exists());
+    expect(count().text()).toBe('2');
+    // a live run is not polled: no load without a signal
+    await new Promise((r) => setTimeout(r, 600));
+    const calls = load.mock.calls.length;
+    await new Promise((r) => setTimeout(r, 3500));
+    expect(load.mock.calls.length).toBe(calls);
+    // the running one failed: the signal of the task — reloaded
+    answer = [run({ state: 'failed' }), run({ state: 'waiting_human', itemId: null })];
+    emitWork({ entity: 'tasks', id: t.id, projectId: t.projectId });
+    await until(() => count().text() === '1');
+    // a signal of another task — not reloaded
+    answer = [];
+    emitWork({ entity: 'tasks', id: crypto.randomUUID(), projectId: t.projectId });
+    await new Promise((r) => setTimeout(r, 700));
+    expect(count().text()).toBe('1');
+    // all finished: no badge
+    answer = [run({ state: 'done' })];
+    emitWork({ entity: 'tasks', id: t.id, projectId: t.projectId });
+    await until(() => !count().exists());
+  }, 15_000);
+
+  it('в очереди (задание правила без прогона) — «1» по сигналу постановки; опроса нет, ни после изменения реплики', async () => {
+    w = await open();
+    await until(() => load.mock.calls.length > 0);
+    expect(count().exists()).toBe(false);
+    // the rule's job is enqueued (jobs.ts): the signal, no ai_runs row yet
+    answer = [run({ state: 'queued', itemId: null })];
+    emitWork({ entity: 'tasks', id: t.id, projectId: t.projectId });
+    await until(() => count().text() === '1');
+    // a change of the task's replica — one reload, then nothing: the queue is not polled, no grace polling
+    await db.table('comments').put(comment());
+    await new Promise((r) => setTimeout(r, 900));
+    const calls = load.mock.calls.length;
+    await new Promise((r) => setTimeout(r, 3500));
+    expect(load.mock.calls.length).toBe(calls);
+    expect(count().text()).toBe('1');
+    // the job is settled, the rule skipped (no run): the signal after the settle — the badge is gone
+    answer = [];
+    emitWork({ entity: 'tasks', id: t.id, projectId: t.projectId });
+    await until(() => !count().exists());
+  }, 15_000);
+
+  it('восстановление соединения (сигнал «*») — перезапрос', async () => {
+    w = await open();
+    await until(() => load.mock.calls.length > 0);
+    expect(count().exists()).toBe(false);
+    answer = [run({ state: 'queued', itemId: null })];
+    emitWork({ entity: '*', id: '*', projectId: null });
+    await until(() => count().text() === '1');
   });
 });

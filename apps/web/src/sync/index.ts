@@ -47,6 +47,7 @@ export const {
   prefetchTasks,
 } = client;
 export { useQuery } from './query';
+export { onWork, emitWork, type WorkEvent } from './work';
 export const newId = (): string => uuidv7();
 export const rankBetween = (a: string | null, b: string | null): string => generateKeyBetween(a, b);
 export type { ReplicaChange } from './db';

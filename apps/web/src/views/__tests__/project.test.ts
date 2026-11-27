@@ -170,9 +170,9 @@ describe('views:project', () => {
     expect(w.find('[data-testid=panel]').exists()).toBe(false);
     mockMq(true);
     openTask('PRJ-2');
-    await flushPromises();
+    // openTask ждёт primed(key) (IndexedDB): под нагрузкой полного прогона одного flushPromises мало
+    await vi.waitFor(() => expect(r.currentRoute.value.query.task).toBe('PRJ-2'));
     expect(r.currentRoute.value.path).toBe(`/p/${project}`);
-    expect(r.currentRoute.value.query.task).toBe('PRJ-2');
     await vi.waitFor(() => expect(w.find('[data-testid=panel]').exists()).toBe(true));
     closeTask();
     await flushPromises();
@@ -243,8 +243,7 @@ describe('views:project', () => {
     await flushPromises();
     taskOpenMode.value = 'page';
     openTask('PRJ-3');
-    await flushPromises();
-    expect(r.currentRoute.value.path).toBe('/t/PRJ-3');
+    await vi.waitFor(() => expect(r.currentRoute.value.path).toBe('/t/PRJ-3'));
     taskOpenMode.value = 'modal';
   });
 

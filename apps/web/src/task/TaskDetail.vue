@@ -66,7 +66,13 @@ import {
   type TaskView,
 } from '../tasks';
 import { useExtensions } from '../modules/registry';
-import { TASK_ACTIVITY, activityOf, useActivity, type Activity } from '../modules/activity';
+import {
+  TASK_ACTIVITY,
+  activeByPanel,
+  activityOf,
+  useActivity,
+  type Activity,
+} from '../modules/activity';
 import { useSpaces, useTask } from '../tasks/queries';
 import {
   Avatar,
@@ -492,6 +498,8 @@ const tabCounts = computed<Record<string, number | string | undefined>>(() => ({
     checklist.value?.length ?? 0,
   ),
   links: links.value?.length,
+  // PLNRAPP-884: the module's runs running or waiting (the «AI» tab) — updated by the server's work signals
+  ...activeByPanel(activity.value),
 }));
 // attachments are open by default (PLNRAPP-105); `?panel=ai:runs` — the link to the AI run from a list row (PLNRAPP-322)
 const tab = ref<string | null>(

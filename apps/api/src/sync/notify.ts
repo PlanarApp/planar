@@ -1,9 +1,12 @@
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
 import pg from 'pg';
 import type { Db } from '../db/index.js';
 import { DB } from '../tokens.js';
 
 const CHANNEL = 'planar_changes';
+/** PLNRAPP-884: background work of a row changed (an AI run of a task, migration 0100) — not a replica change */
+const WORK_CHANNEL = 'planar_work';
 /** pg_notify payload is ≤ 8000 bytes: with more addressees than this the poke goes to everyone */
 const MAX_TARGETS = 30;
 
@@ -53,6 +56,40 @@ export function parsePayload(raw: string | undefined): { seq: number; target: Po
     return all(Number(raw));
   }
 }
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+ * PLNRAPP-884: the signal of a task's background work from code — a job of the queue (pg-boss) with `taskId` was
+ * enqueued or settled: a job without an ai_runs row (a rule's, the AI's job of a rule) is seen in the queue
+ * (activity `queued`) but the trigger of migration 0100 doesn't see it. In a transaction — goes out on commit.
+ * Not a task (no uuid) — null.
+ */
+export function workSignalSql(taskId: unknown) {
+  if (typeof taskId !== 'string' || !UUID.test(taskId)) return null;
+  return sql`select pg_notify('${sql.raw(WORK_CHANNEL)}', json_build_object('entity', 'tasks', 'id', ${taskId}::text,
+    'projectId', (select t.project_id from tasks t where t.id = ${taskId}::uuid))::text)`;
+}
+
+/** A signal of background work: the row whose work changed; projectId — for the project's lists. */
+export interface WorkSignal {
+  entity: string;
+  id: string;
+  projectId: string | null;
+}
+
+export function parseWork(raw: string | undefined): WorkSignal | null {
+  try {
+    const j = JSON.parse(raw ?? '');
+    if (typeof j?.entity !== 'string' || typeof j?.id !== 'string') return null;
+    return {
+      entity: j.entity,
+      id: j.id,
+      projectId: typeof j.projectId === 'string' ? j.projectId : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 const COALESCE_MS = 50;
 const RECONNECT_MS = 1000;
 
@@ -60,6 +97,7 @@ const RECONNECT_MS = 1000;
 @Injectable()
 export class ChangeNotifier implements OnModuleInit, OnModuleDestroy {
   private subs = new Set<(seq: number, target: PokeTarget) => void>();
+  private workSubs = new Set<(w: WorkSignal) => void>();
   private client?: pg.Client;
   private closed = false;
   private retry?: NodeJS.Timeout;
@@ -81,11 +119,18 @@ export class ChangeNotifier implements OnModuleInit, OnModuleDestroy {
     this.client = undefined;
     await c?.end().catch(() => {});
     this.subs.clear();
+    this.workSubs.clear();
   }
 
   subscribe(cb: (seq: number, target: PokeTarget) => void): () => void {
     this.subs.add(cb);
     return () => this.subs.delete(cb);
+  }
+
+  /** PLNRAPP-884: the signals of background work (planar_work), one per notification. */
+  subscribeWork(cb: (w: WorkSignal) => void): () => void {
+    this.workSubs.add(cb);
+    return () => this.workSubs.delete(cb);
   }
 
   private async connect() {
@@ -102,6 +147,11 @@ export class ChangeNotifier implements OnModuleInit, OnModuleDestroy {
     client.on('error', lost);
     client.on('end', lost);
     client.on('notification', (m) => {
+      if (m.channel === WORK_CHANNEL) {
+        const w = parseWork(m.payload);
+        if (w) for (const cb of this.workSubs) cb(w);
+        return;
+      }
       const { seq, target } = parsePayload(m.payload);
       this.push(seq, target);
     });
@@ -109,6 +159,7 @@ export class ChangeNotifier implements OnModuleInit, OnModuleDestroy {
     try {
       await client.connect();
       await client.query(`LISTEN ${CHANNEL}`);
+      await client.query(`LISTEN ${WORK_CHANNEL}`);
       // while there was no connection, notifications could have been lost
       const r = await this.db.$client.query('select coalesce(max(seq), 0) as seq from changes');
       this.push(Number(r.rows[0].seq), everyone());

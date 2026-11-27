@@ -201,6 +201,12 @@ describe('раскладка', () => {
     const { router, i18n } = setup(false);
     const w = mount(Sidebar, { global: { plugins: [router, i18n] } });
     await vi.waitFor(() => expect(w.findAll('[data-testid=nav-favorite-rail]')).toHaveLength(2));
+    // PLNRAPP-880: on touch the drag starts only after a long press, a swipe scrolls the list
+    expect(w.findComponent(VueDraggable).props()).toMatchObject({
+      delay: 250,
+      delayOnTouchOnly: true,
+      touchStartThreshold: 5,
+    });
     // jsdom has no real drag: the update event of VueDraggable
     w.findComponent(VueDraggable).vm.$emit('update', {
       oldIndex: 1,
@@ -216,5 +222,22 @@ describe('раскладка', () => {
     setSidebarMode('full');
     for (const id of ['a', 'b']) favorites.toggle({ kind: 'task', id, name: '', to: '' });
     await vi.waitFor(() => expect(favorites.has('task', 'a')).toBe(false));
+  });
+
+  it('PLNRAPP-880: все списки сайдбара тащатся на touch только долгим нажатием', async () => {
+    const src = (await import('../Sidebar.vue?raw')).default as string;
+    const lists = src.match(/<VueDraggable\b[^>]*>/g) ?? [];
+    expect(lists.length).toBeGreaterThanOrEqual(4);
+    for (const l of lists) {
+      expect(l).toContain('v-bind="SIDEBAR_DRAG"');
+      expect(l).toContain('NO_CALLOUT');
+    }
+    const { SIDEBAR_DRAG, NO_CALLOUT } = await import('../touchDrag');
+    expect(SIDEBAR_DRAG).toMatchObject({
+      delay: 250,
+      delayOnTouchOnly: true,
+      touchStartThreshold: 5,
+    });
+    expect(NO_CALLOUT).toContain('[-webkit-touch-callout:none]');
   });
 });
