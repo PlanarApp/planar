@@ -208,14 +208,21 @@ const selectTab = (k: string) =>
         {{ t('views.saved.reset') }}
       </Button>
     </ViewChangesBar>
+    <!-- PLNRAPP-883: the view waits for its saved settings (view.ready): drawn without them it flashes hidden tasks -->
     <!-- «My day»: the List with the day filter in blocks, the level's List settings (PLNRAPP-864, 868) -->
     <div v-if="day" class="h-full min-h-0 flex-1">
-      <MyDay v-if="spaces" :key="key" :project-id="key" :scope="scope" :options="options" />
+      <MyDay
+        v-if="spaces && view.ready.value"
+        :key="key"
+        :project-id="key"
+        :scope="scope"
+        :options="options"
+      />
     </div>
     <div v-else class="h-full min-h-0 flex-1">
       <component
         :is="viewComponent"
-        v-if="spaces && active"
+        v-if="spaces && active && view.ready.value"
         :key="`${key}:${active.key}`"
         :project-id="key"
         :scope="scope"
