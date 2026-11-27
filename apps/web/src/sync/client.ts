@@ -15,6 +15,7 @@ import {
   uuidv7,
   wsServerSchema,
   wsTypingServerSchema,
+  wsWorkServerSchema,
   type MutatorCtx,
   type MutatorDef,
   type SyncTasksResponse,
@@ -28,6 +29,7 @@ import {
   type Undo,
 } from './db';
 import { DexieTx, applyUndo, flushOverlay, overlayKey, type Overlay } from './dexie-tx';
+import { emitWork } from './work';
 
 export interface StartOpts {
   userId: string;
@@ -153,6 +155,8 @@ export function createClient(db: PlanarDB) {
   const authCbs = new Set<() => void>();
   const replicaCbs = new Set<(b: ReplicaChange[]) => void>();
   const typingCbs = new Set<(e: TypingEvent) => void>();
+  /** the WS has been open before: a new open is a reconnect (missed work signals) */
+  let wsOpenedOnce = false;
   const replicaState = ref<ReplicaState>('empty');
   // other tabs: the same batches; db.name — so clients of different databases (tests) don't hear each other
   const channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(CHANNEL);
@@ -797,6 +801,8 @@ export function createClient(db: PlanarDB) {
     s.onopen = () => {
       // stable connection — open ≥ 5 s or a poke received; otherwise the pause grows
       wsStable = setTimeout(() => (wsFailures = 0), 5000);
+      if (wsOpenedOnce) emitWork({ entity: '*', id: '*', projectId: null });
+      wsOpenedOnce = true;
       // the warm start's first pull is in flight: a hello with the old cursor makes the server poke → a second pull
       const hello = () =>
         g === gen && ws === s && s.send(JSON.stringify({ t: 'hello', cursor: cursor ?? 0 }));
@@ -811,6 +817,12 @@ export function createClient(db: PlanarDB) {
         if (ty.success) {
           const { entity, id, userId } = ty.data;
           for (const cb of [...typingCbs]) cb({ entity, id, userId });
+          return;
+        }
+        const wk = wsWorkServerSchema.safeParse(json);
+        if (wk.success) {
+          const { entity, id, projectId } = wk.data;
+          emitWork({ entity, id, projectId });
           return;
         }
         m = wsServerSchema.safeParse(json);

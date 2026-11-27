@@ -1,8 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { ServerTx } from '../../src/sync/server-tx.js';
-import { ChangeNotifier, Notify, parsePayload } from '../../src/sync/notify.js';
-import { NOW, mkProject, mkSpace, mkUser, newDb } from './helpers.js';
+import {
+  ChangeNotifier,
+  Notify,
+  parsePayload,
+  parseWork,
+  type WorkSignal,
+} from '../../src/sync/notify.js';
+import { NOW, mkProject, mkSpace, mkUser, newDb, taskArgs, world } from './helpers.js';
 import { uuidv7 } from '@planar/shared';
 
 const dbs: ReturnType<typeof newDb>[] = [];
@@ -123,5 +129,75 @@ describe('адресаты poke', () => {
   it('старый payload (число) и мусор — всем', () => {
     expect(parsePayload('42')).toMatchObject({ seq: 42, target: { all: true } });
     expect(parsePayload('x').target.all).toBe(true);
+  });
+});
+
+// PLNRAPP-884: a run of a task changed its state — the signal goes out (trigger of migration 0100), no polling
+describe('сигнал работы ИИ (planar_work)', () => {
+  it('разбор payload: задача с проектом; мусор — null', () => {
+    expect(parseWork('{"entity":"tasks","id":"t1","projectId":"p1"}')).toEqual({
+      entity: 'tasks',
+      id: 't1',
+      projectId: 'p1',
+    });
+    expect(parseWork('{"entity":"tasks","id":"t1"}')).toEqual({
+      entity: 'tasks',
+      id: 't1',
+      projectId: null,
+    });
+    expect(parseWork('42')).toBeNull();
+    expect(parseWork('x')).toBeNull();
+  });
+
+  it('создание, смена состояния и удаление прогона задачи — сигнал; прочие правки и прогон чата — нет', async () => {
+    const { db, n } = await setup();
+    const w = await world(db);
+    const a = taskArgs(w, {});
+    await w.admin.ok('task.create', a);
+    const taskId = a.id as string;
+    const got: WorkSignal[] = [];
+    n.subscribeWork((s) => got.push(s));
+    await new Promise((r) => setTimeout(r, 200)); // LISTEN is set up
+    const wait = (len: number) =>
+      new Promise<void>((res, rej) => {
+        const t0 = Date.now();
+        const i = setInterval(() => {
+          if (got.length >= len) {
+            clearInterval(i);
+            res();
+          } else if (Date.now() - t0 > 3000) {
+            clearInterval(i);
+            rej(new Error('нет сигнала'));
+          }
+        }, 10);
+      });
+    const q = (text: string, values: unknown[]) => db.$client.query(text, values);
+    const id = uuidv7();
+    await q(
+      `insert into ai_runs (id, task_id, project_id, kind, state, chain_id, chain_depth)
+       values ($1, $2, $3, 'action', 'queued', $1, 0)`,
+      [id, taskId, w.projectId],
+    );
+    await wait(1);
+    expect(got[0]).toEqual({ entity: 'tasks', id: taskId, projectId: w.projectId });
+    await q(`update ai_runs set state = 'running' where id = $1`, [id]);
+    await wait(2);
+    // not the state: no signal
+    await q(`update ai_runs set log = 'x' where id = $1`, [id]);
+    await q(`update ai_runs set state = 'running' where id = $1`, [id]);
+    // a chat run (no task): no signal
+    const chat = uuidv7();
+    await q(
+      `insert into ai_runs (id, channel_id, kind, state, chain_id, chain_depth)
+       values ($1, $2, 'chat', 'running', $1, 0)`,
+      [chat, uuidv7()],
+    );
+    await q(`update ai_runs set state = 'waiting_subtasks' where id = $1`, [id]);
+    await wait(3);
+    await new Promise((r) => setTimeout(r, 200));
+    expect(got).toHaveLength(3);
+    await q(`delete from ai_runs where id = $1`, [id]);
+    await wait(4);
+    expect(got.every((s) => s.id === taskId)).toBe(true);
   });
 });

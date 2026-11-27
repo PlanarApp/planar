@@ -14,10 +14,11 @@ import {
   type Ref,
 } from 'vue';
 import { onReplicaChange, type ReplicaChange } from '../sync';
+import { onWork, type WorkEvent } from '../sync/work';
 import { useExtensions } from './registry';
 import type { ActivitySourceDef, WorkActivity } from './types';
 
-/** Polling while something runs or waits in the queue. */
+/** Polling while something runs or waits in the queue (the entities without work signals, see SIGNALED). */
 export const ACTIVITY_POLL_MS = 3000;
 /** After a change of the replica a run may start a moment later (the queue): poll this long anyway. */
 export const ACTIVITY_GRACE_MS = 10_000;
@@ -36,6 +37,30 @@ const RELEVANT: Record<ActivitySourceDef['entity'], string[]> = {
   pages: ['docsComments'],
   projects: ['tasks', 'taskAssignees', 'comments', 'checklistItems'],
 };
+
+/**
+ * PLNRAPP-884: the server signals a change of a task's AI run (WS `work`, migration 0100): the task card reloads
+ * on the signal instead of polling while a run runs or waits. The queue's jobs without a run have no signal: while
+ * something is queued, and in the grace after a replica change, it still polls. The project's lists still poll.
+ */
+const SIGNALED: ReadonlySet<ActivitySourceDef['entity']> = new Set(['tasks']);
+/** PLNRAPP-884: a run counts on the tab while it runs or waits; done / failed — not. */
+export const ACTIVE_STATES: ReadonlySet<WorkActivity['state']> = new Set([
+  'queued',
+  'running',
+  'waiting_human',
+  'waiting_subtasks',
+]);
+/** PLNRAPP-884: the count of the task panel `<moduleId>:<panel>` — the works running or waiting there. */
+export function activeByPanel(list: readonly Activity[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const a of list)
+    if (a.panel && ACTIVE_STATES.has(a.state)) {
+      const k = `${a.moduleId}:${a.panel}`;
+      out[k] = (out[k] ?? 0) + 1;
+    }
+  return out;
+}
 
 const RANK = {
   running: 0,
@@ -112,7 +137,10 @@ export function useActivity(
     if (items.value.some((a) => a.state === 'queued') && !live(got.flat()))
       graceUntil = Math.max(graceUntil, Date.now() + ACTIVITY_GRACE_MS);
     items.value = got.flat();
-    if (live(items.value) || Date.now() < graceUntil) timer = setTimeout(load, ACTIVITY_POLL_MS);
+    const polled = SIGNALED.has(entity)
+      ? items.value.some((a) => a.state === 'queued')
+      : live(items.value);
+    if (polled || Date.now() < graceUntil) timer = setTimeout(load, ACTIVITY_POLL_MS);
   }
 
   // a change of another task/project doesn't matter; a deletion carries no row (only the id) — counts for everyone
@@ -130,6 +158,16 @@ export function useActivity(
     clearTimeout(debounce);
     debounce = setTimeout(load, DEBOUNCE_MS);
   });
+  // PLNRAPP-884: a run of the task changed — reload, no polling
+  const isMyWork = (e: WorkEvent) =>
+    e.entity === '*' || (e.entity === 'tasks' && e.id === toValue(id));
+  const offWork = SIGNALED.has(entity)
+    ? onWork((e) => {
+        if (!isMyWork(e)) return;
+        clearTimeout(debounce);
+        debounce = setTimeout(load, DEBOUNCE_MS);
+      })
+    : () => {};
   watch(
     [() => toValue(id), () => sources.value.map((s) => s.key).join()],
     () => {
@@ -142,6 +180,7 @@ export function useActivity(
     onScopeDispose(() => {
       alive = false;
       off();
+      offWork();
       clearTimeout(timer);
       clearTimeout(debounce);
     });

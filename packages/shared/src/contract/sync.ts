@@ -109,6 +109,13 @@ export const wsTypingClientSchema = z.object({
   id: z.string().min(1),
 });
 export const wsTypingServerSchema = wsTypingClientSchema.extend({ userId: z.string() });
+/** PLNRAPP-884: background work of a row changed (an AI run of a task): the client reloads it, no polling. */
+export const wsWorkServerSchema = z.object({
+  t: z.literal('work'),
+  entity: z.string().min(1),
+  id: z.string().min(1),
+  projectId: z.string().nullable(),
+});
 
 export type SyncBootstrap = z.infer<typeof syncBootstrapSchema>;
 export type SyncHeavy = z.infer<typeof syncHeavySchema>;

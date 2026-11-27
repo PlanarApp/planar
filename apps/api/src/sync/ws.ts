@@ -16,7 +16,7 @@ import { AUTH_OPTS, authenticateRaw, type AuthOpts } from '../auth/auth.js';
 import type { Db } from '../db/index.js';
 import { HttpError } from '../auth/errors.js';
 import { DB } from '../tokens.js';
-import { ChangeNotifier, type PokeTarget } from './notify.js';
+import { ChangeNotifier, type PokeTarget, type WorkSignal } from './notify.js';
 import { viewersOf } from './viewers.js';
 
 const PING_MS = 30_000;
@@ -36,6 +36,7 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
   private typed = new Map<string, number>();
   private server?: Server;
   private off?: () => void;
+  private offWork?: () => void;
   private ping?: NodeJS.Timeout;
 
   constructor(
@@ -49,6 +50,7 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
     this.server = this.host.httpAdapter.getHttpServer() as Server;
     this.server.on('upgrade', this.onUpgrade);
     this.off = this.notifier.subscribe((seq, t) => this.broadcast(seq, t));
+    this.offWork = this.notifier.subscribeWork((w) => void this.onWork(w));
     this.ping = setInterval(() => {
       for (const ws of this.wss.clients) {
         if (!this.alive.has(ws)) ws.terminate();
@@ -64,6 +66,7 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
   onModuleDestroy() {
     clearInterval(this.ping);
     this.off?.();
+    this.offWork?.();
     this.server?.off('upgrade', this.onUpgrade);
     for (const ws of this.wss.clients) ws.terminate();
     this.wss.close();
@@ -137,6 +140,22 @@ export class SyncGateway implements OnApplicationBootstrap, OnModuleDestroy {
       }
     } catch {
       // ephemeral message: a DB failure is silent
+    }
+  }
+
+  /** PLNRAPP-884: the work of a row changed — only to those who see the row (no data, the client reloads it). */
+  private async onWork(w: WorkSignal) {
+    if (!this.wss.clients.size) return;
+    try {
+      const viewers = await viewersOf(this.db, w.entity, w.id);
+      if (!viewers?.size) return;
+      const out = JSON.stringify({ t: 'work', entity: w.entity, id: w.id, projectId: w.projectId });
+      for (const c of this.wss.clients) {
+        const u = this.users.get(c);
+        if (u && viewers.has(u) && c.readyState === WebSocket.OPEN) c.send(out);
+      }
+    } catch {
+      // ephemeral signal: a DB failure is silent, the next one or a reconnect reloads
     }
   }
 
