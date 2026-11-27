@@ -8,9 +8,10 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
 } from '@nestjs/common';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import {
   CORE,
@@ -26,17 +27,35 @@ import { uuidv7 } from '@planar/shared';
 import {
   GITHUB_ERRORS,
   WORKSPACE_SCOPE_ID,
+  type GithubAvailableView,
   type GithubLevelView,
+  type GithubRepoView,
   type GithubScope,
 } from '../shared/index.js';
-import { availableConnections, choiceOf, resolveConnection, viewOf } from './connections.js';
-import { githubChoices as C, githubConnections as G } from './schema.js';
+import {
+  availableConnections,
+  choiceOf,
+  resolveConnection,
+  viewOf,
+  type Connection,
+} from './connections.js';
+import { fetchRepo, ghGet, listRepos } from './repos.js';
+import { githubChoices as C, githubConnections as G, githubRepos as R } from './schema.js';
 
-export const GITHUB_API = 'https://api.github.com';
+type Repo = typeof R.$inferSelect;
+
 const scope = z.enum(['workspace', 'space', 'project']);
 const token = z.string().trim().min(1).max(500);
 const connectBody = z.object({ scope, scopeId: z.uuid(), token });
 const choiceBody = z.object({ connectionId: z.uuid().nullable() });
+// «owner/name» as GitHub allows: letters, digits, «-», «_», «.»
+const bindBody = z.object({
+  fullName: z
+    .string()
+    .trim()
+    .max(200)
+    .regex(/^[\w.-]+\/[\w.-]+$/, 'нужно имя репозитория вида owner/name'),
+});
 const invalid = (m: string) => new HttpError(400, 'invalid_request', m);
 const notFound = () => new HttpError(404, 'not_found', 'Не найдено');
 const uuidOr404 = (id: string) => {
@@ -58,31 +77,12 @@ export async function githubToken(
 ): Promise<string | null> {
   const r = await resolveConnection(db, sc, scopeId);
   if (!r) return null;
-  const key = keyOrThrow();
-  try {
-    return decrypt(r.tokenEnc, key);
-  } catch {
-    throw new HttpError(503, 'unavailable', 'Токен GitHub не расшифровывается');
-  }
+  return tokenOf(r);
 }
 
 /** GET /user with the token: the login; 401/403 — 400 with badToken; no answer / other errors — 502. */
 async function githubLogin(t: string): Promise<string> {
-  let res: Response;
-  try {
-    res = await fetch(`${GITHUB_API}/user`, {
-      headers: {
-        Authorization: `Bearer ${t}`,
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'Planar',
-      },
-      redirect: 'manual',
-      signal: AbortSignal.timeout(15_000),
-    });
-  } catch {
-    throw new HttpError(502, 'unavailable', GITHUB_ERRORS.unavailable);
-  }
+  const res = await ghGet(t, '/user');
   if (res.status === 401 || res.status === 403) throw invalid(GITHUB_ERRORS.badToken);
   if (!res.ok) throw new HttpError(502, 'unavailable', GITHUB_ERRORS.unavailable);
   const body = (await res.json().catch(() => null)) as { login?: unknown } | null;
@@ -90,6 +90,25 @@ async function githubLogin(t: string): Promise<string> {
     throw new HttpError(502, 'unavailable', GITHUB_ERRORS.unavailable);
   return body.login;
 }
+
+/** A connection's token; a broken one — 503. */
+function tokenOf(c: Connection): string {
+  const key = keyOrThrow();
+  try {
+    return decrypt(c.tokenEnc, key);
+  } catch {
+    throw new HttpError(503, 'unavailable', 'Токен GitHub не расшифровывается');
+  }
+}
+
+const repoView = (r: Repo): GithubRepoView => ({
+  id: r.id,
+  projectId: r.projectId,
+  connectionId: r.connectionId,
+  repoId: r.repoId,
+  fullName: r.fullName,
+  defaultBranch: r.defaultBranch,
+});
 
 // PLNRAPP-890: github.com connections of the levels workspace / space / project, managed by the instance admin —
 // the same levels, choice and rights as the GitLab connections (modules/gitlab)
@@ -200,9 +219,94 @@ export class GithubController {
       .from(G)
       .where(eq(G.id, uuidOr404(id)));
     if (!r) throw notFound();
+    // PLNRAPP-891: as GitLab — not while project repositories are bound through it
+    const [bound] = await this.core.db
+      .select({ id: R.id })
+      .from(R)
+      .where(eq(R.connectionId, r.id))
+      .limit(1);
+    if (bound)
+      throw new HttpError(
+        409,
+        'conflict',
+        'К подключению привязаны репозитории проектов — сначала отвяжите их',
+      );
     await this.core.db.transaction(async (tx) => {
       await tx.delete(C).where(eq(C.connectionId, r.id));
       await tx.delete(G).where(eq(G.id, r.id));
     });
+  }
+
+  // PLNRAPP-891: a project's github.com repositories — the same rights as the GitLab bindings (instance admin)
+
+  private async project(id: string) {
+    await this.level('project', id);
+    return id;
+  }
+
+  /** The project's bound repositories. */
+  @Get('projects/:projectId/repos')
+  async repos(@Req() req: object, @Param('projectId') projectId: string) {
+    this.admin(req);
+    await this.project(projectId);
+    const rs = await this.core.db
+      .select()
+      .from(R)
+      .where(eq(R.projectId, projectId))
+      .orderBy(asc(R.fullName));
+    return { repos: rs.map(repoView) };
+  }
+
+  /** Repositories the project's connection has access to (all pages), ?q — part of the name. */
+  @Get('projects/:projectId/available')
+  async available(
+    @Req() req: object,
+    @Param('projectId') projectId: string,
+    @Query('q') q?: string,
+  ): Promise<GithubAvailableView> {
+    this.admin(req);
+    await this.project(projectId);
+    const c = await resolveConnection(this.core.db, 'project', projectId);
+    if (!c) return { connected: false, repos: [] };
+    return { connected: true, repos: await listRepos(tokenOf(c), String(q ?? '').slice(0, 200)) };
+  }
+
+  /** Binds a repository by full_name through the project's connection; the same one again — refreshed, no duplicate. */
+  @Post('projects/:projectId/repos')
+  async bind(@Req() req: object, @Param('projectId') projectId: string, @Body() body: unknown) {
+    this.admin(req);
+    const b = parseBody(bindBody, body);
+    await this.project(projectId);
+    const c = await resolveConnection(this.core.db, 'project', projectId);
+    if (!c) throw new HttpError(409, 'conflict', GITHUB_ERRORS.notConnected);
+    const found = await fetchRepo(tokenOf(c), b.fullName);
+    const [r] = await this.core.db
+      .insert(R)
+      .values({
+        id: uuidv7(),
+        projectId,
+        connectionId: c.id,
+        repoId: found.repoId,
+        fullName: found.fullName,
+        defaultBranch: found.defaultBranch,
+      })
+      .onConflictDoUpdate({
+        target: [R.projectId, R.repoId],
+        set: { connectionId: c.id, fullName: found.fullName, defaultBranch: found.defaultBranch },
+      })
+      .returning();
+    return { repo: repoView(r!) };
+  }
+
+  /** Unbinds: the binding row is deleted. */
+  @Delete('repos/:id')
+  @HttpCode(204)
+  async unbind(@Req() req: object, @Param('id') id: string) {
+    this.admin(req);
+    const r = await this.core.db
+      .delete(R)
+      .where(eq(R.id, uuidOr404(id)))
+      .returning({ id: R.id });
+    if (!r.length) throw notFound();
   }
 }

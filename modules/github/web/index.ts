@@ -1,14 +1,33 @@
 import { defineWebModule } from '@planar/web/modules';
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, ref } from 'vue';
 import type { GithubScope } from '../shared/index.js';
 import { GithubIcon } from './icons';
 
-/** The connections panel as a settings page of a level: the group settings pass spaceId / projectId. */
+/**
+ * The connections panel as a settings page of a level: the group settings pass spaceId / projectId.
+ * PLNRAPP-891: a project also gets its repositories under the connections.
+ */
 const page = (level: GithubScope) =>
-  import('./GithubSettings.vue').then((m) => ({
+  Promise.all([import('./GithubSettings.vue'), import('./GithubRepos.vue')]).then(([m, r]) => ({
     default: defineComponent({
       props: { spaceId: String, projectId: String },
-      setup: (p) => () => h(m.default, { level, spaceId: p.spaceId, projectId: p.projectId }),
+      setup: (p) => {
+        const reload = ref(0);
+        return () => {
+          const conns = h(m.default, {
+            level,
+            spaceId: p.spaceId,
+            projectId: p.projectId,
+            onChanged: () => reload.value++,
+          });
+          return level === 'project' && p.projectId
+            ? h('div', { class: 'flex flex-col gap-6' }, [
+                conns,
+                h(r.default, { projectId: p.projectId, reload: reload.value }),
+              ])
+            : conns;
+        };
+      },
     }),
   }));
 
