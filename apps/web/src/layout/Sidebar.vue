@@ -146,18 +146,25 @@ const createItems = (): MenuItem[] => {
 };
 // projects are built in memory in advance: on hover/focus of the link and once when idle after the list appears
 let idle: ReturnType<typeof setTimeout> | undefined;
-const stop = watch(
-  () => spaces.value.length > 0,
-  (has) => {
-    if (!has) return;
-    stop();
-    idle = setTimeout(
-      () => prefetchIdle(spaces.value.flatMap((s) => s.projects.map((p) => p.id))),
-      500,
-    );
-  },
-  { immediate: true },
-);
+const prefetchWhenIdle = () => {
+  idle = setTimeout(
+    () => prefetchIdle(spaces.value.flatMap((s) => s.projects.map((p) => p.id))),
+    500,
+  );
+};
+// PLNRAPP-888: no `immediate` — with spaces already loaded (the mobile drawer mounts on open) its
+// callback ran before `stop` was assigned: "Cannot access 'P' before initialization"
+if (spaces.value.length > 0) prefetchWhenIdle();
+else {
+  const stop = watch(
+    () => spaces.value.length > 0,
+    (has) => {
+      if (!has) return;
+      stop();
+      prefetchWhenIdle();
+    },
+  );
+}
 onScopeDispose(() => clearTimeout(idle));
 const link =
   'flex h-7 items-center gap-2 rounded-md px-2 text-sm text-fg hover:bg-bg-muted outline-none focus-visible:ring-2 ring-focus';
