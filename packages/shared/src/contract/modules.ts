@@ -79,6 +79,7 @@ export const MODULE_ID_RE = /^[a-z][a-z0-9-]{1,30}$/;
 /** Data modules (C-schema v16): on or off per project in `projects.modules`; the other modules are shared (instance level). */
 export const DATA_MODULE_IDS = [
   'gitlab',
+  'github',
   'sprints',
   'time',
   'forms',

@@ -52,6 +52,8 @@ const GLOBAL_HIDDEN = [
   'ai:project',
   'gitlab:space',
   'gitlab:project',
+  'github:space',
+  'github:project',
   'automations:rules',
   'templates:templates',
   'forms:forms',
