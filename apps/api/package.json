@@ -26,6 +26,7 @@
     "@planar/module-docs": "workspace:*",
     "@planar/module-email": "workspace:*",
     "@planar/module-forms": "workspace:*",
+    "@planar/module-github": "workspace:*",
     "@planar/module-gitlab": "workspace:*",
     "@planar/module-goals": "workspace:*",
     "@planar/module-hello": "workspace:*",
