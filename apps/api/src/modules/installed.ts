@@ -22,6 +22,8 @@ import { api as webhooksApi } from '@planar/module-webhooks/api';
 import * as webhooksTables from '@planar/module-webhooks/api/schema';
 import { api as gitlabApi } from '@planar/module-gitlab/api';
 import * as gitlabTables from '@planar/module-gitlab/api/schema';
+import { api as githubApi } from '@planar/module-github/api';
+import * as githubTables from '@planar/module-github/api/schema';
 import { api as emailApi } from '@planar/module-email/api';
 import * as emailTables from '@planar/module-email/api/schema';
 import { api as timelineApi } from '@planar/module-timeline/api';
@@ -93,6 +95,7 @@ export const installed: InstalledModule[] = validateInstalled([
   { api: webhooksApi, tables: webhooksTables },
   { api: importApi, tables: importTables },
   { api: gitlabApi, tables: gitlabTables },
+  { api: githubApi, tables: githubTables },
   { api: docs, tables: docsTables },
   { api: chat, tables: chatTables },
   { api: formsApi, tables: formsTables },
