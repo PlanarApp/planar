@@ -137,7 +137,7 @@ describe('task: индикатор работы ИИ', () => {
     expect(aiRow().text()).toBe('Работает');
   }, 10_000);
 
-  it('PLNRAPP-532: задание взято, прогон ещё не записан — опрос не останавливается и видит прогон', async () => {
+  it('PLNRAPP-532: задание взято, прогон ещё не записан — сигнал записи прогона показывает его', async () => {
     answer = [run({ state: 'queued', itemId: null })];
     w = await open();
     await until(() => aiRow().exists());
@@ -146,7 +146,9 @@ describe('task: индикатор работы ИИ', () => {
     answer = [];
     emitWork({ entity: 'tasks', id: t.id, projectId: t.projectId });
     await until(() => load.mock.calls.length > before && !aiRow().exists(), 6000);
+    // PLNRAPP-884: the run's row is written — the signal of the ai_runs trigger, no polling
     answer = [run({ itemId: null, startedAt: ago(0) })];
+    emitWork({ entity: 'tasks', id: t.id, projectId: t.projectId });
     await until(() => aiRow().exists() && aiRow().attributes('data-state') === 'running', 6000);
   }, 15_000);
 
@@ -277,6 +279,27 @@ describe('task: число прогонов на табе модуля', () => {
     expect(count().text()).toBe('1');
     // all finished: no badge
     answer = [run({ state: 'done' })];
+    emitWork({ entity: 'tasks', id: t.id, projectId: t.projectId });
+    await until(() => !count().exists());
+  }, 15_000);
+
+  it('в очереди (задание правила без прогона) — «1» по сигналу постановки; опроса нет, ни после изменения реплики', async () => {
+    w = await open();
+    await until(() => load.mock.calls.length > 0);
+    expect(count().exists()).toBe(false);
+    // the rule's job is enqueued (jobs.ts): the signal, no ai_runs row yet
+    answer = [run({ state: 'queued', itemId: null })];
+    emitWork({ entity: 'tasks', id: t.id, projectId: t.projectId });
+    await until(() => count().text() === '1');
+    // a change of the task's replica — one reload, then nothing: the queue is not polled, no grace polling
+    await db.table('comments').put(comment());
+    await new Promise((r) => setTimeout(r, 900));
+    const calls = load.mock.calls.length;
+    await new Promise((r) => setTimeout(r, 3500));
+    expect(load.mock.calls.length).toBe(calls);
+    expect(count().text()).toBe('1');
+    // the job is settled, the rule skipped (no run): the signal after the settle — the badge is gone
+    answer = [];
     emitWork({ entity: 'tasks', id: t.id, projectId: t.projectId });
     await until(() => !count().exists());
   }, 15_000);
