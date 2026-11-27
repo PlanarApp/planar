@@ -111,7 +111,7 @@ export default {
     deleteProjectHint:
       'Only an empty project can be deleted: delete or move its tasks first. Archive a project that has tasks.',
     deleteSpace: 'Delete space “{name}”?',
-    deleteSpaceHint: 'The space must be empty: delete or move its projects first.',
+    deleteSpaceHint: 'All its projects and their tasks will be deleted permanently.',
   },
   nav: {
     inbox: 'Inbox',
