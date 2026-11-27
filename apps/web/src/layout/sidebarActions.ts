@@ -210,7 +210,7 @@ export function useSidebarActions() {
               description: t('sidebar.deleteSpaceHint'),
               confirmLabel: t('sidebar.delete'),
             },
-            onSelect: () => void mutate('space.delete', { id: s.id }),
+            onSelect: () => void mutate('space.delete', { id: s.id, withContent: true }),
           },
         ]
       : []),
