@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
+import pg from 'pg';
 import { webhooksDeliveries as D } from '@planar/module-webhooks/api/schema';
 import { CoreService } from '../../src/core.service.js';
 import { settings } from '../../src/db/schema.js';
@@ -23,6 +24,14 @@ installed.push({
       {
         queue: 'wk12t.job',
         handler: async (data: unknown) => void calls.push(data),
+      },
+      {
+        // PLNRAPP-884: a task's job; fail — the handler throws
+        queue: 'wk12t.task',
+        retryLimit: 0,
+        handler: async (data: { fail?: boolean }) => {
+          if (data.fail) throw new Error('wk12t: сбой');
+        },
       },
     ],
   },
@@ -76,4 +85,48 @@ describe('wk12: CoreServices.enqueue', () => {
     expect(spy).toHaveBeenCalledWith('webhooks.deliver', { deliveryId: p.id });
     expect((await appDb.select().from(D).where(eq(D.id, p.id)))[0]).toBeTruthy();
   });
+});
+
+// PLNRAPP-884: a task's job without an ai_runs row (a rule's) — the clients see it in the queue: signals on enqueue
+// and after the settle (the job is no longer active by then), no polling
+describe('PLNRAPP-884: сигнал planar_work от заданий задачи', () => {
+  it('постановка, выполнение и сбой задания задачи — сигнал; задание без taskId — нет', async () => {
+    await db
+      .insert(settings)
+      .values({ id: 'enabled_modules', value: ['wk12t'] })
+      .onConflictDoUpdate({ target: settings.id, set: { value: ['wk12t'] } });
+    const taskId = crypto.randomUUID();
+    const got: { id: string }[] = [];
+    const l = new pg.Client({ connectionString: dbUrl });
+    await l.connect();
+    l.on('notification', (m) => {
+      const p = JSON.parse(m.payload ?? '{}') as { id: string };
+      got.push({ id: p.id });
+    });
+    await l.query('LISTEN planar_work');
+    const stateOf = async (id: string) =>
+      (
+        await db.execute(
+          sql`select state::text as s from pgboss.job where name = 'wk12t.task' and data->>'taskId' = ${id}`,
+        )
+      ).rows.map((r) => r.s as string);
+    try {
+      await jobs.enqueue('wk12t.job', { n: 3 });
+      await jobs.enqueue('wk12t.task', { taskId });
+      // enqueue + settle: two signals of the task; the job is completed before the second one
+      await vi.waitFor(() => expect(got.filter((g) => g.id === taskId)).toHaveLength(2), {
+        timeout: 20_000,
+      });
+      expect(await stateOf(taskId)).toEqual(['completed']);
+      const failed = crypto.randomUUID();
+      await jobs.enqueue('wk12t.task', { taskId: failed, fail: true });
+      await vi.waitFor(() => expect(got.filter((g) => g.id === failed)).toHaveLength(2), {
+        timeout: 20_000,
+      });
+      expect(await stateOf(failed)).toEqual(['failed']);
+      expect(got.every((g) => g.id === taskId || g.id === failed)).toBe(true);
+    } finally {
+      await l.end();
+    }
+  }, 60_000);
 });

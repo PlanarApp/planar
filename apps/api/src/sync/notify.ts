@@ -1,4 +1,5 @@
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
 import pg from 'pg';
 import type { Db } from '../db/index.js';
 import { DB } from '../tokens.js';
@@ -55,6 +56,19 @@ export function parsePayload(raw: string | undefined): { seq: number; target: Po
     return all(Number(raw));
   }
 }
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+ * PLNRAPP-884: the signal of a task's background work from code — a job of the queue (pg-boss) with `taskId` was
+ * enqueued or settled: a job without an ai_runs row (a rule's, the AI's job of a rule) is seen in the queue
+ * (activity `queued`) but the trigger of migration 0100 doesn't see it. In a transaction — goes out on commit.
+ * Not a task (no uuid) — null.
+ */
+export function workSignalSql(taskId: unknown) {
+  if (typeof taskId !== 'string' || !UUID.test(taskId)) return null;
+  return sql`select pg_notify('${sql.raw(WORK_CHANNEL)}', json_build_object('entity', 'tasks', 'id', ${taskId}::text,
+    'projectId', (select t.project_id from tasks t where t.id = ${taskId}::uuid))::text)`;
+}
+
 /** A signal of background work: the row whose work changed; projectId — for the project's lists. */
 export interface WorkSignal {
   entity: string;

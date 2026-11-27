@@ -674,6 +674,11 @@ export class AiController {
     await db.execute(
       sql`delete from pgboss.job where id = ${id}::uuid and name = ${AI_QUEUE} and state in ('created', 'retry')`,
     );
+    // PLNRAPP-884: a job without a run has no ai_runs trigger — the signal to the task's viewers (as jobs.ts does)
+    await db.execute(
+      sql`select pg_notify('planar_work', json_build_object('entity', 'tasks', 'id', ${job.taskId}::text,
+            'projectId', (select t.project_id from tasks t where t.id = ${job.taskId}::uuid))::text)`,
+    );
   }
 
   /** Unsent email batches of the run die with it (part of the run's stop / restart). */

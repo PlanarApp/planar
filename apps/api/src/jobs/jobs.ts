@@ -8,6 +8,7 @@ import { installed } from '../modules/installed.js';
 import type { PushOpts, PushQueue } from '../push/push.js';
 import { filesOptsOf, storeBuffer } from '../files/store.js';
 import { executeMutations } from '../sync/mutate.js';
+import { workSignalSql } from '../sync/notify.js';
 import type { Q } from '../sync/server-tx.js';
 import { DB } from '../tokens.js';
 import { ensureSystemUser } from '../users/system.js';
@@ -103,7 +104,26 @@ export class JobsService implements OnApplicationShutdown {
         // disabled module: the job finishes without a handler
         if (moduleId && !(await enabledModules(this.db)).has(moduleId)) return;
         const api = await this.api();
-        for (const job of jobs) await j.handler(job.data, api);
+        for (const job of jobs) {
+          const signal = workSignalSql(job.data?.taskId);
+          if (!signal) {
+            await j.handler(job.data, api);
+            continue;
+          }
+          // PLNRAPP-884: a task's job leaves the queue — the clients reload the task's work by the signal. The job is
+          // settled here, before the signal: pg-boss settles it only after the handler, and a reload in between would
+          // still see it waiting. pg-boss's own complete then is a no-op (it settles only active jobs).
+          try {
+            await j.handler(job.data, api);
+            await boss.complete(j.queue, job.id);
+          } catch (e) {
+            // as pg-boss does with a thrown handler: retry while attempts are left, else failed
+            await boss.fail(j.queue, job.id, {
+              message: e instanceof Error ? e.message : String(e),
+            });
+          }
+          await this.db.execute(signal).catch((e) => this.log.error(e));
+        }
       },
     );
     if (j.cron) await boss.schedule(j.queue, j.cron, {}, { tz: 'UTC' });
@@ -146,6 +166,9 @@ export class JobsService implements OnApplicationShutdown {
     };
     if (upsert) await boss.upsert(queue, data, sendOpts);
     else await boss.send(queue, data, sendOpts);
+    // PLNRAPP-884: a task's job is in the queue (activity `queued`) — the signal; in a transaction — on its commit
+    const signal = workSignalSql((data as { taskId?: unknown }).taskId);
+    if (signal) await (q ?? this.db).execute(signal);
   }
 
   private stopped?: Promise<void>;

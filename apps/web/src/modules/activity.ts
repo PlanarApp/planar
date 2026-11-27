@@ -39,9 +39,9 @@ const RELEVANT: Record<ActivitySourceDef['entity'], string[]> = {
 };
 
 /**
- * PLNRAPP-884: the server signals a change of a task's AI run (WS `work`, migration 0100): the task card reloads
- * on the signal instead of polling while a run runs or waits. The queue's jobs without a run have no signal: while
- * something is queued, and in the grace after a replica change, it still polls. The project's lists still poll.
+ * PLNRAPP-884: the server signals a change of a task's background work (WS `work`): an AI run created, its state
+ * changed or deleted (migration 0100), a job of the queue with the task enqueued or settled (jobs.ts). The task
+ * card reloads on the signal and on a relevant replica change, it never polls. The project's lists still poll.
  */
 const SIGNALED: ReadonlySet<ActivitySourceDef['entity']> = new Set(['tasks']);
 /** PLNRAPP-884: a run counts on the tab while it runs or waits; done / failed — not. */
@@ -98,7 +98,7 @@ export const TASK_ACTIVITY: InjectionKey<{
 
 /**
  * The work on the entity (a task or a chat channel) from the modules on in the project: loaded at once, again on
- * a change of the replica, and every 3 s while something runs. A failed source is silent (no rights, module off).
+ * a change of the replica, and every 3 s while something runs (a task — on the server's work signals instead). A failed source is silent (no rights, module off).
  */
 export function useActivity(
   entity: ActivitySourceDef['entity'],
@@ -137,10 +137,8 @@ export function useActivity(
     if (items.value.some((a) => a.state === 'queued') && !live(got.flat()))
       graceUntil = Math.max(graceUntil, Date.now() + ACTIVITY_GRACE_MS);
     items.value = got.flat();
-    const polled = SIGNALED.has(entity)
-      ? items.value.some((a) => a.state === 'queued')
-      : live(items.value);
-    if (polled || Date.now() < graceUntil) timer = setTimeout(load, ACTIVITY_POLL_MS);
+    if (SIGNALED.has(entity)) return;
+    if (live(items.value) || Date.now() < graceUntil) timer = setTimeout(load, ACTIVITY_POLL_MS);
   }
 
   // a change of another task/project doesn't matter; a deletion carries no row (only the id) — counts for everyone
