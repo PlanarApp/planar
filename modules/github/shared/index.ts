@@ -31,4 +31,30 @@ export interface GithubLevelView {
 export const GITHUB_ERRORS = {
   badToken: 'Токен GitHub недействителен или не имеет доступа',
   unavailable: 'GitHub недоступен, попробуйте позже',
+  notConnected: 'Подключение GitHub не настроено',
+  repoNotFound: 'Репозиторий не найден в GitHub или недоступен по токену подключения',
 } as const;
+
+/** PLNRAPP-891: a repository the project's connection has access to (GET /api/github/projects/:id/available). */
+export interface GithubRepoOption {
+  repoId: number;
+  fullName: string;
+  defaultBranch: string;
+  private: boolean;
+}
+
+/** GET /api/github/projects/:projectId/available — connected: false — no connection for the project. */
+export interface GithubAvailableView {
+  connected: boolean;
+  repos: GithubRepoOption[];
+}
+
+/** PLNRAPP-891: a project's bound repository. */
+export interface GithubRepoView {
+  id: string;
+  projectId: string;
+  connectionId: string;
+  repoId: number;
+  fullName: string;
+  defaultBranch: string;
+}

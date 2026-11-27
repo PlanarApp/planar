@@ -11,6 +11,8 @@ import {
 // PLNRAPP-890: github.com connections of a level (personal token), as the GitLab connections panel:
 // the workspace manages its list; a space / project picks one of the parents' (or inherits) or adds its own
 const props = defineProps<{ level: GithubScope; spaceId?: string; projectId?: string }>();
+// PLNRAPP-891: the level's connections were (re)loaded — the project's repositories panel reloads too
+const emit = defineEmits<{ changed: [] }>();
 const scopeId = computed(() =>
   props.level === 'workspace'
     ? WORKSPACE_SCOPE_ID
@@ -100,6 +102,7 @@ const load = () =>
   call<GithubLevelView>('GET', base()).then((v) => {
     view.value = v;
     loaded.value = true;
+    emit('changed');
   });
 
 const own = computed(() => view.value.connections.filter((c) => c.scope === props.level));

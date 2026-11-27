@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { bigint, index, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 const ts = () => timestamp({ withTimezone: true, mode: 'string' });
 
@@ -28,4 +28,24 @@ export const githubChoices = pgTable(
     connectionId: uuid().notNull(),
   },
   (t) => [uniqueIndex('github_choices_uq').on(t.scope, t.scopeId)],
+);
+
+// PLNRAPP-891: server table (not synced): a Planar project's binding to a github.com repository through one of
+// the connections (as gitlab_connections). One repository may be bound to several projects
+export const githubRepos = pgTable(
+  'github_repos',
+  {
+    id: uuid().primaryKey(),
+    projectId: uuid().notNull(),
+    connectionId: uuid().notNull(),
+    // GitHub repository ids exceed 2^31
+    repoId: bigint({ mode: 'number' }).notNull(),
+    fullName: text().notNull(),
+    defaultBranch: text().notNull(),
+    createdAt: ts().notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('github_repos_project_repo_uq').on(t.projectId, t.repoId),
+    index('github_repos_connection_idx').on(t.connectionId),
+  ],
 );
