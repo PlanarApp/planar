@@ -64,6 +64,8 @@ export function useTaskFilter(
     // the task is mine: assigned to me, or an open comment / checklist item of it is (PLNRAPP-140)
     const my = (t: TaskView) => t.assigneeIds.includes(uid) || !!forMe.value?.has(t.id);
     if (m === 'mine') {
+      // PLNRAPP-883: statuses are still loading — closed tasks are not known yet, none passes
+      if (!toValue(statuses)) return () => false;
       const shut = closed();
       return (t) =>
         (t.assigneeIds.includes(uid) && !shut.has(t.statusId)) || !!forMe.value?.has(t.id);
@@ -104,6 +106,10 @@ export function useTaskFilter(
     if (!f || !allRules(f).length) return () => true;
     // defs are still loading: field: rules must not let through extra items
     if (defs.value === undefined && allRules(f).some((r) => r.field.startsWith('field:')))
+      return () => false;
+    // PLNRAPP-883: the same for statuses — a statusCategory rule without them lets closed tasks
+    // through for a moment (switching lists: «My day» → «Assigned» flashed done tasks)
+    if (!toValue(statuses) && allRules(f).some((r) => r.field === 'statusCategory'))
       return () => false;
     const ctx = {
       statuses: toValue(statuses) ?? [],

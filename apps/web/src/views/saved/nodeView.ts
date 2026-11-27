@@ -158,6 +158,9 @@ export function useNodeViewDraft(a: {
   return {
     options,
     filter,
+    /** PLNRAPP-883: the rows are read — until then options and filter are the defaults (no filter):
+     *  the view is not drawn, otherwise it flashes the tasks its saved filter hides */
+    ready: computed(() => rows.value !== undefined),
     /** I have my own row: "Reset" has something to drop */
     hasPersonal: computed(() => !!rows.value?.personal),
     saveForAll,

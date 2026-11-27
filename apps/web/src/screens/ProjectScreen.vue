@@ -316,8 +316,10 @@ onBeforeUnmount(() => ro?.disconnect());
         </ViewChangesBar>
         <SaveViewDialog v-model:open="saveOpen" :can-share="canShare" @submit="onSave" />
         <div class="min-h-0 flex-1">
+          <!-- PLNRAPP-883: a tab view waits for its saved settings, otherwise it flashes hidden tasks -->
           <component
             :is="viewComponent"
+            v-if="viewId || tabView.ready.value"
             :key="viewId || active.key"
             :project-id="projectId"
             :options="options"
