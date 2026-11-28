@@ -235,6 +235,9 @@ export const GITHUB_ERRORS = {
   unavailable: 'GitHub недоступен, попробуйте позже',
   notConnected: 'Подключение GitHub не настроено',
   repoNotFound: 'Репозиторий не найден в GitHub или недоступен по токену подключения',
+  hookNoRights:
+    'Вебхук не создан: у токена нет прав на настройки репозитория — PR и коммиты обновляет опрос',
+  hookFailed: 'Вебхук не создан — PR и коммиты обновляет опрос',
 } as const;
 
 /** PLNRAPP-891: a repository the project's connection has access to (GET /api/github/projects/:id/available). */
@@ -259,4 +262,8 @@ export interface GithubRepoView {
   repoId: number;
   fullName: string;
   defaultBranch: string;
+  /** PLNRAPP-894: the webhook is registered on GitHub; false — PRs and commits come by the poller only */
+  hook: boolean;
+  /** why the webhook was not registered (null — registered or not tried) */
+  hookError: string | null;
 }

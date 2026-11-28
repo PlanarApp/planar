@@ -61,6 +61,11 @@ export const githubRepos = pgTable(
     commitsEtag: text(),
     lastPolledAt: ts(),
     lastError: text(),
+    // PLNRAPP-894: the binding's webhook on GitHub — its id (null: not created), the per-binding secret
+    // (server-kit encrypt) and why it was not created (the token has no rights, the URL is not reachable…)
+    hookId: bigint({ mode: 'number' }),
+    hookSecretEnc: text(),
+    hookError: text(),
   },
   (t) => [
     uniqueIndex('github_repos_project_repo_uq').on(t.projectId, t.repoId),

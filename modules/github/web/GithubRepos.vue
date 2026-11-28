@@ -24,6 +24,7 @@ const L = ru
       branch: 'ветка',
       sync: 'Синхронизировать PR и коммиты',
       synced: (p: number, c: number) => `Связано с задачами: PR — ${p}, коммитов — ${c}`,
+      noHook: 'Вебхук не создан — PR и коммиты обновляет опрос',
     }
   : {
       title: 'Repositories',
@@ -40,6 +41,7 @@ const L = ru
       branch: 'branch',
       sync: 'Sync PRs and commits',
       synced: (p: number, c: number) => `Linked to tasks: ${p} PRs, ${c} commits`,
+      noHook: 'No webhook — PRs and commits are refreshed by polling',
     };
 
 const repos = ref<GithubRepoView[]>([]);
@@ -156,6 +158,10 @@ watch(
       >
         <span class="font-medium" data-testid="gh-repo-name">{{ r.fullName }}</span>
         <span class="text-xs text-fg-muted">{{ L.branch }} {{ r.defaultBranch }}</span>
+        <!-- PLNRAPP-894: the webhook was not registered (no rights, unreachable URL) — the poller syncs -->
+        <span v-if="!r.hook" class="text-xs text-warning" data-testid="gh-repo-no-hook">{{
+          ru ? (r.hookError ?? L.noHook) : L.noHook
+        }}</span>
         <Button
           size="sm"
           variant="danger"

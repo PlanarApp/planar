@@ -20,9 +20,23 @@ export async function ghGet(
   path: string,
   headers: Record<string, string> = {},
 ): Promise<Response> {
+  return ghSend(token, 'GET', path, undefined, headers);
+}
+
+/** PLNRAPP-894: a request of any method with the token (a JSON body if given); no answer — 502. */
+export async function ghSend(
+  token: string,
+  method: string,
+  path: string,
+  body?: unknown,
+  headers: Record<string, string> = {},
+): Promise<Response> {
   try {
     return await fetch(`${GITHUB_API}${path}`, {
+      method,
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       headers: {
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
         Authorization: `Bearer ${token}`,
         Accept: 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28',

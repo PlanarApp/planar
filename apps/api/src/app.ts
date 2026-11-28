@@ -62,7 +62,8 @@ export async function createApp(opts: AppOptions): Promise<NestFastifyApplicatio
       bodyLimit: 1024 * 1024,
       ...(opts.trustProxy?.length ? { trustProxy: opts.trustProxy } : {}),
     }),
-    { logger: false },
+    // PLNRAPP-894: req.rawBody — webhook signatures are computed over the body as received
+    { logger: false, rawBody: true },
   );
   // cast: platform-fastify has its own copy of fastify of another minor version
   await app.register(multipart as never);

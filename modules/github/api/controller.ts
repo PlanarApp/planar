@@ -10,6 +10,7 @@ import {
   Put,
   Query,
   Req,
+  SetMetadata,
 } from '@nestjs/common';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -18,6 +19,7 @@ import {
   decrypt,
   encrypt,
   HttpError,
+  isDemo,
   parseBody,
   secretKey,
   type CoreServices,
@@ -43,8 +45,13 @@ import {
 import { fetchRepo, ghGet, listRepos } from './repos.js';
 import { githubChoices as C, githubConnections as G, githubRepos as R } from './schema.js';
 import { syncProject } from './sync.js';
+import { handleEvent, registerHook, removeHook, secretOf, signatureOk } from './webhook.js';
 
 type Repo = typeof R.$inferSelect;
+
+// same as core's @Public() (apps/api/src/auth/public.ts): the module does not import apps/api
+const Public = () => SetMetadata('planar:public', true);
+const badSignature = () => new HttpError(401, 'unauthenticated', 'Неверная подпись вебхука');
 
 const scope = z.enum(['workspace', 'space', 'project']);
 const token = z.string().trim().min(1).max(500);
@@ -110,6 +117,8 @@ const repoView = (r: Repo): GithubRepoView => ({
   repoId: r.repoId,
   fullName: r.fullName,
   defaultBranch: r.defaultBranch,
+  hook: r.hookId !== null,
+  hookError: r.hookError,
 });
 
 // PLNRAPP-890: github.com connections of the levels workspace / space / project, managed by the instance admin —
@@ -297,7 +306,12 @@ export class GithubController {
         set: { connectionId: c.id, fullName: found.fullName, defaultBranch: found.defaultBranch },
       })
       .returning();
-    return { repo: repoView(r!) };
+    // PLNRAPP-894: the binding's webhook; a rebind keeps the hook it has
+    const saved =
+      r!.hookId === null && !isDemo()
+        ? await registerHook(this.core.db, tokenOf(c), r!, keyOrThrow())
+        : r!;
+    return { repo: repoView(saved) };
   }
 
   /** Unbinds: the binding row is deleted; PLNRAPP-892: its PRs and commits on the project's tasks too. */
@@ -308,13 +322,51 @@ export class GithubController {
     const r = await this.core.db
       .delete(R)
       .where(eq(R.id, uuidOr404(id)))
-      .returning({ projectId: R.projectId, repoId: R.repoId });
+      .returning();
     if (!r.length) throw notFound();
+    // PLNRAPP-894: the binding's webhook goes too (a failure does not keep the binding)
+    const b = r[0]!;
+    if (b.hookId !== null && !isDemo()) {
+      const [c] = await this.core.db.select().from(G).where(eq(G.id, b.connectionId));
+      let t: string | null = null;
+      try {
+        t = c ? tokenOf(c) : null;
+      } catch {
+        /* no key / a broken token: the hook stays, its deliveries get 401 */
+      }
+      if (t) await removeHook(t, b.fullName, b.hookId);
+    }
     await this.core.execute(
       this.core.systemUserId(),
       [{ name: 'github.repo.drop', args: { projectId: r[0]!.projectId, repoId: r[0]!.repoId } }],
       { system: true },
     );
+  }
+
+  /**
+   * PLNRAPP-894: a delivery of a binding's GitHub webhook. The signature of the raw body (X-Hub-Signature-256)
+   * by the binding's secret; no header, a wrong signature or an unknown binding — 401, nothing is applied.
+   * ping and other events — 200; push and pull_request are applied at once (the PR is on the task in the answer).
+   */
+  @Public()
+  @Post('webhook/:id')
+  @HttpCode(200)
+  async webhook(
+    @Req() req: { headers: Record<string, unknown>; rawBody?: Buffer; body?: unknown },
+    @Param('id') id: string,
+  ) {
+    if (!z.uuid().safeParse(id).success) throw badSignature();
+    const [b] = await this.core.db.select().from(R).where(eq(R.id, id));
+    const secret = b ? secretOf(b, secretKey()) : null;
+    if (
+      !b ||
+      !secret ||
+      !req.rawBody ||
+      !signatureOk(secret, req.rawBody, req.headers['x-hub-signature-256'])
+    )
+      throw badSignature();
+    const event = String(req.headers['x-github-event'] ?? '');
+    return { ok: true, ...(await handleEvent(this.jobApi(), b, event, req.body)) };
   }
 
   // PLNRAPP-892: a one-off sync of PRs and commits of the bound repositories (the poller and webhooks reuse syncProject)
