@@ -743,6 +743,13 @@
       "when": 1798176060000,
       "tag": "0105_github_poll",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1798176120000,
+      "tag": "0106_github_webhooks",
+      "breakpoints": true
     }
   ]
 }

@@ -145,7 +145,12 @@ describe('github: репозитории проекта', () => {
       fullName: 'acme/repo-001',
       defaultBranch: 'develop',
     });
-    expect(gh).toEqual(['https://api.github.com/repos/acme/repo-001']);
+    // PLNRAPP-894: then the webhook — here GitHub refuses it (404), the binding stays
+    expect(gh).toEqual([
+      'https://api.github.com/repos/acme/repo-001',
+      'https://api.github.com/repos/acme/repo-001/hooks',
+    ]);
+    expect(r.json().repo).toMatchObject({ hook: false });
     expect((await bind('acme/repo-001')).statusCode).toBe(201);
     const rows = await db.select().from(R);
     expect(rows).toHaveLength(1);
