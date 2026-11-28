@@ -11,8 +11,15 @@ const MAX_PAGES = 100;
 
 export const unavailable = () => new HttpError(502, 'unavailable', GITHUB_ERRORS.unavailable);
 
-/** GET with the token; no answer — 502 «GitHub недоступен». The status is the caller's business. */
-export async function ghGet(token: string, path: string): Promise<Response> {
+/**
+ * GET with the token; no answer — 502 «GitHub недоступен». The status is the caller's business.
+ * `headers` — extra request headers (PLNRAPP-893: If-None-Match of the poller).
+ */
+export async function ghGet(
+  token: string,
+  path: string,
+  headers: Record<string, string> = {},
+): Promise<Response> {
   try {
     return await fetch(`${GITHUB_API}${path}`, {
       headers: {
@@ -20,6 +27,7 @@ export async function ghGet(token: string, path: string): Promise<Response> {
         Accept: 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28',
         'User-Agent': 'Planar',
+        ...headers,
       },
       redirect: 'manual',
       signal: AbortSignal.timeout(15_000),

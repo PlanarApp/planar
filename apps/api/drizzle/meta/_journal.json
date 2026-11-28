@@ -736,6 +736,13 @@
       "when": 1798176000000,
       "tag": "0104_github_prs_commits",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1798262400000,
+      "tag": "0105_github_poll",
+      "breakpoints": true
     }
   ]
 }

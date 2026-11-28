@@ -24,6 +24,8 @@ export const githubConnections = pgTable(
     tokenEnc: text().notNull(),
     connectedBy: uuid().notNull(),
     createdAt: ts().notNull().defaultNow(),
+    // PLNRAPP-893: GitHub's rate limit is per token — the poller sends no request through it before this time
+    deferredUntil: ts(),
   },
   (t) => [index('github_connections_scope_idx').on(t.scope, t.scopeId)],
 );
@@ -52,6 +54,13 @@ export const githubRepos = pgTable(
     fullName: text().notNull(),
     defaultBranch: text().notNull(),
     createdAt: ts().notNull().defaultNow(),
+    // PLNRAPP-893: the poller's cursor — the start of the last successful poll, ETags of the first pages of the PR
+    // and commit lists (conditional requests), the last poll and its error
+    syncedAt: ts(),
+    prsEtag: text(),
+    commitsEtag: text(),
+    lastPolledAt: ts(),
+    lastError: text(),
   },
   (t) => [
     uniqueIndex('github_repos_project_repo_uq').on(t.projectId, t.repoId),
