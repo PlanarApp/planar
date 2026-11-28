@@ -22,6 +22,7 @@ import {
   secretKey,
   type CoreServices,
   type Db,
+  type JobApi,
 } from '@planar/server-kit';
 import { uuidv7 } from '@planar/shared';
 import {
@@ -41,6 +42,7 @@ import {
 } from './connections.js';
 import { fetchRepo, ghGet, listRepos } from './repos.js';
 import { githubChoices as C, githubConnections as G, githubRepos as R } from './schema.js';
+import { syncProject } from './sync.js';
 
 type Repo = typeof R.$inferSelect;
 
@@ -298,7 +300,7 @@ export class GithubController {
     return { repo: repoView(r!) };
   }
 
-  /** Unbinds: the binding row is deleted. */
+  /** Unbinds: the binding row is deleted; PLNRAPP-892: its PRs and commits on the project's tasks too. */
   @Delete('repos/:id')
   @HttpCode(204)
   async unbind(@Req() req: object, @Param('id') id: string) {
@@ -306,7 +308,52 @@ export class GithubController {
     const r = await this.core.db
       .delete(R)
       .where(eq(R.id, uuidOr404(id)))
-      .returning({ id: R.id });
+      .returning({ projectId: R.projectId, repoId: R.repoId });
     if (!r.length) throw notFound();
+    await this.core.execute(
+      this.core.systemUserId(),
+      [{ name: 'github.repo.drop', args: { projectId: r[0]!.projectId, repoId: r[0]!.repoId } }],
+      { system: true },
+    );
+  }
+
+  // PLNRAPP-892: a one-off sync of PRs and commits of the bound repositories (the poller and webhooks reuse syncProject)
+
+  private jobApi(): JobApi {
+    const c = this.core;
+    return {
+      db: c.db,
+      execute: (...a) => c.execute(...a),
+      enqueue: (...a) => c.enqueue(...a),
+      systemUserId: c.systemUserId(),
+    };
+  }
+
+  /** The project's repositories → PRs and commits linked to its tasks; the counts of the linked ones. */
+  @Post('projects/:projectId/sync')
+  @HttpCode(200)
+  async syncRepos(@Req() req: object, @Param('projectId') projectId: string) {
+    this.admin(req);
+    await this.project(projectId);
+    return syncProject(this.jobApi(), projectId);
+  }
+
+  /**
+   * The task's GitHub tab «refresh»: the repositories of its project. Anyone with access to the project (as the
+   * GitLab tab's poll); the module is off in the project — 404.
+   */
+  @Post('tasks/:taskId/sync')
+  @HttpCode(200)
+  async syncTask(@Req() req: object, @Param('taskId') taskId: string) {
+    const a = this.core.auth(req);
+    const r = await this.core.db.execute(
+      sql`select t.project_id as "projectId", ('github' = any(p.modules)) as "on",
+            project_role(${a.userId}::uuid, t.project_id) as role
+          from tasks t join projects p on p.id = t.project_id where t.id = ${uuidOr404(taskId)}::uuid`,
+    );
+    const t = r.rows[0] as { projectId: string; on: boolean; role: string | null } | undefined;
+    if (!t?.role) throw new HttpError(404, 'not_found', 'Задача не найдена');
+    if (!t.on) throw new HttpError(404, 'module_disabled', 'Модуль github выключен в проекте');
+    return syncProject(this.jobApi(), t.projectId);
   }
 }

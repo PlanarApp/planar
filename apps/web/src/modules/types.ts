@@ -53,6 +53,8 @@ export interface TaskPanelDef {
   badge?: boolean;
   /** the task's records of the module (Dexie, run in a live query); > 0 or a non-empty string ("1/3") is shown on the tab */
   count?: (taskId: string) => Promise<number | string>;
+  /** PLNRAPP-892: no tab while `count` is 0 or empty (the task has no records of the module) */
+  hideEmpty?: boolean;
   component: Lazy<{ taskId: string }>;
 }
 /** A panel under the title of a document page (docs PageView); the component decides itself whether the page suits it. */
