@@ -7,12 +7,12 @@ import { githubConnections as G, githubRepos as R } from './schema.js';
 
 // PLNRAPP-892: one sync of a bound repository — its PRs (GET /pulls?state=all) and commits (GET /commits) are
 // linked to the tasks of the binding's project by the task key in the branch, the PR title or the commit message.
-// Called by hand (the project settings, the task's tab); the poller and webhooks of the parent task reuse it.
+// Called by hand (the project settings, the task's tab) and by the poller (PLNRAPP-893, poll.ts); webhooks reuse it.
 
 /** PRs: the newest by update, 10 pages × 100. */
-const PR_PAGES = 10;
+export const PR_PAGES = 10;
 /** Commits of the default branch: the newest 3 pages × 100. */
-const COMMIT_PAGES = 3;
+export const COMMIT_PAGES = 3;
 /** Mutations per transaction. */
 const BATCH = 50;
 
@@ -99,7 +99,7 @@ export function commitOf(r: RawCommit): CommitData | null {
   };
 }
 
-const repoPath = (fullName: string) => {
+export const repoPath = (fullName: string) => {
   const [owner, name] = fullName.split('/');
   return `/repos/${encodeURIComponent(owner!)}/${encodeURIComponent(name!)}`;
 };
