@@ -329,11 +329,70 @@ describe('agent: жизненный цикл', () => {
       GITLAB_TOKEN: 'glpat-secret',
     });
     const ctx = JSON.parse(post!.body.context);
-    expect(ctx.repo).toEqual({ url: 'https://gitlab.example/acme/app.git', path: 'acme/app' });
+    expect(ctx.repo).toEqual({
+      kind: 'gitlab',
+      url: 'https://gitlab.example/acme/app.git',
+      path: 'acme/app',
+    });
     expect(post!.body.context).not.toContain('glpat-secret');
     // the connection alone is not enough: the module is off in the project
     await raw(`update projects set modules = array_remove(modules, 'gitlab') where id = $1`, [P]);
     expect((await start()).post!.body.env.GITLAB_TOKEN).toBeUndefined();
+  });
+
+  it('PLNRAPP-895: репозиторий GitHub — GH_TOKEN подключения привязки, gitlab в приоритете, только при включённом модуле', async () => {
+    await raw(
+      `update projects set modules = array_append(array_remove(modules, 'github'), 'github') where id = $1`,
+      [P],
+    );
+    const conn = uuidv7();
+    await raw(
+      `insert into github_connections (id, scope, scope_id, login, token_enc, connected_by)
+       values ($1, 'workspace', '00000000-0000-0000-0000-000000000000', 'octo', $2, $3)`,
+      [conn, encrypt('github_pat_SECRET', secretKey()!), w.admin.userId],
+    );
+    await raw(
+      `insert into github_repos (id, project_id, connection_id, repo_id, full_name, default_branch)
+       values ($1, $2, $3, 4200000000, 'octo/app', 'main')`,
+      [uuidv7(), P, conn],
+    );
+    const { post } = await start();
+    expect(post!.body.env).toMatchObject({
+      PLANAR_REPO_URL: 'https://github.com/octo/app.git',
+      PLANAR_REPO_KIND: 'github',
+      GH_TOKEN: 'github_pat_SECRET',
+    });
+    expect(post!.body.env.GITLAB_TOKEN).toBeUndefined();
+    expect(JSON.parse(post!.body.context).repo).toEqual({
+      kind: 'github',
+      url: 'https://github.com/octo/app.git',
+      path: 'octo/app',
+    });
+    expect(post!.body.context).not.toContain('github_pat_SECRET');
+    // a gitlab connection of the project wins: the agent gets one repository
+    await raw(
+      `update projects set modules = array_append(array_remove(modules, 'gitlab'), 'gitlab') where id = $1`,
+      [P],
+    );
+    await raw(
+      `with s as (insert into gitlab_servers (id, scope, scope_id, name, base_url, token_enc)
+         values (gen_random_uuid(), 'workspace', '00000000-0000-0000-0000-000000000000', 'gl', 'https://gitlab.example/', $3) returning id)
+       insert into gitlab_connections (id, project_id, server_id, gitlab_project_id, path)
+       select $1, $2, s.id, 7, 'acme/app' from s`,
+      [uuidv7(), P, encrypt('glpat-secret', secretKey()!)],
+    );
+    const both = await start();
+    expect(both.post!.body.env).toMatchObject({
+      PLANAR_REPO_KIND: 'gitlab',
+      GITLAB_TOKEN: 'glpat-secret',
+    });
+    expect(both.post!.body.env.GH_TOKEN).toBeUndefined();
+    // the binding alone is not enough: the github module is off in the project
+    await raw(
+      `update projects set modules = array_remove(array_remove(modules, 'gitlab'), 'github') where id = $1`,
+      [P],
+    );
+    expect((await start()).post!.body.env.GH_TOKEN).toBeUndefined();
   });
 
   it('неверный и чужой секрет — 401, прогон не меняется; без runner — fail', async () => {

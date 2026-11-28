@@ -2,6 +2,8 @@
 FROM node:24-bookworm-slim
 
 ARG GLAB_VERSION=1.130.0
+# gh — PR и автомерж в привязанном репозитории GitHub (PLNRAPP-895), авторизация — GH_TOKEN из env прогона.
+ARG GH_VERSION=2.106.0
 ARG CLAUDE_CODE_VERSION=2.1.322
 ARG OPENCODE_VERSION=1.19.5
 ARG PLAYWRIGHT_VERSION=1.65.0
@@ -25,6 +27,9 @@ RUN apt-get update \
  && arch="$(dpkg --print-architecture)" \
  && curl -fsSL "https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/glab_${GLAB_VERSION}_linux_${arch}.deb" -o /tmp/glab.deb \
  && apt-get install -y /tmp/glab.deb \
+ && curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${arch}.deb" -o /tmp/gh.deb \
+ && apt-get install -y /tmp/gh.deb \
+ && gh --version \
  && npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "opencode-ai@${OPENCODE_VERSION}" "playwright@${PLAYWRIGHT_VERSION}" "pnpm@${PNPM_VERSION}" \
  && playwright install --with-deps chromium \
  && chmod -R a+rX /opt/pw \

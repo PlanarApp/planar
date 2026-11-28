@@ -42,15 +42,27 @@ export ANTHROPIC_API_KEY="$PLANAR_RUN_SECRET"
 rm -f "$RESULT"
 agent_rc=0
 
-# Репозиторий проекта (подключение gitlab): токен — через credential helper, в .git/config не пишется.
+# Репозиторий проекта: подключение gitlab (GITLAB_TOKEN) или привязка GitHub (GH_TOKEN, PLNRAPP-895).
+# Токен — через credential helper из переменной окружения, в .git/config и на диск не пишется; gh и glab читают его сами.
 REPO=
-if [ -n "${PLANAR_REPO_URL:-}" ] && [ -n "${GITLAB_TOKEN:-}" ]; then
-  git config --global credential.helper '!f() { echo username=oauth2; echo "password=$GITLAB_TOKEN"; }; f'
+REPO_KIND=
+if [ -n "${PLANAR_REPO_URL:-}" ]; then
+  if [ "${PLANAR_REPO_KIND:-gitlab}" = github ] && [ -n "${GH_TOKEN:-}" ]; then
+    REPO_KIND=github
+    git config --global credential.helper '!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f'
+  elif [ -n "${GITLAB_TOKEN:-}" ]; then
+    REPO_KIND=gitlab
+    git config --global credential.helper '!f() { echo username=oauth2; echo "password=$GITLAB_TOKEN"; }; f'
+  fi
+fi
+if [ -n "$REPO_KIND" ]; then
   git config --global user.name "ИИ"
   git config --global user.email "ai@planar.invalid"
   if git clone -q --filter=blob:none "$PLANAR_REPO_URL" /work/repo; then
     REPO=/work/repo
     cd "$REPO"
+  elif [ "$REPO_KIND" = github ]; then
+    jq -n '{verdict:"fail", comment:"Агент не смог склонировать репозиторий проекта: проверьте токен подключения GitHub (нужны права Contents и Pull requests на запись) и доступность squid."}' >"$RESULT"
   else
     jq -n '{verdict:"fail", comment:"Агент не смог склонировать репозиторий проекта: проверьте токен подключения GitLab (нужен scope api) и доступность squid."}' >"$RESULT"
   fi
@@ -61,7 +73,9 @@ prompt() {
   printf '\n\nЗадача: '
   jq -r '"\(.task.key) \(.task.title)\n\n\(.task.description // "")"' "$PLANAR_CONTEXT_FILE"
   printf '\n\nПолный контекст (JSON, с комментариями) — в файле %s.\n' "$PLANAR_CONTEXT_FILE"
-  if [ -n "$REPO" ]; then
+  if [ "$REPO_KIND" = github ] && [ -n "$REPO" ]; then
+    printf 'Репозиторий проекта (GitHub) склонирован в %s (текущий каталог), git push и gh работают (токен — в GH_TOKEN). Вместо MR GitLab — PR GitHub: `gh pr create`, автомерж после проверок — `gh pr merge --auto --squash` (squash запрещён в репозитории — `--merge`); проверка — `gh pr view <PR> --json autoMergeRequest`, CI — `gh pr checks <PR>`, `gh run view <id> --log-failed`.\n' "$REPO"
+  elif [ -n "$REPO" ]; then
     printf 'Репозиторий проекта склонирован в %s (текущий каталог), git push и glab работают.\n' "$REPO"
   fi
   printf 'В конце запиши результат JSON в %s: {"verdict":"done|question|fail","comment":"..."} и необязательные поля: questions[], descriptionAppend, newTasks[{title,description,status,ai,after[],checks[]}] (ai — подзадача на ИИ, after — номера подзадач списка, которые должны быть готовы раньше, checks — её критерии приёмки), moveTo, labels[], fields[{name,value}], friction (что мешало работе — неясная инструкция, не хватало данных или доступа; не мешало — null), uncertain (в чём не уверен и что проверил сам; сомнений нет — "").\n' "$RESULT"

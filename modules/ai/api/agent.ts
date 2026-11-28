@@ -88,10 +88,21 @@ export async function agentsFull(q: Pick<Q, 'execute'>, projectId: string) {
 }
 
 /**
- * The project's GitLab repository for the agent: the token of the gitlab connection (PLNRAPP-177, scope `api` — the
- * agent pushes and opens MRs). null — the gitlab module is off, no connection, or the token cannot be decrypted.
+ * The project's repository for the agent: the token of the gitlab connection (PLNRAPP-177, scope `api` — the agent
+ * pushes and opens MRs); no gitlab one — the project's GitHub repository with the token of its connection
+ * (PLNRAPP-895: `gh` opens a PR with auto-merge). null — the modules are off, no binding, or the token cannot be decrypted.
  */
 async function repoOf(q: Pick<Q, 'execute'>, run: Run) {
+  return (await gitlabRepoOf(q, run)) ?? (await githubRepoOf(q, run));
+}
+
+const undecryptable = (q: Pick<Q, 'execute'>, run: Run, kind: string) =>
+  // the agent run's log lives in the row: run.log of the worker is not kept for agent runs
+  q.execute(
+    sql`update ai_runs set log = log || ${`${kind}: токен подключения не расшифровывается\n`} where id = ${run.id}`,
+  );
+
+async function gitlabRepoOf(q: Pick<Q, 'execute'>, run: Run) {
   if (!run.task.modules.includes('gitlab')) return null;
   // shortcut: the first connection of the project; when projects with several repositories need agents — pick in the action
   const c = await one(
@@ -105,23 +116,47 @@ async function repoOf(q: Pick<Q, 'execute'>, run: Run) {
   try {
     const base = (c.baseUrl as string).replace(/\/+$/, '');
     return {
+      kind: 'gitlab' as const,
       token: decrypt(c.tokenEnc as string, key),
       host: new URL(base).host,
       url: `${base}/${c.path as string}.git`,
       path: c.path as string,
     };
   } catch {
-    // the agent run's log lives in the row: run.log of the worker is not kept for agent runs
-    await q.execute(
-      sql`update ai_runs set log = log || ${'gitlab: токен подключения не расшифровывается\n'} where id = ${run.id}`,
-    );
+    await undecryptable(q, run, 'gitlab');
+    return null;
+  }
+}
+
+/** PLNRAPP-895: the first GitHub binding of the project (as the first gitlab connection) and its connection's token. */
+async function githubRepoOf(q: Pick<Q, 'execute'>, run: Run) {
+  if (!run.task.modules.includes('github')) return null;
+  const c = await one(
+    q,
+    sql`select r.full_name as "fullName", g.token_enc as "tokenEnc" from github_repos r
+        join github_connections g on g.id = r.connection_id
+        where r.project_id = ${run.task.projectId} order by r.created_at, r.id limit 1`,
+  );
+  const key = secretKey();
+  if (!c || !key) return null;
+  try {
+    return {
+      kind: 'github' as const,
+      token: decrypt(c.tokenEnc as string, key),
+      host: 'github.com',
+      url: `https://github.com/${c.fullName as string}.git`,
+      path: c.fullName as string,
+    };
+  } catch {
+    await undecryptable(q, run, 'github');
     return null;
   }
 }
 
 /**
- * Secrets the agent's log must not show (PLNRAPP-199): the provider key of the project's connection and the token of
- * its first gitlab connection (the run secret comes with the request). Undecryptable ones are skipped.
+ * Secrets the agent's log must not show (PLNRAPP-199): the provider key of the project's connection, the token of
+ * its first gitlab connection and of its first GitHub binding's connection (the run secret comes with the request).
+ * Undecryptable ones are skipped.
  */
 export async function runSecretsOf(q: Q, projectId: string) {
   const out: string[] = [];
@@ -132,18 +167,21 @@ export async function runSecretsOf(q: Q, projectId: string) {
     } catch {
       // no key to mask
     }
-  const c = await one(
-    q,
+  const key = secretKey();
+  for (const s of [
     sql`select s.token_enc as "tokenEnc" from gitlab_connections c join gitlab_servers s on s.id = c.server_id
         where c.project_id = ${projectId}::uuid order by c.created_at, c.id limit 1`,
-  ).catch(() => undefined);
-  const key = secretKey();
-  if (c && key)
-    try {
-      out.push(decrypt(c.tokenEnc as string, key));
-    } catch {
-      // no token to mask
-    }
+    sql`select g.token_enc as "tokenEnc" from github_repos r join github_connections g on g.id = r.connection_id
+        where r.project_id = ${projectId}::uuid order by r.created_at, r.id limit 1`,
+  ]) {
+    const c = await one(q, s).catch(() => undefined);
+    if (c && key)
+      try {
+        out.push(decrypt(c.tokenEnc as string, key));
+      } catch {
+        // no token to mask
+      }
+  }
   return out;
 }
 
@@ -253,11 +291,10 @@ export async function launchAgent(
           PLANAR_LLM_PROTOCOL: conn.provider === 'anthropic' ? 'anthropic' : 'openai',
           PLANAR_LLM_MODEL: action.model ?? conn.model,
         }),
-        ...(repo && {
-          PLANAR_REPO_URL: repo.url,
-          GITLAB_HOST: repo.host,
-          GITLAB_TOKEN: repo.token,
-        }),
+        ...(repo && { PLANAR_REPO_URL: repo.url, PLANAR_REPO_KIND: repo.kind }),
+        ...(repo?.kind === 'gitlab' && { GITLAB_HOST: repo.host, GITLAB_TOKEN: repo.token }),
+        // gh reads GH_TOKEN from the environment: the token is not written to disk
+        ...(repo?.kind === 'github' && { GH_TOKEN: repo.token }),
       },
       context,
     });
@@ -312,7 +349,7 @@ export async function startAgentRun(
     repo,
     fail: (text) => apply(api, run, failed(text)),
     context: {
-      repo: repo && { url: repo.url, path: repo.path },
+      repo: repo && { kind: repo.kind, url: repo.url, path: repo.path },
       task: {
         id: task.id,
         key: task.key,
