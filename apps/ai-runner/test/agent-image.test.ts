@@ -25,6 +25,18 @@ describe('образ агента docker/ai-agent', () => {
     }
   });
 
+  it('PLNRAPP-895: gh в образе — релизный .deb той же архитектуры; токен GitHub — только из GH_TOKEN', () => {
+    const dockerfile = readFileSync(root('docker/ai-agent/Dockerfile'), 'utf8');
+    expect(/^ARG GH_VERSION=(\d+\.\d+\.\d+)$/m.test(dockerfile)).toBe(true);
+    expect(dockerfile).toContain(
+      'https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${arch}.deb',
+    );
+    expect(dockerfile).toContain('&& gh --version');
+    const entry = readFileSync(root('docker/ai-agent/entrypoint.sh'), 'utf8');
+    expect(entry).toContain('echo "password=$GH_TOKEN"');
+    expect(entry).not.toMatch(/gh auth login|hosts\.yml/);
+  });
+
   it('сборку образа агента в CI не отменяет следующий конвейер main', () => {
     const ci = readFileSync(root('.gitlab-ci.yml'), 'utf8');
     const job = /^image-ai-agent:\n((?: {2}.*\n)+)/m.exec(ci)?.[1];
