@@ -19,11 +19,21 @@ async function dropLevel(api: ModuleHookApi, scope: string, id: string) {
   if (scope === 'project') await api.q.delete(R).where(eq(R.projectId, id));
 }
 
-/** Deleting a project / space takes its GitHub connections, choice and repository bindings with it. */
+/**
+ * Deleting a project / space takes its GitHub connections, choice and repository bindings with it;
+ * PLNRAPP-892: deleting a task — its githubPrs and githubCommits rows (as modules/gitlab).
+ */
 export async function afterMutation(writes: MutationWrite[], _ctx: unknown, api: ModuleHookApi) {
   for (const w of writes) {
     if (w.op !== 'del' || !w.before) continue;
     if (w.entity === 'projects') await dropLevel(api, 'project', w.before.id as string);
     else if (w.entity === 'spaces') await dropLevel(api, 'space', w.before.id as string);
+    else if (w.entity === 'tasks')
+      for (const e of ['githubPrs', 'githubCommits'] as never[]) {
+        const rows = (await api.sys.scan(e, { index: 'taskId', eq: w.before.id })) as {
+          id: string;
+        }[];
+        for (const r of rows) await api.sys.del(e, r.id);
+      }
   }
 }

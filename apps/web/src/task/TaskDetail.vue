@@ -422,7 +422,8 @@ const links = useTaskLinks(() => props.task.id);
 const comments = useComments(props.task.id);
 const assigned = computed(() => (comments.value ?? []).filter((c) => c.assigneeId));
 const tabs = computed(() => {
-  const ps = panels.value;
+  // PLNRAPP-892: a module tab with hideEmpty — only when the task has its records
+  const ps = panels.value.filter((p) => !(p.hideEmpty && p.count && !counts.value?.[p.key]));
   const docs = ps.findIndex((p) => p.key === 'docs:pages');
   const plugins = ps.findIndex((p) => p.key === 'plugins:panel');
   const linksAt = plugins < 0 ? ps.length : plugins;

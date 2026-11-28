@@ -22,6 +22,8 @@ const L = ru
       loading: 'Загрузка репозиториев…',
       hint: 'Подключите GitHub, чтобы привязать репозиторий к проекту',
       branch: 'ветка',
+      sync: 'Синхронизировать PR и коммиты',
+      synced: (p: number, c: number) => `Связано с задачами: PR — ${p}, коммитов — ${c}`,
     }
   : {
       title: 'Repositories',
@@ -36,6 +38,8 @@ const L = ru
       loading: 'Loading repositories…',
       hint: 'Connect GitHub to bind a repository to the project',
       branch: 'branch',
+      sync: 'Sync PRs and commits',
+      synced: (p: number, c: number) => `Linked to tasks: ${p} PRs, ${c} commits`,
     };
 
 const repos = ref<GithubRepoView[]>([]);
@@ -46,6 +50,21 @@ const err = ref('');
 const busy = ref(false);
 const loadingList = ref(false);
 const q = ref('');
+// PLNRAPP-892: a one-off sync of the bound repositories' PRs and commits to the tasks
+const syncMsg = ref('');
+async function sync() {
+  busy.value = true;
+  err.value = '';
+  syncMsg.value = '';
+  try {
+    const r = await call<{ prs: number; commits: number }>('POST', `${base()}/sync`);
+    syncMsg.value = L.synced(r.prs, r.commits);
+  } catch (e) {
+    err.value = (e as Error).message;
+  } finally {
+    busy.value = false;
+  }
+}
 const picked = ref('');
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -148,6 +167,14 @@ watch(
       </li>
     </ul>
     <p v-else class="text-sm text-fg-muted" data-testid="gh-no-repos">{{ L.noBound }}</p>
+    <div v-if="repos.length" class="flex flex-wrap items-center gap-2">
+      <Button size="sm" variant="secondary" :disabled="busy" data-testid="gh-sync" @click="sync">{{
+        L.sync
+      }}</Button>
+      <span v-if="syncMsg" class="text-sm text-fg-muted" data-testid="gh-sync-result">{{
+        syncMsg
+      }}</span>
+    </div>
 
     <p v-if="connected === false" class="text-sm text-fg-muted" data-testid="gh-repos-hint">
       {{ L.hint }}

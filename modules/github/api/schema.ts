@@ -1,4 +1,13 @@
-import { bigint, index, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 const ts = () => timestamp({ withTimezone: true, mode: 'string' });
 
@@ -47,5 +56,53 @@ export const githubRepos = pgTable(
   (t) => [
     uniqueIndex('github_repos_project_repo_uq').on(t.projectId, t.repoId),
     index('github_repos_connection_idx').on(t.connectionId),
+  ],
+);
+
+// PLNRAPP-892: sync entities — a bound repository's PRs and commits on the tasks whose key they carry
+// (one row per task, as gitlab_mrs)
+export const githubPrs = pgTable(
+  'github_prs',
+  {
+    id: uuid().primaryKey(),
+    spaceId: uuid().notNull(),
+    taskId: uuid().notNull(),
+    repoId: bigint({ mode: 'number' }).notNull(),
+    repoFullName: text().notNull(),
+    number: integer().notNull(),
+    title: text().notNull(),
+    branch: text().notNull(),
+    state: text().notNull(),
+    authorLogin: text().notNull(),
+    webUrl: text().notNull(),
+    prUpdatedAt: ts().notNull(),
+    createdAt: ts().notNull(),
+    updatedAt: ts().notNull(),
+  },
+  (t) => [
+    index('github_prs_task_id_idx').on(t.taskId),
+    uniqueIndex('github_prs_uq').on(t.taskId, t.repoId, t.number),
+  ],
+);
+
+export const githubCommits = pgTable(
+  'github_commits',
+  {
+    id: uuid().primaryKey(),
+    spaceId: uuid().notNull(),
+    taskId: uuid().notNull(),
+    repoId: bigint({ mode: 'number' }).notNull(),
+    repoFullName: text().notNull(),
+    sha: text().notNull(),
+    message: text().notNull(),
+    authorName: text().notNull(),
+    webUrl: text().notNull(),
+    committedAt: ts().notNull(),
+    createdAt: ts().notNull(),
+    updatedAt: ts().notNull(),
+  },
+  (t) => [
+    index('github_commits_task_id_idx').on(t.taskId),
+    uniqueIndex('github_commits_uq').on(t.taskId, t.repoId, t.sha),
   ],
 );

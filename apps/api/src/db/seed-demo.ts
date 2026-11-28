@@ -28,6 +28,7 @@ import {
 } from '@planar/module-goals/api/schema';
 import { automationsRules } from '@planar/module-automations/api/schema';
 import { gitlabBranches, gitlabMrs, gitlabProjectSettings } from '@planar/module-gitlab/api/schema';
+import { githubCommits, githubPrs } from '@planar/module-github/api/schema';
 import {
   aiActions,
   aiEmailBatches,
@@ -2826,6 +2827,77 @@ async function insertAll(tx: Tx, now: Date) {
       -1,
       5,
       'failed',
+    ),
+  ]);
+  // PLNRAPP-892: the task's GitHub tab — PRs (open and merged, one from a branch with the key) and commits
+  // linked to RDM-10 by the key; RDM-11 shares a PR with two keys
+  const ghUrl = 'https://github.com/acme/app';
+  const ghRepo = { repoId: 3_000_000_101, repoFullName: 'acme/app' };
+  const demoPr = (
+    n: number,
+    task: number,
+    title: string,
+    branch: string,
+    state: string,
+    d: number,
+  ) => ({
+    id: uid(`github:pr:${task}:${n}`),
+    spaceId: rdmSpace,
+    taskId: tid('RDM', task),
+    ...ghRepo,
+    number: n,
+    title,
+    branch,
+    state,
+    authorLogin: 'noah-dev',
+    webUrl: `${ghUrl}/pull/${n}`,
+    prUpdatedAt: at(d),
+    createdAt: at(d),
+    updatedAt: at(d),
+  });
+  await ins(githubPrs, [
+    demoPr(17, 9, 'RDM-10: dark mode polish', 'feature/RDM-10-dark-mode', 'open', -1),
+    demoPr(15, 9, 'Contrast of secondary text', 'feature/RDM-10-contrast', 'merged', -3),
+    demoPr(
+      16,
+      9,
+      'RDM-10 RDM-11: survey banner in the dark theme',
+      'survey-banner-dark',
+      'draft',
+      -2,
+    ),
+    demoPr(
+      16,
+      10,
+      'RDM-10 RDM-11: survey banner in the dark theme',
+      'survey-banner-dark',
+      'draft',
+      -2,
+    ),
+  ]);
+  const demoCommit = (sha: string, message: string, d: number) => ({
+    id: uid(`github:commit:${sha}`),
+    spaceId: rdmSpace,
+    taskId: tid('RDM', 9),
+    ...ghRepo,
+    sha,
+    message,
+    authorName: 'Noah',
+    webUrl: `${ghUrl}/commit/${sha}`,
+    committedAt: at(d),
+    createdAt: at(d),
+    updatedAt: at(d),
+  });
+  await ins(githubCommits, [
+    demoCommit(
+      '4f2a9c1e7b3d5a8f0c6e2b9d1a7f3c5e8b0d2a4f',
+      'RDM-10 fix: border contrast in dark theme',
+      -3,
+    ),
+    demoCommit(
+      '9b1d3f5a7c9e1b3d5f7a9c1e3b5d7f9a1c3e5b7d',
+      'RDM-10: secondary text colour tokens',
+      -2,
     ),
   ]);
   await ins(s.comments, [

@@ -9,7 +9,7 @@ export const PAGE = 100;
 /** A guard against an endless pagination: 100 pages × 100 repositories. */
 const MAX_PAGES = 100;
 
-const unavailable = () => new HttpError(502, 'unavailable', GITHUB_ERRORS.unavailable);
+export const unavailable = () => new HttpError(502, 'unavailable', GITHUB_ERRORS.unavailable);
 
 /** GET with the token; no answer — 502 «GitHub недоступен». The status is the caller's business. */
 export async function ghGet(token: string, path: string): Promise<Response> {
@@ -30,7 +30,7 @@ export async function ghGet(token: string, path: string): Promise<Response> {
 }
 
 /** The token was refused (revoked, invalid, no access) — 502 with the clear message; other failures — «недоступен». */
-const failOf = (res: Response) =>
+export const failOf = (res: Response) =>
   res.status === 401 || res.status === 403
     ? new HttpError(502, 'unavailable', GITHUB_ERRORS.badToken)
     : unavailable();

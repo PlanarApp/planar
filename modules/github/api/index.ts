@@ -9,6 +9,7 @@ class GithubModule {}
 
 export { githubToken } from './controller.js';
 export { resolveConnection } from './connections.js';
+export { syncBinding, syncProject } from './sync.js';
 
 export const api: BackendModuleManifest = {
   id: shared.id,
